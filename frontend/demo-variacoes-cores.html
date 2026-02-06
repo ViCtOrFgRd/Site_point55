@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo - Sistema de Cores e Variações</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        h2 {
+            color: #0066cc;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-bottom: 3px solid #0066cc;
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            color: #333;
+            margin-top: 20px;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .color-card {
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .color-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .color-swatch {
+            width: 100%;
+            height: 120px;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+            margin-bottom: 10px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .color-card:hover .color-swatch {
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .color-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .color-code {
+            font-size: 12px;
+            color: #999;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Cores Simples */
+        .preto { background-color: #000000; }
+        .branco { background-color: #FFFFFF; border: 2px solid #e0e0e0; }
+        .cinza { background-color: #808080; }
+        .azul { background-color: #0066CC; }
+        .vermelho { background-color: #FF0000; }
+        .verde { background-color: #008000; }
+        .amarelo { background-color: #FFFF00; border: 2px solid #ddd; }
+        .laranja { background-color: #FFA500; }
+        .rosa { background-color: #FFC0CB; border: 2px solid #ddd; }
+        .roxo { background-color: #800080; }
+
+        /* Variações com Gradiente */
+        .branco-azul { background: linear-gradient(135deg, #FFFFFF, #0066CC); border: 2px solid #0066cc; }
+        .vermelho-amarelo { background: linear-gradient(135deg, #FF0000, #FFFF00); border: 2px solid #ddd; }
+        .preto-branco { background: linear-gradient(135deg, #000000, #FFFFFF); border: 2px solid #999; }
+        .cinza-branco { background: linear-gradient(135deg, #808080, #FFFFFF); border: 2px solid #ddd; }
+        .verde-amarelo { background: linear-gradient(135deg, #008000, #FFFF00); border: 2px solid #ddd; }
+        .azul-branco { background: linear-gradient(135deg, #0066CC, #FFFFFF); border: 2px solid #0066cc; }
+
+        .example-product {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #0066cc;
+        }
+
+        .product-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .color-selector {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .color-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .color-circle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .color-circle.active {
+            border-color: #000;
+            box-shadow: 0 0 0 2px #fff, 0 0 0 4px #000;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .table th,
+        .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .table th {
+            background: #f5f5f5;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .table tr:hover {
+            background: #fafafa;
+        }
+
+        .tips {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+
+        .tips strong {
+            color: #856404;
+        }
+
+        .tips p {
+            color: #856404;
+            margin: 5px 0;
+        }
+
+        .code-block {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            color: #333;
+        }
+
+        .footer {
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .gradient-info {
+            background: #f0f7ff;
+            border-left: 4px solid #0066cc;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            color: #0066cc;
+        }
+
+        .demo-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .selector-box {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            background: #f9f9f9;
+        }
+
+        .selector-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .color-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            h2 {
+                font-size: 1.4em;
+            }
+
+            .section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Sistema de Cores e Variações</h1>
+        <p class="subtitle">Demo do novo sistema de variações com cores gradiente</p>
+
+        <!-- Cores Simples -->
+        <div class="section">
+            <h2>🎨 Cores Simples Disponíveis</h2>
+            <p>Use diretamente sem modificações:</p>
+            
+            <div class="color-grid">
+                <div class="color-card">
+                    <div class="color-swatch preto"></div>
+                    <div class="color-name">Preto</div>
+                    <div class="color-code">#000000</div>
+                </div>
+                <div class="color-card">
+                    <div class="color-swatch branco"></div>
+                    <div class="color-name">Branco</div>
+                    <div class="color-code">#FFFFFF</div>
+                </div>
+                <div class="color-card">
+                    <div class="color-swatch cinza"></div>
+                    <div class="color-name">Cinza</div>
+                    <div class="color-code">#808080</div>
+                </div>
+                <div class="color-card">
+                    <div class="color-swatch azul"></div>
+                    <div class="color-name">Azul</div>
+                    <div class="color-code">#0066CC</div>
+                </div>
+                <div class="color-card">
+                    <div class="color-swatch vermelho"></div>
+                    <div class="color-name">Vermelho</div>
+                    <div class="color-code">#FF0000</div>
+                </div>
+                <div class="color-card">
+                    <div class="color-swatch verde"></div>
+                    <div class="color-name">Verde</div>
+                    <div class="color-code">#008000</div>
+                </div>
+                <div class="color-card">
+                    <div class="color-swatch amarelo"></div>
+                    <div class="color-name">Amarelo</div>
+                    <div class="color-code">#FFFF00</div>
+                </div>
+                <div class="color-card">
+                    <div class="color-swatch laranja"></div>
+                    <div class="color-name">Laranja</div>
+                    <div class="color-code">#FFA500</div>
+                </div>
+                <div class="color-card">
+                    <div class="color-swatch rosa"></div>
+                    <div class="color-name">Rosa</div>
+                    <div class="color-code">#FFC0CB</div>
+                </div>
+                <div class="color-card">
+                    <div class="color-swatch roxo"></div>
+                    <div class="color-name">Roxo</div>
+                    <div class="color-code">#800080</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Variações com Gradiente -->
+        <div class="section">
+            <h2>✨ Variações com Múltiplas Cores (Gradiente)</h2>
+            <p>Use "/" para combinar cores (ex: <strong>Branco/Azul</strong>):</p>
+            
+            <div class="color-grid">
+                <div class="color-card">
+                    <div class="color-swatch branco-azul"></div>
+                    <div class="color-name">Branco/Azul</div>
+                    <div class="color-code">Gradiente Diagonal</div>
+                </div>
+                <div class="color-card">
+                    <div class="color-swatch vermelho-amarelo"></div>
+                    <div class="color-name">Vermelho/Amarelo</div>
+                    <div class="color-code">Gradiente Diagonal</div>
+                </div>
+                <div class="color-card">
+                    <div class="color-swatch preto-branco"></div>
+                    <div class="color-name">Preto/Branco</div>
+                    <div class="color-code">Gradiente Diagonal</div>
+                </div>
+                <div class="color-card">
+                    <div class="color-swatch cinza-branco"></div>
+                    <div class="color-name">Cinza/Branco</div>
+                    <div class="color-code">Gradiente Diagonal</div>
+                </div>
+                <div class="color-card">
+                    <div class="color-swatch verde-amarelo"></div>
+                    <div class="color-name">Verde/Amarelo</div>
+                    <div class="color-code">Gradiente Diagonal</div>
+                </div>
+                <div class="color-card">
+                    <div class="color-swatch azul-branco"></div>
+                    <div class="color-name">Azul/Branco</div>
+                    <div class="color-code">Gradiente Diagonal</div>
+                </div>
+            </div>
+
+            <div class="gradient-info">
+                💡 <strong>Importante:</strong> Os gradientes são aplicados em diagonal (135°) para melhor visualização. Use "/" sem espaços (ex: "Branco/Azul" e não "Branco / Azul").
+            </div>
+        </div>
+
+        <!-- Exemplos de Produtos -->
+        <div class="section">
+            <h2>📦 Exemplos de Uso em Produtos</h2>
+
+            <h3>Exemplo 1: Camiseta Listrada</h3>
+            <div class="example-product">
+                <div class="product-title">Camiseta Listrada - Selecione uma cor:</div>
+                <div class="color-selector">
+                    <div class="color-circle preto" style="background-color: #000000; border-color: #000;" title="Preto"></div>
+                    <div class="color-circle branco" style="background-color: #FFFFFF; border-color: #ddd;" title="Branco"></div>
+                    <div class="color-circle branco-azul" style="background: linear-gradient(135deg, #FFFFFF, #0066CC); border-color: #0066cc;" title="Branco/Azul"></div>
+                    <div class="color-circle vermelho-amarelo" style="background: linear-gradient(135deg, #FF0000, #FFFF00); border-color: #ddd;" title="Vermelho/Amarelo"></div>
+                </div>
+            </div>
+
+            <h3>Exemplo 2: Boné Bicolor</h3>
+            <div class="example-product">
+                <div class="product-title">Boné Ajustável - Selecione uma cor:</div>
+                <div class="color-selector">
+                    <div class="color-circle preto" style="background-color: #000000; border-color: #000;" title="Preto"></div>
+                    <div class="color-circle branco" style="background-color: #FFFFFF; border-color: #ddd;" title="Branco"></div>
+                    <div class="color-circle preto-branco" style="background: linear-gradient(135deg, #000000, #FFFFFF); border-color: #999;" title="Preto/Branco"></div>
+                    <div class="color-circle azul-branco" style="background: linear-gradient(135deg, #0066CC, #FFFFFF); border-color: #0066cc;" title="Azul/Branco"></div>
+                </div>
+            </div>
+
+            <h3>Exemplo 3: Jaqueta Premium</h3>
+            <div class="example-product">
+                <div class="product-title">Jaqueta Premium - Selecione uma cor:</div>
+                <div class="color-selector">
+                    <div class="color-circle preto" style="background-color: #000000; border-color: #000;" title="Preto"></div>
+                    <div class="color-circle cinza" style="background-color: #808080; border-color: #ddd;" title="Cinza"></div>
+                    <div class="color-circle azul" style="background-color: #0066CC; border-color: #0066cc;" title="Azul"></div>
+                    <div class="color-circle" style="background: linear-gradient(135deg, #000000, #0066CC); border-color: #0066cc; border: 3px solid #0066cc;" title="Preto/Azul"></div>
+                    <div class="color-circle cinza-branco" style="background: linear-gradient(135deg, #808080, #FFFFFF); border-color: #ddd;" title="Cinza/Branco"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Guia de Uso -->
+        <div class="section">
+            <h2>📝 Guia de Uso no Admin Panel</h2>
+
+            <h3>Adicionar Cor Simples:</h3>
+            <div class="code-block">
+1. Abrir edição do produto<br>
+2. Seção "Variações" → "Cores Disponíveis"<br>
+3. Digite: Azul<br>
+4. Clique em "Adicionar"<br>
+<br>
+Resultado: Bolinha AZUL SÓLIDA 🔵
+            </div>
+
+            <h3>Adicionar Variação com Gradiente:</h3>
+            <div class="code-block">
+1. Abrir edição do produto<br>
+2. Seção "Variações" → "Cores Disponíveis"<br>
+3. Digite: Branco/Azul<br>
+4. Clique em "Adicionar"<br>
+<br>
+Resultado: Bolinha com GRADIENTE (Branco + Azul) 🟠
+            </div>
+
+            <div class="tips">
+                <strong>✅ Dicas Importantes:</strong>
+                <p>✓ Use "/" sem espaços: "Branco/Azul" (não "Branco / Azul")</p>
+                <p>✓ Use exatamente os nomes da lista (maiúsculas)</p>
+                <p>✓ Cores combinam em diagonal para melhor visualização</p>
+                <p>✓ Máximo 5-7 cores por produto recomendado</p>
+                <p>✓ Tamanhos funcionam igual: P, M, G, GG</p>
+            </div>
+        </div>
+
+        <!-- Tabela de Cores -->
+        <div class="section">
+            <h2>📋 Tabela Completa de Cores</h2>
+            
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Código</th>
+                        <th>Categoria</th>
+                        <th>Exemplo de Uso</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Preto</strong></td>
+                        <td>#000000</td>
+                        <td>Básica</td>
+                        <td>Camiseta, Calça, Meia</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Branco</strong></td>
+                        <td>#FFFFFF</td>
+                        <td>Básica</td>
+                        <td>Camiseta, Meias, Sapatos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Azul</strong></td>
+                        <td>#0066CC</td>
+                        <td>Azuis</td>
+                        <td>Jaqueta, Calça, Camiseta</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Vermelho</strong></td>
+                        <td>#FF0000</td>
+                        <td>Quentes</td>
+                        <td>Camiseta, Bolsa, Sapatos</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Verde</strong></td>
+                        <td>#008000</td>
+                        <td>Verdes</td>
+                        <td>Camiseta, Moletom</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Branco/Azul</strong></td>
+                        <td>Gradiente</td>
+                        <td>Variação</td>
+                        <td>Camiseta Listrada, Boné</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Preto/Branco</strong></td>
+                        <td>Gradiente</td>
+                        <td>Variação</td>
+                        <td>Sapatos, Bolsa, Jaqueta</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Perguntas Frequentes -->
+        <div class="section">
+            <h2>❓ Perguntas Frequentes</h2>
+
+            <h3>P: Posso usar cores que não estão na lista?</h3>
+            <p>R: Sim, mas elas aparecerão como cinza. Recomendamos usar as cores da lista fornecida ou solicitar adição de novas cores ao desenvolvedor.</p>
+
+            <h3>P: O gradiente sempre é diagonal?</h3>
+            <p>R: Sim, o gradiente é aplicado a 135 graus (diagonal) para melhor visualização na bolinha. Isto é intencional.</p>
+
+            <h3>P: Posso combinar 3 ou mais cores?</h3>
+            <p>R: Atualmente suportamos 2 cores. Versão futura pode suportar 3+. Use "Cor1/Cor2" para agora.</p>
+
+            <h3>P: Como aparecem na página de produto?</h3>
+            <p>R: As cores simples aparecem como bolinhas sólidas coloridas. As variações aparecem como bolinhas com gradiente.</p>
+
+            <h3>P: Os gradientes funcionam também no carrinho?</h3>
+            <p>R: Sim! O gradiente aparece em todo lugar: listagem, produto e carrinho.</p>
+        </div>
+
+        <div class="footer">
+            <p>🎨 Sistema de Variações com Cores Gradiente - Versão 1.0</p>
+            <p>Última atualização: 6 de fevereiro de 2026</p>
+            <p>Desenvolvido para Point55 Store</p>
+        </div>
+    </div>
+</body>
+</html>

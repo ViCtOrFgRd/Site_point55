@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useToast } from '@/contexts/ToastContext';
-import { FiX, FiLoader } from 'react-icons/fi';
+import { X, Loader } from 'lucide-react';
+import { useNotification } from '@/hooks/useNotification';
 import styles from './AddressForm.module.scss';
 
 interface AddressFormProps {
@@ -23,7 +23,7 @@ interface AddressFormProps {
 }
 
 export default function AddressForm({ address, onSubmit, onCancel, isEdit = false }: AddressFormProps) {
-  const toast = useToast();
+  const { success, error, warning } = useNotification();
   const [loading, setLoading] = useState(false);
   const [buscandoCep, setBuscandoCep] = useState(false);
   
@@ -68,7 +68,7 @@ export default function AddressForm({ address, onSubmit, onCancel, isEdit = fals
       const data = await response.json();
 
       if (data.erro) {
-        toast.warning('CEP não encontrado');
+        warning('CEP não encontrado', 'Verifique o CEP digitado');
         return;
       }
 
@@ -80,9 +80,9 @@ export default function AddressForm({ address, onSubmit, onCancel, isEdit = fals
         estado: data.uf || prev.estado,
       }));
 
-      toast.success('CEP encontrado!');
-    } catch (error) {
-      toast.error('Erro ao buscar CEP');
+      success('CEP encontrado!', 'Endereço preenchido automaticamente');
+    } catch (err) {
+      error('Erro ao buscar CEP', 'Verifique sua conexão');
     } finally {
       setBuscandoCep(false);
     }
@@ -118,7 +118,7 @@ export default function AddressForm({ address, onSubmit, onCancel, isEdit = fals
     e.preventDefault();
 
     if (!validate()) {
-      toast.warning('Preencha todos os campos obrigatórios');
+      warning('Validação', 'Preencha todos os campos obrigatórios');
       return;
     }
 
@@ -128,7 +128,7 @@ export default function AddressForm({ address, onSubmit, onCancel, isEdit = fals
         ...formData,
         cep: formData.cep.replace(/\D/g, ''), // Remove formatação
       });
-    } catch (error) {
+    } catch (err) {
       // Erro já tratado no componente pai
     } finally {
       setLoading(false);
@@ -141,7 +141,7 @@ export default function AddressForm({ address, onSubmit, onCancel, isEdit = fals
         <div className={styles.header}>
           <h2>{isEdit ? 'Editar Endereço' : 'Novo Endereço'}</h2>
           <button onClick={onCancel} className={styles.closeButton}>
-            <FiX />
+            <X size={24} />
           </button>
         </div>
 
@@ -158,7 +158,7 @@ export default function AddressForm({ address, onSubmit, onCancel, isEdit = fals
                   maxLength={9}
                   className={errors.cep ? styles.error : ''}
                 />
-                {buscandoCep && <FiLoader className={styles.spinner} />}
+                {buscandoCep && <Loader className={styles.spinner} />}
               </div>
               {errors.cep && <span className={styles.errorText}>{errors.cep}</span>}
               <small>Digite o CEP para preenchimento automático</small>

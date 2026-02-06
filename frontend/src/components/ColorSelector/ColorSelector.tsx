@@ -1,6 +1,11 @@
 'use client';
 
 import styles from './ColorSelector.module.scss';
+import { 
+  convertColorToHex, 
+  getColorLabel, 
+  getColorVariationStyle 
+} from '@/utils/colorMapping';
 
 interface ColorSelectorProps {
   colors: string[];
@@ -23,10 +28,10 @@ export default function ColorSelector({
           <button
             key={index}
             className={`${styles.colorOption} ${selectedColor === color ? styles.active : ''}`}
-            style={{ backgroundColor: color }}
+            style={getColorVariationStyle(color)}
             onClick={() => onSelectColor(color)}
-            title={color}
-            aria-label={`Selecionar cor ${color}`}
+            title={getColorLabel(color)}
+            aria-label={`Selecionar cor ${getColorLabel(color)}`}
           />
         ))}
       </div>

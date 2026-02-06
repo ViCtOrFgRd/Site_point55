@@ -27,17 +27,17 @@ export const CATEGORY_ICONS = {
 
 // Imagens de categorias
 export const CATEGORY_IMAGES = {
-  'roupas-femininas': '/images/categories/roupas-femininas.jpg',
-  'roupas-masculinas': '/images/categories/roupas-masculinas.jpg',
-  'acessorios': '/images/categories/acessorios.jpg',
-  'acessórios': '/images/categories/acessorios.jpg',
-  'calcados': '/images/categories/calcados.jpg',
-  'calçados': '/images/categories/calcados.jpg',
-  'calcas': '/images/categories/calcas.jpg',
-  'camisas': '/images/categories/camisas.jpg',
-  'tenis': '/images/categories/tenis.jpg',
-  'tênnis': '/images/categories/tenis.jpg',
-  'outros': '/images/categories/outros.jpg',
+  'roupas-femininas': '/images/categories/roupas-femininas.svg',
+  'roupas-masculinas': '/images/categories/roupas-masculinas.svg',
+  'acessorios': '/images/categories/acessorios.svg',
+  'acessórios': '/images/categories/acessorios.svg',
+  'calcados': '/images/categories/calcados.svg',
+  'calçados': '/images/categories/calcados.svg',
+  'calcas': '/images/categories/calcas.svg',
+  'camisas': '/images/categories/camisas.svg',
+  'tenis': '/images/categories/tenis.svg',
+  'tênnis': '/images/categories/tenis.svg',
+  'outros': '/images/categories/outros.svg',
 };
 
 export const CATEGORY_COLORS = {

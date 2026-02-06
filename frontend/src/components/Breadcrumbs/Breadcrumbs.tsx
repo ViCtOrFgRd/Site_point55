@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { FiChevronRight, FiHome } from 'react-icons/fi';
+import { ChevronRight, Home } from 'lucide-react';
 import styles from './Breadcrumbs.module.scss';
 
 interface BreadcrumbItem {
@@ -19,14 +19,14 @@ export default function Breadcrumbs({ items }: BreadcrumbsProps) {
       <ol className={styles.breadcrumbList}>
         <li className={styles.breadcrumbItem}>
           <Link href="/" className={styles.breadcrumbLink}>
-            <FiHome />
+            <Home size={18} />
             <span>Início</span>
           </Link>
         </li>
         
         {items.map((item, index) => (
           <li key={index} className={styles.breadcrumbItem}>
-            <FiChevronRight className={styles.separator} />
+            <ChevronRight size={18} className={styles.separator} />
             {item.href && index < items.length - 1 ? (
               <Link href={item.href} className={styles.breadcrumbLink}>
                 {item.label}

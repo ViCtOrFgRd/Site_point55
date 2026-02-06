@@ -5,17 +5,17 @@ import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { orderService, addressService, couponService } from '@/services/api';
 import { useRouter } from 'next/navigation';
-import { FiCreditCard, FiMapPin, FiPackage } from 'react-icons/fi';
+import { CreditCard, MapPin, Package } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs/Breadcrumbs';
 import { toNumber, formatPrice } from '@/utils/formatPrice';
-import { useToast } from '@/contexts/ToastContext';
+import { useNotification } from '@/hooks/useNotification';
 import styles from './checkout.module.scss';
 
 export default function CheckoutPage() {
   const { items, getTotal, clearCart } = useCart();
   const { user } = useAuth();
   const router = useRouter();
-  const { showToast } = useToast();
+  const { success, error } = useNotification();
 
   const [enderecos, setEnderecos] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -181,7 +181,7 @@ export default function CheckoutPage() {
             {/* Etapa 1: Endereço */}
             <div className={styles.section}>
               <div className={styles.sectionHeader}>
-                <h2><FiMapPin /> Endereço de Entrega</h2>
+                <h2><MapPin size={24} /> Endereço de Entrega</h2>
               </div>
 
               {enderecos.length === 0 ? (
@@ -221,7 +221,7 @@ export default function CheckoutPage() {
             {/* Etapa 2: Forma de Pagamento */}
             <div className={styles.section}>
               <div className={styles.sectionHeader}>
-                <h2><FiCreditCard /> Forma de Pagamento</h2>
+                <h2><CreditCard size={24} /> Forma de Pagamento</h2>
               </div>
 
               <div className={styles.paymentOptions}>
@@ -324,7 +324,7 @@ export default function CheckoutPage() {
 
           {/* Resumo do Pedido */}
           <div className={styles.orderSummary}>
-            <h2><FiPackage /> Resumo do Pedido</h2>
+            <h2><Package size={24} /> Resumo do Pedido</h2>
 
             <div className={styles.summaryItems}>
               {items.map((item) => (

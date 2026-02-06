@@ -2,8 +2,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Criar diretório de uploads se não existir
-const uploadDir = path.join(__dirname, '../image');
+// Criar diretório de uploads se não existir (pasta raiz do projeto)
+const uploadDir = path.join(__dirname, '../../image');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }

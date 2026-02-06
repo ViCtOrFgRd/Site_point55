@@ -1,7 +1,7 @@
 'use client';
 
 import Breadcrumbs from '@/components/Breadcrumbs/Breadcrumbs';
-import { FiTruck, FiPackage, FiMapPin, FiClock } from 'react-icons/fi';
+import { Truck, Package, MapPin, Clock } from 'lucide-react';
 import styles from './frete.module.scss';
 
 export default function FretePage() {
@@ -11,7 +11,7 @@ export default function FretePage() {
         <Breadcrumbs items={[{ label: 'Política de Frete' }]} />
 
         <div className={styles.hero}>
-          <FiTruck className={styles.heroIcon} />
+          <Truck className={styles.heroIcon} />
           <h1>Política de Frete</h1>
           <p>Entregamos para todo o Brasil com segurança e rapidez</p>
         </div>
@@ -19,17 +19,17 @@ export default function FretePage() {
         <div className={styles.content}>
           <section className={styles.highlight}>
             <div className={styles.highlightCard}>
-              <FiTruck className={styles.icon} />
+              <Truck className={styles.icon} />
               <h3>Frete Grátis</h3>
               <p>Em compras acima de R$ 299,00 para todo o Brasil</p>
             </div>
             <div className={styles.highlightCard}>
-              <FiPackage className={styles.icon} />
+              <Package className={styles.icon} />
               <h3>Envio Rápido</h3>
               <p>Pedidos aprovados até 14h são postados no mesmo dia</p>
             </div>
             <div className={styles.highlightCard}>
-              <FiClock className={styles.icon} />
+              <Clock className={styles.icon} />
               <h3>Rastreamento</h3>
               <p>Acompanhe seu pedido em tempo real</p>
             </div>
@@ -52,7 +52,7 @@ export default function FretePage() {
 
               <div className={styles.tableRow}>
                 <div className={styles.tableCell}>
-                  <FiMapPin className={styles.iconSmall} />
+                  <MapPin className={styles.iconSmall} />
                   <strong>Sudeste</strong>
                 </div>
                 <div className={styles.tableCell}>SP, RJ, MG, ES</div>
@@ -62,7 +62,7 @@ export default function FretePage() {
 
               <div className={styles.tableRow}>
                 <div className={styles.tableCell}>
-                  <FiMapPin className={styles.iconSmall} />
+                  <MapPin className={styles.iconSmall} />
                   <strong>Sul</strong>
                 </div>
                 <div className={styles.tableCell}>PR, SC, RS</div>
@@ -72,7 +72,7 @@ export default function FretePage() {
 
               <div className={styles.tableRow}>
                 <div className={styles.tableCell}>
-                  <FiMapPin className={styles.iconSmall} />
+                  <MapPin className={styles.iconSmall} />
                   <strong>Centro-Oeste</strong>
                 </div>
                 <div className={styles.tableCell}>GO, MT, MS, DF</div>
@@ -82,7 +82,7 @@ export default function FretePage() {
 
               <div className={styles.tableRow}>
                 <div className={styles.tableCell}>
-                  <FiMapPin className={styles.iconSmall} />
+                  <MapPin className={styles.iconSmall} />
                   <strong>Nordeste</strong>
                 </div>
                 <div className={styles.tableCell}>BA, PE, CE, RN, AL, SE, PB, PI, MA</div>
@@ -92,7 +92,7 @@ export default function FretePage() {
 
               <div className={styles.tableRow}>
                 <div className={styles.tableCell}>
-                  <FiMapPin className={styles.iconSmall} />
+                  <MapPin className={styles.iconSmall} />
                   <strong>Norte</strong>
                 </div>
                 <div className={styles.tableCell}>AM, PA, RO, AC, RR, AP, TO</div>

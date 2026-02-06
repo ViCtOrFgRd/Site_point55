@@ -1,0 +1,253 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #000;
+  margin-bottom: 4px;
+}
+
+.inputWrapper {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: all 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #0066cc;
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+  }
+
+  &::placeholder {
+    color: #999;
+  }
+}
+
+.addButton {
+  padding: 10px 16px;
+  background: #0066cc;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: #0052a3;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 102, 204, 0.3);
+  }
+
+  &:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
+.preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #f9f9f9;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.previewColor {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  flex-shrink: 0;
+}
+
+.previewLabel {
+  font-size: 13px;
+  color: #666;
+}
+
+.suggestions {
+  padding: 12px;
+  background: #f5f5f5;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.suggestionsTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.suggestionsList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.suggestionItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 13px;
+  color: #333;
+  text-align: left;
+
+  &:hover {
+    border-color: #0066cc;
+    background: #f0f7ff;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 6px rgba(0, 102, 204, 0.2);
+  }
+}
+
+.suggestionColor {
+  width: 24px;
+  height: 24px;
+  border-radius: 3px;
+  border: 1px solid #ccc;
+  flex-shrink: 0;
+}
+
+.popularColors {
+  padding: 12px;
+  background: #f9f9f9;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.popularTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.popularList {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.popularItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 13px;
+  color: #333;
+
+  &:hover {
+    border-color: #0066cc;
+    background: #f0f7ff;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 6px rgba(0, 102, 204, 0.2);
+  }
+}
+
+.popularColor {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  border: 1px solid #ccc;
+}
+
+.existingColors {
+  padding: 12px;
+  background: #f0f8ff;
+  border-radius: 6px;
+  border: 1px solid #b3d9ff;
+}
+
+.existingTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0066cc;
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tagsList {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: white;
+  border: 1px solid #0066cc;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #0066cc;
+}
+
+.tagColor {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  border: 1px solid #0066cc;
+}
+
+.hint {
+  font-size: 12px;
+  color: #999;
+  margin: 0;
+  padding: 8px;
+  background: #fafafa;
+  border-left: 3px solid #ffc107;
+  border-radius: 3px;
+}
+
+@media (max-width: 768px) {
+  .suggestionsList {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  }
+
+  .inputWrapper {
+    flex-direction: column;
+  }
+
+  .addButton {
+    width: 100%;
+  }
+}

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import 'bootstrap/dist/css/bootstrap.min.css'
+import { Toaster } from 'sonner'
 import { Header, Footer } from '@/components'
 import WhatsAppButton from '@/components/WhatsAppButton/WhatsAppButton'
 import { CartProvider } from '@/contexts/CartContext'
@@ -32,6 +33,12 @@ export default function RootLayout({
               </main>
               <Footer />
               <WhatsAppButton />
+              <Toaster 
+                position="bottom-right"
+                richColors
+                closeButton
+                theme="light"
+              />
             </CartProvider>
           </ToastProvider>
         </AuthProvider>

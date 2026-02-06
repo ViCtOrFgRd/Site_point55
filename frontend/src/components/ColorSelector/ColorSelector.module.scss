@@ -30,6 +30,8 @@
   transition: all 0.2s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   position: relative;
+  background-size: 200% 200%;
+  background-position: 0% 0%;
 
   &:hover {
     transform: scale(1.1);

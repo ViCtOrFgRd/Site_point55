@@ -122,47 +122,75 @@ export default function Home() {
               <>
                 <Link href="/produtos?categoria=roupas-femininas" className={styles.categoryCard}>
                   <div className={styles.categoryImage} style={{ 
-                    background: '#FFE5E5',
-                    backgroundImage: 'url(/images/categories/roupas-femininas.jpg)',
+                    backgroundImage: 'url(/images/categories/roupas-femininas.svg)',
                     backgroundSize: 'cover',
                     backgroundPosition: 'center'
                   }}>
-                    <span style={{ fontSize: '4rem' }}>👗</span>
                   </div>
-                  <h3>Feminino</h3>
+                  <h3>Roupas Femininas</h3>
                 </Link>
                 <Link href="/produtos?categoria=roupas-masculinas" className={styles.categoryCard}>
                   <div className={styles.categoryImage} style={{ 
-                    background: '#E5F2FF',
-                    backgroundImage: 'url(/images/categories/roupas-masculinas.jpg)',
+                    backgroundImage: 'url(/images/categories/roupas-masculinas.svg)',
                     backgroundSize: 'cover',
                     backgroundPosition: 'center'
                   }}>
-                    <span style={{ fontSize: '4rem' }}>👔</span>
                   </div>
-                  <h3>Masculino</h3>
+                  <h3>Roupas Masculinas</h3>
                 </Link>
                 <Link href="/produtos?categoria=acessorios" className={styles.categoryCard}>
                   <div className={styles.categoryImage} style={{ 
-                    background: '#FFF5E5',
-                    backgroundImage: 'url(/images/categories/acessorios.jpg)',
+                    backgroundImage: 'url(/images/categories/acessorios.svg)',
                     backgroundSize: 'cover',
                     backgroundPosition: 'center'
                   }}>
-                    <span style={{ fontSize: '4rem' }}>👜</span>
                   </div>
                   <h3>Acessórios</h3>
                 </Link>
                 <Link href="/produtos?categoria=calcados" className={styles.categoryCard}>
                   <div className={styles.categoryImage} style={{ 
-                    background: '#F0E5FF',
-                    backgroundImage: 'url(/images/categories/calcados.jpg)',
+                    backgroundImage: 'url(/images/categories/calcados.svg)',
                     backgroundSize: 'cover',
                     backgroundPosition: 'center'
                   }}>
-                    <span style={{ fontSize: '4rem' }}>👟</span>
                   </div>
                   <h3>Calçados</h3>
+                </Link>
+                <Link href="/produtos?categoria=calcas" className={styles.categoryCard}>
+                  <div className={styles.categoryImage} style={{ 
+                    backgroundImage: 'url(/images/categories/calcas.svg)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                  }}>
+                  </div>
+                  <h3>Calças</h3>
+                </Link>
+                <Link href="/produtos?categoria=camisas" className={styles.categoryCard}>
+                  <div className={styles.categoryImage} style={{ 
+                    backgroundImage: 'url(/images/categories/camisas.svg)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                  }}>
+                  </div>
+                  <h3>Camisas</h3>
+                </Link>
+                <Link href="/produtos?categoria=tenis" className={styles.categoryCard}>
+                  <div className={styles.categoryImage} style={{ 
+                    backgroundImage: 'url(/images/categories/tenis.svg)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                  }}>
+                  </div>
+                  <h3>Tênis</h3>
+                </Link>
+                <Link href="/produtos?categoria=outros" className={styles.categoryCard}>
+                  <div className={styles.categoryImage} style={{ 
+                    backgroundImage: 'url(/images/categories/outros.svg)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                  }}>
+                  </div>
+                  <h3>Outros</h3>
                 </Link>
               </>
             ) : (
@@ -172,17 +200,16 @@ export default function Home() {
                   href={`/produtos?categoria=${categoria.slug}`} 
                   className={styles.categoryCard}
                 >
-                  <div className={styles.categoryImage} style={{ 
-                    background: categoryColors[categoria.slug] || '#E5F5FF',
-                    backgroundImage: `url(${getCategoryImage(categoria.slug, categoria.nome)})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                  }}>
-                    {!categoria.imagem && (
-                      <span style={{ fontSize: '4rem' }}>
-                        {categoryIcons[categoria.slug] || '🛍️'}
-                      </span>
-                    )}
+                  <div 
+                    className={styles.categoryImage} 
+                    style={{ 
+                      backgroundImage: categoria.imagem 
+                        ? `url(${categoria.imagem})` 
+                        : `url(${getCategoryImage(categoria.slug, categoria.nome)})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                    }}
+                  >
                   </div>
                   <h3>{categoria.nome}</h3>
                 </Link>

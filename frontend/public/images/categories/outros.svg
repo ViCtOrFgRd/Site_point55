@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad_outros" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF69B4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#B31D68;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Fundo gradiente -->
+  <rect width="400" height="300" fill="url(#grad_outros)" />
+  
+  <!-- Emoji no centro -->
+  <text x="200" y="120" font-size="80" text-anchor="middle" dominant-baseline="middle">
+    🛍️
+  </text>
+  
+  <!-- Nome da categoria -->
+  <text x="200" y="230" font-size="28" font-weight="bold" text-anchor="middle" fill="white" font-family="Arial, sans-serif">
+    Outros
+  </text>
+</svg>

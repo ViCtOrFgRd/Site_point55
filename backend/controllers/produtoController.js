@@ -464,11 +464,19 @@ const criarProduto = async (req, res) => {
       });
     }
 
-    // Conversão de tipos
-    preco = parseFloat(preco);
-    preco_original = preco_original ? parseFloat(preco_original) : null;
-    desconto_percentual = parseFloat(desconto_percentual) || 0;
-    estoque = parseInt(estoque) || 0;
+    // Conversão de tipos com validação robusta
+    preco = parseFloat(String(preco).trim());
+    if (isNaN(preco)) preco = 0;
+    
+    preco_original = preco_original ? parseFloat(String(preco_original).trim()) : null;
+    if (preco_original && isNaN(preco_original)) preco_original = null;
+    
+    desconto_percentual = Math.round(parseFloat(String(desconto_percentual || 0).trim()));
+    if (isNaN(desconto_percentual)) desconto_percentual = 0;
+    
+    estoque = parseInt(String(estoque || 0).trim());
+    if (isNaN(estoque)) estoque = 0;
+    
     ativo = ativo === true || ativo === 'true' || ativo === 1;
     
     // Garantir arrays válidos
@@ -598,12 +606,26 @@ const atualizarProduto = async (req, res) => {
             continue;
           }
         } else {
-          const numValue = parseFloat(valor);
+          // Converter para string antes de fazer parseFloat para evitar problemas
+          const strValue = String(valor).trim();
+          let numValue = parseFloat(strValue);
+          
           if (isNaN(numValue)) {
-            // Ignorar valores que não são números válidos
-            continue;
+            console.warn(`⚠️ Valor inválido para campo ${campo}: "${valor}"`);
+            if (campo === 'desconto_percentual' || campo === 'estoque') {
+              valor = 0;
+            } else {
+              // Ignorar valores que não são números válidos
+              continue;
+            }
+          } else {
+            // Para desconto_percentual, converter para inteiro
+            if (campo === 'desconto_percentual') {
+              valor = Math.round(numValue);
+            } else {
+              valor = numValue;
+            }
           }
-          valor = numValue;
         }
       }
       

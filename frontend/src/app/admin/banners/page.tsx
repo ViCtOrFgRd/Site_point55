@@ -4,8 +4,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { FiArrowLeft, FiPlus, FiEdit2, FiTrash2, FiEye, FiEyeOff, FiMove, FiSave } from 'react-icons/fi';
+import { ArrowLeft, Plus, Edit2, Trash2, Eye, EyeOff, GripVertical, Save } from 'lucide-react';
 import { bannerService } from '@/services/api';
+import { useNotification } from '@/hooks/useNotification';
+import { confirmDelete, showSuccess, showError } from '@/utils/alerts';
 import styles from './banners.module.scss';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
@@ -68,7 +70,7 @@ export default function BannersPage() {
       }
     } catch (error: any) {
       console.error('Erro ao carregar banners:', error);
-      alert('Erro ao carregar banners: ' + error.message);
+      showError('Erro ao carregar banners: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -120,13 +122,13 @@ export default function BannersPage() {
     // Validar tipo de arquivo
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
-      alert('Tipo de arquivo não suportado. Use apenas imagens (JPEG, PNG, GIF, WEBP).');
+      showError('Tipo de arquivo não suportado. Use apenas imagens (JPEG, PNG, GIF, WEBP).');
       return;
     }
 
     // Validar tamanho (5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('Arquivo muito grande. O tamanho máximo é 5MB.');
+      showError('Arquivo muito grande. O tamanho máximo é 5MB.');
       return;
     }
 
@@ -156,13 +158,13 @@ export default function BannersPage() {
           ...prev,
           imagem: imageUrl,
         }));
-        alert('Imagem enviada com sucesso!');
+        showSuccess('Imagem enviada com sucesso!');
       } else {
-        alert(data.message || 'Erro ao fazer upload da imagem');
+        showError(data.message || 'Erro ao fazer upload da imagem');
       }
     } catch (error: any) {
       console.error('Erro ao fazer upload:', error);
-      alert('Erro ao fazer upload da imagem: ' + error.message);
+      showError('Erro ao fazer upload da imagem: ' + error.message);
     } finally {
       setUploading(false);
       // Limpar o input file
@@ -174,7 +176,7 @@ export default function BannersPage() {
     e.preventDefault();
 
     if (!formData.titulo.trim()) {
-      alert('O título é obrigatório');
+      showError('O título é obrigatório');
       return;
     }
 
@@ -194,32 +196,34 @@ export default function BannersPage() {
 
       if (editingBanner) {
         await bannerService.update(editingBanner.id, dataToSend);
-        alert('Banner atualizado com sucesso!');
+        showSuccess('Banner atualizado com sucesso!');
       } else {
         await bannerService.create(dataToSend);
-        alert('Banner criado com sucesso!');
+        showSuccess('Banner criado com sucesso!');
       }
 
       fecharModal();
       carregarBanners();
     } catch (error: any) {
       console.error('Erro ao salvar banner:', error);
-      alert('Erro ao salvar banner: ' + error.message);
+      showError('Erro ao salvar banner: ' + error.message);
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir este banner?')) {
+    const shouldDelete = await confirmDelete('Excluir Banner?', 'Esta ação não pode ser desfeita!');
+
+    if (!shouldDelete) {
       return;
     }
 
     try {
       await bannerService.delete(id);
-      alert('Banner excluído com sucesso!');
+      showSuccess('Banner excluído com sucesso!');
       carregarBanners();
     } catch (error: any) {
       console.error('Erro ao excluir banner:', error);
-      alert('Erro ao excluir banner: ' + error.message);
+      showError('Erro ao excluir banner: ' + error.message);
     }
   };
 
@@ -263,7 +267,7 @@ export default function BannersPage() {
       carregarBanners();
     } catch (error: any) {
       console.error('Erro ao reordenar:', error);
-      alert('Erro ao reordenar: ' + error.message);
+      showError('Erro ao reordenar: ' + error.message);
     }
   };
 
@@ -287,14 +291,14 @@ export default function BannersPage() {
         <div className={styles.header}>
           <div className={styles.headerTop}>
             <Link href="/admin" className={styles.backButton}>
-              <FiArrowLeft /> Voltar
+              <ArrowLeft size={18} /> Voltar
             </Link>
             <h1>Gerenciar Banners</h1>
           </div>
           
           <div className={styles.headerActions}>
             <button className={styles.addButton} onClick={() => abrirModal()}>
-              <FiPlus /> Novo Banner
+              <Plus size={18} /> Novo Banner
             </button>
           </div>
         </div>
@@ -356,7 +360,7 @@ export default function BannersPage() {
                       className={styles.iconButton}
                       title={banner.ativo ? 'Desativar' : 'Ativar'}
                     >
-                      {banner.ativo ? <FiEyeOff /> : <FiEye />}
+                      {banner.ativo ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                     
                     <div className={styles.moveButtons}>
@@ -383,7 +387,7 @@ export default function BannersPage() {
                       className={styles.iconButton}
                       title="Editar"
                     >
-                      <FiEdit2 />
+                      <Edit2 size={18} />
                     </button>
                     
                     <button
@@ -391,7 +395,7 @@ export default function BannersPage() {
                       className={`${styles.iconButton} ${styles.danger}`}
                       title="Excluir"
                     >
-                      <FiTrash2 />
+                      <Trash2 size={18} />
                     </button>
                   </div>
                 </div>
@@ -592,7 +596,7 @@ export default function BannersPage() {
                   Cancelar
                 </button>
                 <button type="submit" className={styles.saveButton}>
-                  <FiSave /> {editingBanner ? 'Atualizar' : 'Criar'} Banner
+                  <Save size={18} /> {editingBanner ? 'Atualizar' : 'Criar'} Banner
                 </button>
               </div>
             </form>

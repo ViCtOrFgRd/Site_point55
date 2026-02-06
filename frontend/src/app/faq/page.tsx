@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Breadcrumbs from '@/components/Breadcrumbs/Breadcrumbs';
-import { FiChevronDown, FiChevronUp } from 'react-icons/fi';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import styles from './faq.module.scss';
 
 interface FAQItem {
@@ -176,7 +176,7 @@ export default function FAQPage() {
                 onClick={() => toggleFAQ(index)}
               >
                 <span>{faq.pergunta}</span>
-                {expandedIndex === index ? <FiChevronUp size={24} /> : <FiChevronDown size={24} />}
+                {expandedIndex === index ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
               </button>
               {expandedIndex === index && (
                 <div className={styles.faqAnswer}>

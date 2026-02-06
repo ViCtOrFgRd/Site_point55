@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Breadcrumbs from '@/components/Breadcrumbs/Breadcrumbs';
-import { FiHeart, FiShoppingCart, FiTrash2, FiAlertCircle } from 'react-icons/fi';
+import { Heart, ShoppingCart, Trash2, AlertCircle } from 'lucide-react';
+import { useNotification } from '@/hooks/useNotification';
+import { confirmDelete } from '@/utils/alerts';
 import styles from './favoritos.module.scss';
 
 interface Produto {
@@ -20,6 +22,7 @@ interface Produto {
 export default function FavoritosPage() {
   const [favoritos, setFavoritos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
+  const { success, error, warning } = useNotification();
 
   useEffect(() => {
     carregarFavoritos();
@@ -64,6 +67,13 @@ export default function FavoritosPage() {
   };
 
   const removerFavorito = async (produtoId: number) => {
+    const shouldDelete = await confirmDelete(
+      'Remover dos Favoritos?',
+      'Este produto será removido da sua lista de desejos'
+    );
+
+    if (!shouldDelete) return;
+
     try {
       const token = localStorage.getItem('token');
 
@@ -73,6 +83,7 @@ export default function FavoritosPage() {
         const novosFavoritos = favoritosLocal.filter((id: number) => id !== produtoId);
         localStorage.setItem('favoritos', JSON.stringify(novosFavoritos));
         setFavoritos(favoritos.filter(p => p.id !== produtoId));
+        success('Produto removido dos favoritos!');
         return;
       }
 
@@ -86,9 +97,13 @@ export default function FavoritosPage() {
 
       if (response.ok) {
         setFavoritos(favoritos.filter(p => p.id !== produtoId));
+        success('Produto removido dos favoritos!');
+      } else {
+        error('Erro ao remover produto');
       }
-    } catch (error) {
-      console.error('Erro ao remover favorito:', error);
+    } catch (err) {
+      error('Erro ao remover produto');
+      console.error('Erro ao remover favorito:', err);
     }
   };
 
@@ -111,8 +126,7 @@ export default function FavoritosPage() {
     localStorage.setItem('carrinho', JSON.stringify(carrinho));
     window.dispatchEvent(new Event('carrinhoAtualizado'));
     
-    // Mostrar feedback visual (você pode adicionar um toast aqui)
-    alert('Produto adicionado ao carrinho!');
+    success('Produto adicionado ao carrinho!');
   };
 
   const formatarPreco = (preco: number) => {
@@ -141,7 +155,7 @@ export default function FavoritosPage() {
         <Breadcrumbs items={[{ label: 'Meus Favoritos' }]} />
 
         <div className={styles.header}>
-          <FiHeart className={styles.headerIcon} />
+          <Heart className={styles.headerIcon} />
           <h1>Meus Favoritos</h1>
           <p>
             {favoritos.length > 0
@@ -152,7 +166,7 @@ export default function FavoritosPage() {
 
         {favoritos.length === 0 ? (
           <div className={styles.empty}>
-            <FiHeart className={styles.emptyIcon} />
+            <Heart className={styles.emptyIcon} />
             <h2>Nenhum produto favorito ainda</h2>
             <p>
               Comece a adicionar produtos aos seus favoritos clicando no ícone de coração 
@@ -172,7 +186,7 @@ export default function FavoritosPage() {
                     onClick={() => removerFavorito(produto.id)}
                     title="Remover dos favoritos"
                   >
-                    <FiTrash2 />
+                    <Trash2 size={18} />
                   </button>
 
                   {produto.preco_promocional && (
@@ -225,7 +239,7 @@ export default function FavoritosPage() {
                       onClick={() => adicionarAoCarrinho(produto)}
                       disabled={produto.estoque === 0}
                     >
-                      <FiShoppingCart />
+                      <ShoppingCart size={18} />
                       {produto.estoque === 0 ? 'Esgotado' : 'Adicionar ao Carrinho'}
                     </button>
                   </div>
@@ -246,7 +260,7 @@ export default function FavoritosPage() {
           
           <div className={styles.infoGrid}>
             <div className={styles.infoCard}>
-              <FiHeart className={styles.infoIcon} />
+              <Heart className={styles.infoIcon} />
               <h3>Salve o que você ama</h3>
               <p>
                 Adicione produtos à sua lista de favoritos para encontrá-los facilmente depois
@@ -254,7 +268,7 @@ export default function FavoritosPage() {
             </div>
 
             <div className={styles.infoCard}>
-              <FiAlertCircle className={styles.infoIcon} />
+              <AlertCircle className={styles.infoIcon} />
               <h3>Não perca promoções</h3>
               <p>
                 Acompanhe seus produtos favoritos e seja notificado sobre descontos especiais
@@ -262,7 +276,7 @@ export default function FavoritosPage() {
             </div>
 
             <div className={styles.infoCard}>
-              <FiShoppingCart className={styles.infoIcon} />
+              <ShoppingCart className={styles.infoIcon} />
               <h3>Compre quando quiser</h3>
               <p>
                 Seus favoritos ficam salvos para você comprar no momento certo

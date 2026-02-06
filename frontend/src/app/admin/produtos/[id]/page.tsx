@@ -2,14 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 import { useRouter, useParams } from 'next/navigation';
 import { productService, categoryService } from '@/services/api';
 import Link from 'next/link';
 import { FiArrowLeft, FiSave } from 'react-icons/fi';
 import styles from './produto-form.module.scss';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
 export default function ProdutoFormPage() {
   const { user, loading: authLoading } = useAuth();
+  const { success, error: showError } = useToast();
   const router = useRouter();
   const params = useParams();
   const produtoId = params?.id as string;
@@ -17,6 +21,7 @@ export default function ProdutoFormPage() {
 
   const [loading, setLoading] = useState(false);
   const [categorias, setCategorias] = useState<any[]>([]);
+  const [uploading, setUploading] = useState(false);
   
   const [formData, setFormData] = useState({
     nome: '',
@@ -33,6 +38,7 @@ export default function ProdutoFormPage() {
   });
 
   const [imagemInput, setImagemInput] = useState('');
+  const [imagemTipo, setImagemTipo] = useState<'url' | 'upload'>('url');
   const [corInput, setCorInput] = useState('');
   const [tamanhoInput, setTamanhoInput] = useState('');
 
@@ -94,7 +100,7 @@ export default function ProdutoFormPage() {
     e.preventDefault();
     
     if (!formData.nome || !formData.preco || !formData.categoria_id) {
-      alert('Preencha os campos obrigatórios: Nome, Preço e Categoria');
+      showError('Preencha os campos obrigatórios: Nome, Preço e Categoria');
       return;
     }
 
@@ -112,18 +118,18 @@ export default function ProdutoFormPage() {
       if (isEditing) {
         const response = await productService.update(parseInt(produtoId), data);
         if (response.success) {
-          alert('Produto atualizado com sucesso!');
+          success('Produto atualizado com sucesso!');
           router.push('/admin/produtos');
         }
       } else {
         const response = await productService.create(data);
         if (response.success) {
-          alert('Produto criado com sucesso!');
+          success('Produto criado com sucesso!');
           router.push('/admin/produtos');
         }
       }
     } catch (error: any) {
-      alert(error.message || 'Erro ao salvar produto');
+      showError(error.message || 'Erro ao salvar produto');
     } finally {
       setLoading(false);
     }
@@ -136,6 +142,63 @@ export default function ProdutoFormPage() {
         imagens: [...formData.imagens, imagemInput.trim()],
       });
       setImagemInput('');
+    }
+  };
+
+  const handleUploadImagem = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validar tipo de arquivo
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      showError('Tipo de arquivo não suportado. Use apenas imagens (JPEG, PNG, GIF, WEBP).');
+      return;
+    }
+
+    // Validar tamanho (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showError('Arquivo muito grande. O tamanho máximo é 5MB.');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append('imagem', file);
+
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/produtos/upload-imagem`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formDataUpload,
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.data.url) {
+        // Adicionar a URL da imagem ao array de imagens
+        const imageUrl = data.data.url.startsWith('http') 
+          ? data.data.url 
+          : `${API_URL.replace('/api', '')}${data.data.url}`;
+        
+        setFormData(prev => ({
+          ...prev,
+          imagens: [...prev.imagens, imageUrl],
+        }));
+        success('Imagem enviada com sucesso!');
+      } else {
+        showError(data.message || 'Erro ao fazer upload da imagem');
+      }
+    } catch (error: any) {
+      console.error('Erro ao fazer upload:', error);
+      showError('Erro ao fazer upload da imagem');
+    } finally {
+      setUploading(false);
+      // Limpar o input file
+      e.target.value = '';
     }
   };
 
@@ -317,18 +380,59 @@ export default function ProdutoFormPage() {
           <div className={styles.formCard}>
             <h2>Imagens</h2>
             
-            <div className={styles.inputGroup}>
-              <input
-                type="url"
-                value={imagemInput}
-                onChange={(e) => setImagemInput(e.target.value)}
-                placeholder="URL da imagem"
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), adicionarImagem())}
-              />
-              <button type="button" onClick={adicionarImagem} className={styles.btnAdd}>
-                Adicionar
-              </button>
+            <div className={styles.formGroup}>
+              <label>Tipo de Imagem</label>
+              <div className={styles.radioGroup}>
+                <label className={styles.radioLabel}>
+                  <input
+                    type="radio"
+                    value="url"
+                    checked={imagemTipo === 'url'}
+                    onChange={(e) => setImagemTipo('url')}
+                  />
+                  URL da Imagem
+                </label>
+                <label className={styles.radioLabel}>
+                  <input
+                    type="radio"
+                    value="upload"
+                    checked={imagemTipo === 'upload'}
+                    onChange={(e) => setImagemTipo('upload')}
+                  />
+                  Upload de Arquivo
+                </label>
+              </div>
             </div>
+
+            {imagemTipo === 'url' ? (
+              <div className={styles.inputGroup}>
+                <input
+                  type="url"
+                  value={imagemInput}
+                  onChange={(e) => setImagemInput(e.target.value)}
+                  placeholder="URL da imagem"
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), adicionarImagem())}
+                />
+                <button type="button" onClick={adicionarImagem} className={styles.btnAdd}>
+                  Adicionar
+                </button>
+              </div>
+            ) : (
+              <div className={styles.uploadGroup}>
+                <label htmlFor="upload-imagem-edit" className={styles.uploadLabel}>
+                  {uploading ? 'Enviando...' : 'Escolher Arquivo'}
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleUploadImagem}
+                  disabled={uploading}
+                  id="upload-imagem-edit"
+                  className={styles.uploadInput}
+                />
+                <small>Máximo 5MB (JPEG, PNG, GIF, WEBP)</small>
+              </div>
+            )}
 
             <div className={styles.tagsList}>
               {formData.imagens.map((img, index) => (

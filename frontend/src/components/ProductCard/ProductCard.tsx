@@ -4,8 +4,44 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Product } from '@/types';
 import { toNumber, formatPrice } from '@/utils/formatPrice';
+import { getColorBackground } from '@/utils/colorMapping';
 import CategoryBadges from '@/components/CategoryBadges/CategoryBadges';
 import styles from './ProductCard.module.scss';
+
+// Helper para obter cor hexadecimal
+const getColorHex = (colorName: string): string => {
+  const colorMap: Record<string, string> = {
+    'Preto': '#000000',
+    'Branco': '#FFFFFF',
+    'Cinza': '#808080',
+    'Cinza-claro': '#D3D3D3',
+    'Cinza-escuro': '#404040',
+    'Azul': '#0066CC',
+    'Azul-claro': '#87CEEB',
+    'Azul-escuro': '#00008B',
+    'Vermelho': '#FF0000',
+    'Vermelho-escuro': '#8B0000',
+    'Verde': '#008000',
+    'Verde-claro': '#90EE90',
+    'Verde-escuro': '#006400',
+    'Amarelo': '#FFFF00',
+    'Laranja': '#FFA500',
+    'Rosa': '#FFC0CB',
+    'Rosa-escuro': '#DB7093',
+    'Roxo': '#800080',
+    'Marrom': '#8B4513',
+    'Bege': '#F5F5DC',
+    'Ouro': '#FFD700',
+    'Prata': '#C0C0C0',
+    'Turquesa': '#40E0D0',
+    'Teal': '#008080',
+    'Coral': '#FF7F50',
+    'Khaki': '#F0E68C',
+    'Salmon': '#FA8072',
+    'Chocolate': '#D2691E',
+  };
+  return colorMap[colorName] || '#CCCCCC';
+};
 
 interface ProductCardProps {
   product: Product;
@@ -75,14 +111,22 @@ export default function ProductCard({ product }: ProductCardProps) {
         {/* Cores Disponíveis */}
         {product.cores_disponiveis && product.cores_disponiveis.length > 0 && (
           <div className={styles.colors}>
-            {product.cores_disponiveis.slice(0, 5).map((cor, index) => (
-              <div
-                key={index}
-                className={styles.colorDot}
-                style={{ backgroundColor: cor }}
-                title={cor}
-              />
-            ))}
+            {product.cores_disponiveis.slice(0, 5).map((cor, index) => {
+              // Importar aqui ou usar inline
+              const isGradient = cor.includes('/');
+              const style = isGradient 
+                ? { background: `linear-gradient(135deg, ${cor.split('/').map(c => getColorHex(c.trim())).join(', ')})` }
+                : { backgroundColor: getColorHex(cor) };
+              
+              return (
+                <div
+                  key={index}
+                  className={styles.colorDot}
+                  style={style}
+                  title={cor}
+                />
+              );
+            })}
             {product.cores_disponiveis.length > 5 && (
               <span className={styles.moreColors}>
                 +{product.cores_disponiveis.length - 5}

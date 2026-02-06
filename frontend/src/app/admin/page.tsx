@@ -33,6 +33,13 @@ export default function AdminPage() {
 
   const adminCards = [
     {
+      title: 'Categorias',
+      icon: <FiTag size={32} />,
+      description: 'Gerenciar categorias e imagens',
+      link: '/admin/categorias',
+      color: '#16a34a',
+    },
+    {
       title: 'Produtos',
       icon: <FiBox size={32} />,
       description: 'Gerenciar catálogo de produtos',
