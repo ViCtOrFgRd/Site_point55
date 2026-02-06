@@ -1,0 +1,30 @@
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
+# AI Agent
+/tests/generated/
+/ai-agent/node_modules/
+
+# Node
+node_modules/
+package-lock.json
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.test
+
+# Screenshots e videos
+screenshots/
+videos/
+traces/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

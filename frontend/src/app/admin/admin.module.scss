@@ -1,0 +1,102 @@
+.adminPage {
+  min-height: 80vh;
+  padding: 2rem 0;
+  background: #f5f5f5;
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 3rem;
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #2c3e50;
+      margin-bottom: 0.5rem;
+    }
+
+    p {
+      font-size: 1.1rem;
+      color: #7f8c8d;
+    }
+  }
+
+  .loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+  }
+
+  .cardsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+
+  .adminCard {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    text-decoration: none;
+    color: inherit;
+    border: 2px solid transparent;
+
+    &:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+      border-color: var(--card-color);
+
+      .cardIcon {
+        background: var(--card-color);
+        color: white;
+      }
+    }
+
+    .cardIcon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: #f8f9fa;
+      color: var(--card-color);
+      transition: all 0.3s ease;
+    }
+
+    h3 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #2c3e50;
+    }
+
+    p {
+      color: #7f8c8d;
+      font-size: 0.95rem;
+      margin: 0;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .header h1 {
+      font-size: 2rem;
+    }
+
+    .cardsGrid {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+  }
+}

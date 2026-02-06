@@ -1,0 +1,147 @@
+.page {
+  min-height: 100vh;
+  background: #fff;
+  padding: 2rem 0 4rem;
+}
+
+.hero {
+  text-align: center;
+  padding: 3rem 0;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  border-radius: 16px;
+  margin-bottom: 3rem;
+
+  h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    color: #000;
+    margin-bottom: 1rem;
+
+    @media (max-width: 768px) {
+      font-size: 2rem;
+    }
+  }
+
+  p {
+    font-size: 1.1rem;
+    color: #6b7280;
+    font-style: italic;
+  }
+}
+
+.content {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.section {
+  margin-bottom: 3rem;
+
+  h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: #000;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e5e7eb;
+
+    @media (max-width: 768px) {
+      font-size: 1.5rem;
+    }
+  }
+
+  h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 1.5rem 0 1rem;
+    color: #1f2937;
+
+    @media (max-width: 768px) {
+      font-size: 1.15rem;
+    }
+  }
+
+  p {
+    font-size: 1.05rem;
+    line-height: 1.8;
+    color: #4b5563;
+    margin-bottom: 1rem;
+
+    strong {
+      color: #000;
+      font-weight: 600;
+    }
+
+    a {
+      color: #2563eb;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s;
+
+      &:hover {
+        color: #1d4ed8;
+        text-decoration: underline;
+      }
+    }
+
+    @media (max-width: 768px) {
+      font-size: 1rem;
+    }
+  }
+
+  ul {
+    list-style: none;
+    padding-left: 0;
+    margin: 1rem 0;
+
+    li {
+      font-size: 1.05rem;
+      line-height: 1.8;
+      color: #4b5563;
+      padding-left: 2rem;
+      position: relative;
+      margin-bottom: 0.75rem;
+
+      &:before {
+        content: "•";
+        position: absolute;
+        left: 0.75rem;
+        color: #2563eb;
+        font-weight: bold;
+        font-size: 1.5rem;
+      }
+
+      strong {
+        color: #000;
+        font-weight: 600;
+      }
+
+      @media (max-width: 768px) {
+        font-size: 1rem;
+      }
+    }
+  }
+}
+
+.contact {
+  background: #f9fafb;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-top: 1.5rem;
+  border-left: 4px solid #2563eb;
+
+  p {
+    font-size: 1.05rem;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    strong {
+      color: #000;
+      font-weight: 600;
+    }
+  }
+}

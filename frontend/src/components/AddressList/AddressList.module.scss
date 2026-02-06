@@ -1,0 +1,198 @@
+.list {
+  display: grid;
+  gap: 16px;
+}
+
+.card {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.2s;
+  position: relative;
+
+  &:hover {
+    border-color: #ccc;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  &.principal {
+    border-color: #ffc107;
+    background: #fffbf0;
+  }
+}
+
+.badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: #ffc107;
+  color: #000;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  svg {
+    fill: #000;
+  }
+}
+
+.content {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  background: #f0f0f0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-size: 20px;
+}
+
+.info {
+  flex: 1;
+
+  p {
+    margin: 4px 0;
+    line-height: 1.5;
+  }
+}
+
+.street {
+  font-size: 16px;
+  font-weight: 600;
+  color: #000;
+}
+
+.district,
+.city {
+  font-size: 14px;
+  color: #666;
+}
+
+.cep {
+  font-size: 13px;
+  color: #999;
+  margin-top: 8px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+
+  button {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    svg {
+      font-size: 16px;
+    }
+  }
+}
+
+.setPrincipalButton {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffc107;
+
+  &:hover:not(:disabled) {
+    background: #ffc107;
+    color: #000;
+  }
+}
+
+.editButton {
+  background: #e3f2fd;
+  color: #1976d2;
+
+  &:hover:not(:disabled) {
+    background: #1976d2;
+    color: white;
+  }
+}
+
+.deleteButton {
+  background: #ffebee;
+  color: #c62828;
+
+  &:hover:not(:disabled) {
+    background: #c62828;
+    color: white;
+  }
+}
+
+.empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+
+  svg {
+    font-size: 64px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  p {
+    font-size: 18px;
+    margin-bottom: 8px;
+    color: #666;
+  }
+
+  small {
+    font-size: 14px;
+    color: #999;
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    flex-direction: column;
+  }
+
+  .badge {
+    position: static;
+    display: inline-flex;
+    margin-bottom: 12px;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+
+    button {
+      flex: 1;
+      min-width: 120px;
+      justify-content: center;
+    }
+  }
+
+  .setPrincipalButton {
+    flex-basis: 100%;
+  }
+}

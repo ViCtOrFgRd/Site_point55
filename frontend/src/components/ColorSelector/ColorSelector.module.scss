@@ -1,0 +1,67 @@
+.colorSelector {
+  margin-bottom: 24px;
+
+  h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #000;
+  }
+}
+
+.selectedLabel {
+  font-weight: 400;
+  color: #666;
+  font-size: 13px;
+}
+
+.colors {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.colorOption {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  &.active {
+    border-color: #000;
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #000;
+
+    &::after {
+      content: '✓';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #fff;
+      font-size: 18px;
+      font-weight: 700;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.2);
+  }
+}
+
+@media (max-width: 768px) {
+  .colorOption {
+    width: 40px;
+    height: 40px;
+  }
+}

@@ -1,0 +1,545 @@
+.adminBadgesPage {
+  min-height: 100vh;
+  background: #f8f9fa;
+  padding: 2rem 0;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+
+  h1 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0.5rem 0;
+  }
+
+  p {
+    color: #6c757d;
+    margin: 0.5rem 0 0 0;
+  }
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  color: #495057;
+  text-decoration: none;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #f8f9fa;
+    border-color: #adb5bd;
+  }
+}
+
+.addButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  font-size: 1.2rem;
+  color: #6c757d;
+}
+
+.empty {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+
+  svg {
+    color: #dee2e6;
+    margin-bottom: 1rem;
+  }
+
+  h2 {
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+  }
+
+  p {
+    color: #6c757d;
+    margin-bottom: 2rem;
+  }
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s;
+
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
+}
+
+.badgeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.badgeCard {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  padding: 1.5rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  }
+}
+
+.badgeHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.badgePreview {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.badgeIcon {
+  font-size: 1.2rem;
+}
+
+.badgeNome {
+  font-size: 0.9rem;
+}
+
+.status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+
+  &.ativo {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  &.inativo {
+    background: #f8d7da;
+    color: #721c24;
+  }
+}
+
+.badgeInfo {
+  margin: 1rem 0;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f1f3f5;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.label {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.value {
+  color: #2c3e50;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.badgeActions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.vinculoButton {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.9;
+  }
+}
+
+.editButton,
+.deleteButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.625rem;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  background: white;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #f8f9fa;
+  }
+}
+
+.deleteButton {
+  color: #dc3545;
+  border-color: #dc3545;
+
+  &:hover {
+    background: #dc3545;
+    color: white;
+  }
+}
+
+// Modal
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modalContent {
+  background: white;
+  border-radius: 12px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #dee2e6;
+
+  h2 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.5rem;
+  }
+
+  button {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+
+    &:hover {
+      background: #f8f9fa;
+    }
+  }
+}
+
+.formGroup {
+  padding: 0 1.5rem;
+  margin: 1.5rem 0;
+
+  label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #2c3e50;
+    font-weight: 600;
+  }
+
+  input[type="text"],
+  input[type="number"] {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+
+    &:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+  }
+
+  small {
+    display: block;
+    margin-top: 0.5rem;
+    color: #6c757d;
+    font-size: 0.875rem;
+  }
+}
+
+.tipoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.tipoOption {
+  cursor: pointer;
+
+  input[type="radio"] {
+    display: none;
+  }
+}
+
+.tipoCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  transition: all 0.2s;
+  background: white;
+
+  input[type="radio"]:checked + & {
+    border-color: #667eea;
+    background: #f8f9ff;
+  }
+
+  &:hover {
+    border-color: #667eea;
+  }
+}
+
+.tipoIcon {
+  font-size: 2rem;
+}
+
+.tipoLabel {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.coresGrid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.corOption {
+  width: 40px;
+  height: 40px;
+  border: 3px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s;
+
+  &:hover {
+    transform: scale(1.1);
+  }
+
+  &.selected {
+    border-color: #2c3e50;
+    transform: scale(1.15);
+  }
+}
+
+.colorPicker {
+  width: 100%;
+  height: 50px;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+  }
+}
+
+.preview {
+  padding: 0 1.5rem;
+  margin: 1.5rem 0;
+
+  label {
+    display: block;
+    margin-bottom: 1rem;
+    color: #2c3e50;
+    font-weight: 600;
+  }
+}
+
+.badgePreviewLarge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
+  color: white;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.previewIcon {
+  font-size: 1.5rem;
+}
+
+.previewNome {
+  font-size: 1.1rem;
+}
+
+.modalActions {
+  display: flex;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-top: 1px solid #dee2e6;
+}
+
+.cancelButton,
+.submitButton {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancelButton {
+  background: white;
+  border: 1px solid #dee2e6;
+  color: #495057;
+
+  &:hover {
+    background: #f8f9fa;
+  }
+}
+
+.submitButton {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+
+  &:hover {
+    opacity: 0.9;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.produtosList {
+  padding: 1.5rem;
+
+  label {
+    display: block;
+    margin-bottom: 1rem;
+    color: #2c3e50;
+    font-weight: 600;
+  }
+}
+
+.produtoSelect {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border-color: #667eea;
+  }
+}

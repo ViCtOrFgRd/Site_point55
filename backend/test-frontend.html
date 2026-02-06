@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste API Produtos</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .produto { border: 1px solid #ccc; margin: 10px 0; padding: 10px; }
+        .produto img { max-width: 200px; }
+    </style>
+</head>
+<body>
+    <h1>Teste API Produtos</h1>
+    <div id="status">Carregando...</div>
+    <div id="produtos"></div>
+
+    <script>
+        async function testarAPI() {
+            try {
+                const response = await fetch('http://localhost:5000/api/produtos?limite=10&pagina=1');
+                const data = await response.json();
+                
+                document.getElementById('status').innerHTML = `
+                    <p><strong>Status:</strong> ${data.success ? 'Sucesso ✓' : 'Erro ✗'}</p>
+                    <p><strong>Total de produtos:</strong> ${data.total}</p>
+                    <p><strong>Produtos nesta página:</strong> ${data.count}</p>
+                    <p><strong>Página atual:</strong> ${data.pagina}</p>
+                    <p><strong>Total de páginas:</strong> ${data.totalPaginas}</p>
+                `;
+                
+                const produtosDiv = document.getElementById('produtos');
+                data.data.forEach(produto => {
+                    const div = document.createElement('div');
+                    div.className = 'produto';
+                    div.innerHTML = `
+                        <h3>${produto.nome}</h3>
+                        <p><strong>Preço:</strong> R$ ${produto.preco}</p>
+                        <p><strong>Categoria:</strong> ${produto.categoria_nome || 'Sem categoria'}</p>
+                        <p><strong>Imagens:</strong> ${produto.imagens ? produto.imagens.length : 0}</p>
+                        ${produto.imagens && produto.imagens[0] ? `<img src="${produto.imagens[0]}" alt="${produto.nome}">` : '<p>Sem imagem</p>'}
+                    `;
+                    produtosDiv.appendChild(div);
+                });
+                
+            } catch (error) {
+                document.getElementById('status').innerHTML = `<p style="color: red;">Erro: ${error.message}</p>`;
+            }
+        }
+        
+        testarAPI();
+    </script>
+</body>
+</html>

@@ -1,0 +1,197 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Executa testes diariamente às 3:00 AM
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+        
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies (backend)
+        working-directory: ./backend
+        run: npm ci
+      
+      - name: Install dependencies (frontend)
+        working-directory: ./frontend
+        run: npm ci
+      
+      - name: Install dependencies (e2e)
+        working-directory: ./e2e
+        run: npm ci
+      
+      - name: Install Playwright Browsers
+        working-directory: ./e2e
+        run: npx playwright install --with-deps
+      
+      - name: Setup Database
+        run: |
+          docker run -d \
+            --name postgres-test \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_DB=point55_test \
+            -p 5432:5432 \
+            postgres:15
+          sleep 10
+      
+      - name: Run Database Migrations
+        working-directory: ./database
+        run: |
+          psql -h localhost -U postgres -d point55_test -f schema.sql
+        env:
+          PGPASSWORD: postgres
+      
+      - name: Start Backend
+        working-directory: ./backend
+        run: |
+          npm start &
+          sleep 10
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: point55_test
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+      
+      - name: Start Frontend
+        working-directory: ./frontend
+        run: |
+          npm run build
+          npm start &
+          sleep 15
+        env:
+          NODE_ENV: production
+      
+      - name: Run Playwright tests
+        working-directory: ./e2e
+        run: npx playwright test --shard=${{ matrix.shard }}/4
+        env:
+          BASE_URL: http://localhost:3000
+          API_URL: http://localhost:5000
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ matrix.shard }}
+          path: e2e/playwright-report/
+          retention-days: 30
+      
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.shard }}
+          path: e2e/test-results/
+          retention-days: 7
+
+  ai-analysis:
+    needs: test
+    runs-on: ubuntu-latest
+    if: failure()
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Download test results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-results-*
+          path: e2e/test-results/
+      
+      - name: Install dependencies
+        working-directory: ./e2e
+        run: npm ci
+      
+      - name: Run AI Failure Analysis
+        working-directory: ./e2e
+        run: npm run test:ai-analyze
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      
+      - name: Upload AI Analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-failure-analysis
+          path: e2e/test-results/failure-analysis/
+          retention-days: 30
+      
+      - name: Comment PR with Analysis
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('e2e/test-results/failure-report.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🤖 Análise de Falhas de Testes (IA)\n\n${report}`
+            });
+
+  merge-reports:
+    needs: test
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Download all reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: playwright-report-*
+          path: all-reports/
+      
+      - name: Install dependencies
+        working-directory: ./e2e
+        run: npm ci
+      
+      - name: Merge reports
+        working-directory: ./e2e
+        run: npx playwright merge-reports --reporter html ../all-reports
+      
+      - name: Upload merged report
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-merged
+          path: e2e/playwright-report/
+          retention-days: 30
+      
+      - name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: e2e/playwright-report
+          destination_dir: test-reports/${{ github.run_number }}

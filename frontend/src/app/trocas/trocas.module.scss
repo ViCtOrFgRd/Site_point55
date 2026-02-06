@@ -1,0 +1,385 @@
+.page {
+  min-height: 100vh;
+  background: #fff;
+  padding: 2rem 0 4rem;
+}
+
+.hero {
+  text-align: center;
+  padding: 3rem 0;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 16px;
+  margin-bottom: 3rem;
+  color: #fff;
+
+  .heroIcon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    animation: rotate 3s linear infinite;
+
+    @media (max-width: 768px) {
+      font-size: 3rem;
+    }
+  }
+
+  h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+
+    @media (max-width: 768px) {
+      font-size: 2rem;
+    }
+  }
+
+  p {
+    font-size: 1.25rem;
+    opacity: 0.95;
+
+    @media (max-width: 768px) {
+      font-size: 1.1rem;
+    }
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.highlight {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-bottom: 4rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+.highlightCard {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  padding: 2rem;
+  border-radius: 12px;
+  text-align: center;
+  border: 2px solid #6ee7b7;
+  transition: transform 0.3s, box-shadow 0.3s;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(16, 185, 129, 0.15);
+  }
+
+  .icon {
+    font-size: 3rem;
+    color: #059669;
+    margin-bottom: 1rem;
+  }
+
+  h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #065f46;
+    margin-bottom: 0.75rem;
+  }
+
+  p {
+    font-size: 1.05rem;
+    color: #047857;
+    line-height: 1.6;
+  }
+}
+
+.content {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.section {
+  margin-bottom: 3rem;
+
+  h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: #000;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e5e7eb;
+
+    @media (max-width: 768px) {
+      font-size: 1.5rem;
+    }
+  }
+
+  h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 1.5rem 0 1rem;
+    color: #1f2937;
+
+    @media (max-width: 768px) {
+      font-size: 1.15rem;
+    }
+  }
+
+  p {
+    font-size: 1.05rem;
+    line-height: 1.8;
+    color: #4b5563;
+    margin-bottom: 1rem;
+
+    strong {
+      color: #000;
+      font-weight: 600;
+    }
+
+    @media (max-width: 768px) {
+      font-size: 1rem;
+    }
+  }
+
+  ul {
+    list-style: none;
+    padding-left: 0;
+    margin: 1rem 0;
+
+    li {
+      font-size: 1.05rem;
+      line-height: 1.8;
+      color: #4b5563;
+      padding-left: 2rem;
+      position: relative;
+      margin-bottom: 0.75rem;
+
+      &:before {
+        content: "✓";
+        position: absolute;
+        left: 0.75rem;
+        color: #10b981;
+        font-weight: bold;
+        font-size: 1.3rem;
+      }
+
+      strong {
+        color: #000;
+        font-weight: 600;
+      }
+
+      @media (max-width: 768px) {
+        font-size: 1rem;
+      }
+    }
+  }
+}
+
+.steps {
+  margin: 2rem 0;
+}
+
+.step {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+  position: relative;
+
+  &:not(:last-child):after {
+    content: '';
+    position: absolute;
+    left: 1.875rem;
+    top: 4rem;
+    width: 2px;
+    height: calc(100% + 0.5rem);
+    background: linear-gradient(180deg, #10b981 0%, #d1fae5 100%);
+  }
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+
+    &:not(:last-child):after {
+      display: none;
+    }
+  }
+}
+
+.stepNumber {
+  min-width: 3.75rem;
+  height: 3.75rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  flex-shrink: 0;
+}
+
+.stepContent {
+  flex: 1;
+
+  h3 {
+    font-size: 1.4rem;
+    color: #059669;
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+  }
+
+  p {
+    margin-bottom: 0.75rem;
+  }
+
+  ul {
+    margin-top: 0.5rem;
+  }
+}
+
+.warning {
+  background: #fef3c7;
+  border-left: 4px solid #f59e0b;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-top: 1rem;
+  font-size: 0.95rem;
+  color: #78350f;
+
+  strong {
+    color: #92400e;
+  }
+}
+
+.refundOptions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin: 2rem 0;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.refundCard {
+  background: #f0fdf4;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 2px solid #bbf7d0;
+
+  h3 {
+    color: #059669;
+    font-size: 1.3rem;
+    margin-top: 0;
+    margin-bottom: 1rem;
+  }
+
+  p {
+    font-size: 1rem;
+    color: #166534;
+    margin: 0;
+
+    strong {
+      color: #14532d;
+    }
+  }
+}
+
+.conditions {
+  display: grid;
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.conditionItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  background: #f9fafb;
+  padding: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+
+  .conditionIcon {
+    font-size: 1.75rem;
+    color: #10b981;
+    flex-shrink: 0;
+    margin-top: 0.25rem;
+  }
+
+  h4 {
+    font-size: 1.15rem;
+    color: #000;
+    margin: 0 0 0.5rem;
+    font-weight: 600;
+  }
+
+  p {
+    font-size: 1rem;
+    color: #6b7280;
+    margin: 0;
+  }
+}
+
+.address {
+  background: #f0fdf4;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border-left: 4px solid #10b981;
+
+  p {
+    font-size: 1.05rem;
+    color: #166534;
+    margin-bottom: 0.5rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    strong {
+      color: #14532d;
+      font-weight: 600;
+    }
+  }
+
+  .note {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #bbf7d0;
+    font-size: 0.95rem;
+    color: #78350f;
+    background: #fef3c7;
+    padding: 0.75rem;
+    border-radius: 6px;
+  }
+}
+
+.contact {
+  background: #ecfdf5;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-top: 1.5rem;
+  border-left: 4px solid #10b981;
+
+  p {
+    font-size: 1.05rem;
+    color: #065f46;
+    margin-bottom: 0.5rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    strong {
+      color: #064e3b;
+      font-weight: 600;
+    }
+  }
+}

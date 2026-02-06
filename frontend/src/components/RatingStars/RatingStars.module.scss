@@ -1,0 +1,65 @@
+.ratingStars {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &.interactive {
+    .star {
+      cursor: pointer;
+      transition: transform 0.2s;
+
+      &:hover {
+        transform: scale(1.2);
+      }
+    }
+  }
+}
+
+.stars {
+  display: flex;
+  gap: 2px;
+}
+
+.star {
+  color: #e0e0e0;
+  
+  &.filled {
+    color: #FFB800;
+  }
+}
+
+// Tamanhos
+.small {
+  .star {
+    font-size: 14px;
+  }
+
+  .ratingNumber {
+    font-size: 12px;
+  }
+}
+
+.medium {
+  .star {
+    font-size: 18px;
+  }
+
+  .ratingNumber {
+    font-size: 14px;
+  }
+}
+
+.large {
+  .star {
+    font-size: 24px;
+  }
+
+  .ratingNumber {
+    font-size: 18px;
+  }
+}
+
+.ratingNumber {
+  font-weight: 700;
+  color: #000;
+}
