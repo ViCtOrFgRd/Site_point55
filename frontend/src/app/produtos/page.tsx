@@ -30,18 +30,6 @@ export default function ProdutosPage() {
     busca: searchParams.get('q') || '',
   });
 
-  // Sincronizar filtros com URL quando searchParams mudar
-  useEffect(() => {
-    setFiltros({
-      categoria: searchParams.get('categoria') || '',
-      ordenar: searchParams.get('ordenar') || 'relevancia',
-      precoMin: searchParams.get('precoMin') || '',
-      precoMax: searchParams.get('precoMax') || '',
-      promocao: searchParams.get('promocao') === 'true',
-      busca: searchParams.get('q') || '',
-    });
-  }, [searchParams]);
-
   // Carregar categorias ao montar componente
   useEffect(() => {
     carregarCategorias();
