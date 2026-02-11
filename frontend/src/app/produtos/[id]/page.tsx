@@ -1,7 +1,7 @@
 'use client';
 
-import { use, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import Image from 'next/image';
@@ -19,14 +19,10 @@ import ColorSelector from '@/components/ColorSelector/ColorSelector';
 import { FiShoppingCart, FiHeart, FiTruck, FiShield } from 'react-icons/fi';
 import styles from './produto.module.scss';
 
-interface PageProps {
-  params: Promise<{
-    id: string;
-  }>;
-}
-
-export default function ProdutoPage({ params }: PageProps) {
-  const { id } = use(params);
+export default function ProdutoPage() {
+  const params = useParams();
+  const idParam = Array.isArray(params?.id) ? params.id[0] : params?.id;
+  const productId = idParam ? parseInt(idParam, 10) : NaN;
   const router = useRouter();
   const { user } = useAuth();
   const { addItem } = useCart();
@@ -46,16 +42,26 @@ export default function ProdutoPage({ params }: PageProps) {
   const [enviandoAvaliacao, setEnviandoAvaliacao] = useState(false);
 
   useEffect(() => {
+    if (!idParam || Number.isNaN(productId)) {
+      router.push('/produtos');
+      return;
+    }
+
     carregarProduto();
     carregarAvaliacoes();
     carregarComentarios();
-  }, [id]);
+  }, [idParam]);
 
   const carregarProduto = async () => {
     setLoading(true);
     
     try {
-      const response = await productService.getById(parseInt(id));
+      if (Number.isNaN(productId)) {
+        router.push('/produtos');
+        return;
+      }
+
+      const response = await productService.getById(productId);
       if (response.success && response.data) {
         setProduct(response.data);
       }
@@ -69,7 +75,11 @@ export default function ProdutoPage({ params }: PageProps) {
 
   const carregarAvaliacoes = async () => {
     try {
-      const response = await reviewService.getByProduct(parseInt(id));
+      if (Number.isNaN(productId)) {
+        return;
+      }
+
+      const response = await reviewService.getByProduct(productId);
       if (response.success && response.data) {
         setAvaliacoes(response.data);
       }
@@ -80,7 +90,11 @@ export default function ProdutoPage({ params }: PageProps) {
 
   const carregarComentarios = async () => {
     try {
-      const response = await commentService.getByProduct(parseInt(id));
+      if (Number.isNaN(productId)) {
+        return;
+      }
+
+      const response = await commentService.getByProduct(productId);
       if (response.success && response.data) {
         setComentarios(response.data);
       }
@@ -104,7 +118,12 @@ export default function ProdutoPage({ params }: PageProps) {
     setEnviandoAvaliacao(true);
 
     try {
-      const response = await reviewService.create(parseInt(id), {
+      if (Number.isNaN(productId)) {
+        toast.error('Produto invalido');
+        return;
+      }
+
+      const response = await reviewService.create(productId, {
         nota: novaAvaliacao
       });
 
@@ -135,7 +154,12 @@ export default function ProdutoPage({ params }: PageProps) {
     setEnviandoAvaliacao(true);
 
     try {
-      const response = await commentService.create(parseInt(id), {
+      if (Number.isNaN(productId)) {
+        toast.error('Produto invalido');
+        return;
+      }
+
+      const response = await commentService.create(productId, {
         texto: novoComentario
       });
 
@@ -165,16 +189,24 @@ export default function ProdutoPage({ params }: PageProps) {
     
     if (product.tamanhos_disponiveis && product.tamanhos_disponiveis.length > 0 && !selectedSize) {
       toast.warning('Por favor, selecione um tamanho');
-      return;
+      return false;
+    }
+
+    if (product.cores_disponiveis && product.cores_disponiveis.length > 0 && !selectedColor) {
+      toast.warning('Por favor, selecione uma cor');
+      return false;
     }
 
     addItem(product, quantidade, selectedSize, selectedColor);
     toast.success('Produto adicionado ao carrinho!');
+    return true;
   };
 
   const handleBuyNow = () => {
-    handleAddToCart();
-    router.push('/carrinho');
+    const added = handleAddToCart();
+    if (added) {
+      router.push('/carrinho');
+    }
   };
 
   if (loading || !product) {
@@ -185,11 +217,29 @@ export default function ProdutoPage({ params }: PageProps) {
     );
   }
 
+  const precisaSelecionarTamanho = Boolean(product.tamanhos_disponiveis?.length) && !selectedSize;
+  const precisaSelecionarCor = Boolean(product.cores_disponiveis?.length) && !selectedColor;
+  const acaoPrincipalLabel = precisaSelecionarTamanho
+    ? 'Selecione o tamanho'
+    : precisaSelecionarCor
+    ? 'Selecione a cor'
+    : 'Comprar Agora';
+  const acaoSecundariaLabel = precisaSelecionarTamanho
+    ? 'Selecione o tamanho'
+    : precisaSelecionarCor
+    ? 'Selecione a cor'
+    : 'Adicionar ao Carrinho';
+
   // Converter preços para número
   const preco = toNumber(product.preco);
   const precoOriginal = toNumber(product.preco_original);
-  const precoParcelado = preco / 3;
-  const precoComPix = preco * 0.95;
+  const parcelasMaximas = product.parcelas_maximas ? Number(product.parcelas_maximas) : 3;
+  const parcelas = parcelasMaximas > 0 ? parcelasMaximas : 3;
+  const precoParcelado = preco / parcelas;
+  const precoPix = product.preco_pix ? toNumber(product.preco_pix) : preco;
+  const precoCredito = product.preco_credito ? toNumber(product.preco_credito) : preco;
+  const precoDebito = product.preco_debito ? toNumber(product.preco_debito) : preco;
+  const precoBoleto = product.preco_boleto ? toNumber(product.preco_boleto) : preco;
 
   return (
     <div className={styles.page}>
@@ -274,10 +324,24 @@ export default function ProdutoPage({ params }: PageProps) {
                 Por R$ {formatPrice(preco)}
               </div>
               <div className={styles.installment}>
-                3x de R$ {formatPrice(precoParcelado)} sem juros
+                {parcelas}x de R$ {formatPrice(precoParcelado)} sem juros
               </div>
               <div className={styles.pixPrice}>
-                💰 R$ {formatPrice(precoComPix)} no PIX (5% OFF)
+                💰 R$ {formatPrice(precoPix)} no PIX
+              </div>
+              <div className={styles.paymentBreakdown}>
+                <div className={styles.paymentItem}>
+                  <span>Credito</span>
+                  <strong>R$ {formatPrice(precoCredito)}</strong>
+                </div>
+                <div className={styles.paymentItem}>
+                  <span>Debito</span>
+                  <strong>R$ {formatPrice(precoDebito)}</strong>
+                </div>
+                <div className={styles.paymentItem}>
+                  <span>Boleto</span>
+                  <strong>R$ {formatPrice(precoBoleto)}</strong>
+                </div>
               </div>
             </div>
 
@@ -326,10 +390,10 @@ export default function ProdutoPage({ params }: PageProps) {
             {/* Botões de Ação */}
             <div className={styles.actions}>
               <button className={styles.buyButton} onClick={handleBuyNow}>
-                Comprar Agora
+                {acaoPrincipalLabel}
               </button>
               <button className={styles.addToCartButton} onClick={handleAddToCart}>
-                <FiShoppingCart /> Adicionar ao Carrinho
+                <FiShoppingCart /> {acaoSecundariaLabel}
               </button>
               <button className={styles.favoriteButton}>
                 <FiHeart />

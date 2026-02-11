@@ -1,21 +1,21 @@
 .page {
   min-height: 100vh;
   background: #fff;
-  padding: 2rem 0 4rem;
+  padding: var(--space-3) 0 var(--space-4);
 }
 
 .hero {
   text-align: center;
-  padding: 3rem 0;
+  padding: var(--space-4) 0;
   background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-  border-radius: 16px;
-  margin-bottom: 3rem;
+  border-radius: var(--radius-base);
+  margin-bottom: var(--space-4);
 
   h1 {
-    font-size: 3rem;
+    font-size: clamp(1.8rem, 4vw, 3rem);
     font-weight: 700;
     color: #000;
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-1);
 
     @media (max-width: 768px) {
       font-size: 2rem;
@@ -23,26 +23,27 @@
   }
 
   p {
-    font-size: 1.1rem;
+    font-size: var(--text-small);
     color: #6b7280;
     font-style: italic;
   }
 }
 
 .content {
-  max-width: 900px;
+  max-width: var(--container-max);
   margin: 0 auto;
+  padding: 0 var(--container-padding);
 }
 
 .section {
-  margin-bottom: 3rem;
+  margin-bottom: var(--space-4);
 
   h2 {
-    font-size: 1.75rem;
+    font-size: clamp(1.4rem, 3vw, 1.75rem);
     font-weight: 700;
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--space-2);
     color: #000;
-    padding-bottom: 0.5rem;
+    padding-bottom: var(--space-1);
     border-bottom: 2px solid #e5e7eb;
 
     @media (max-width: 768px) {
@@ -51,9 +52,9 @@
   }
 
   h3 {
-    font-size: 1.25rem;
+    font-size: var(--text-large);
     font-weight: 600;
-    margin: 1.5rem 0 1rem;
+    margin: var(--space-2) 0 var(--space-1);
     color: #1f2937;
 
     @media (max-width: 768px) {
@@ -62,10 +63,10 @@
   }
 
   p {
-    font-size: 1.05rem;
+    font-size: var(--text-small);
     line-height: 1.8;
     color: #4b5563;
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-1);
 
     strong {
       color: #000;
@@ -95,12 +96,12 @@
     margin: 1rem 0;
 
     li {
-      font-size: 1.05rem;
+      font-size: var(--text-small);
       line-height: 1.8;
       color: #4b5563;
       padding-left: 2rem;
       position: relative;
-      margin-bottom: 0.75rem;
+      margin-bottom: var(--space-1);
 
       &:before {
         content: "•";
@@ -108,7 +109,7 @@
         left: 0.75rem;
         color: #2563eb;
         font-weight: bold;
-        font-size: 1.5rem;
+        font-size: 1.4rem;
       }
 
       strong {
@@ -125,15 +126,15 @@
 
 .contact {
   background: #f9fafb;
-  padding: 1.5rem;
-  border-radius: 12px;
-  margin-top: 1.5rem;
+  padding: var(--space-2);
+  border-radius: var(--radius-base);
+  margin-top: var(--space-2);
   border-left: 4px solid #2563eb;
 
   p {
-    font-size: 1.05rem;
+    font-size: var(--text-small);
     color: #1f2937;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-1);
 
     &:last-child {
       margin-bottom: 0;

@@ -2,7 +2,6 @@
 
 import styles from './ColorSelector.module.scss';
 import { 
-  convertColorToHex, 
   getColorLabel, 
   getColorVariationStyle 
 } from '@/utils/colorMapping';
@@ -20,11 +19,20 @@ export default function ColorSelector({
   onSelectColor,
   label = 'Cor'
 }: ColorSelectorProps) {
+  const colorOptions = Array.from(
+    new Map(
+      colors
+        .map((color) => color.trim())
+        .filter(Boolean)
+        .map((color) => [color.toLowerCase(), color])
+    ).values()
+  );
+
   return (
     <div className={styles.colorSelector}>
       <h3>{label}: {selectedColor ? <span className={styles.selectedLabel}>Selecionada</span> : 'Selecione'}</h3>
       <div className={styles.colors}>
-        {colors.map((color, index) => (
+        {colorOptions.map((color, index) => (
           <button
             key={index}
             className={`${styles.colorOption} ${selectedColor === color ? styles.active : ''}`}

@@ -31,6 +31,7 @@ export default function PerfilPage() {
     senha: '',
     telefone: '',
     cpf: '',
+    data_nascimento: '',
   });
 
   // Estados de Perfil
@@ -67,7 +68,8 @@ export default function PerfilPage() {
         setEnderecos(response.data);
       }
     } catch (error) {
-      console.error('Erro ao carregar endereços:', error);
+      const message = (error as any)?.message || 'Erro ao carregar endereços';
+      toast.error(message);
     }
   };
 
@@ -91,12 +93,31 @@ export default function PerfilPage() {
     setIsSaving(true);
 
     try {
+      const cpfDigits = registerData.cpf.replace(/\D/g, '');
+      const telefoneDigits = registerData.telefone.replace(/\D/g, '');
+
+      if (cpfDigits.length !== 11) {
+        toast.warning('CPF invalido');
+        return;
+      }
+
+      if (telefoneDigits.length < 10 || telefoneDigits.length > 11) {
+        toast.warning('Telefone invalido');
+        return;
+      }
+
+      if (!registerData.data_nascimento) {
+        toast.warning('Data de nascimento obrigatoria');
+        return;
+      }
+
       const response = await authService.register(registerData);
       toast.success('Cadastro realizado com sucesso!');
       
       // Se o backend retornar um token, salvar e fazer login
-      if (response.token) {
-        localStorage.setItem('token', response.token);
+      const token = response?.data?.token;
+      if (token) {
+        localStorage.setItem('token', token);
         window.location.reload(); // Recarregar para atualizar contexto
       }
     } catch (error: any) {
@@ -292,7 +313,29 @@ export default function PerfilPage() {
                       type="tel"
                       value={registerData.telefone}
                       onChange={(e) => setRegisterData({ ...registerData, telefone: e.target.value })}
-                      placeholder="(11) 98765-4321"
+                      placeholder="(00) 00000-0000"
+                      required
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label>CPF</label>
+                    <input
+                      type="text"
+                      value={registerData.cpf}
+                      onChange={(e) => setRegisterData({ ...registerData, cpf: e.target.value })}
+                      placeholder="000.000.000-00"
+                      required
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label>Data de Nascimento</label>
+                    <input
+                      type="date"
+                      value={registerData.data_nascimento}
+                      onChange={(e) => setRegisterData({ ...registerData, data_nascimento: e.target.value })}
+                      required
                     />
                   </div>
 
@@ -339,9 +382,17 @@ export default function PerfilPage() {
               <p>{user?.email}</p>
             </div>
           </div>
-          <button onClick={logout} className={styles.logoutButton}>
-            Sair
-          </button>
+          <div className={styles.perfilActions}>
+            <button
+              onClick={() => router.push('/pedidos')}
+              className={styles.ordersButton}
+            >
+              Meus pedidos
+            </button>
+            <button onClick={logout} className={styles.logoutButton}>
+              Sair
+            </button>
+          </div>
         </div>
 
         <div className={styles.perfilContent}>

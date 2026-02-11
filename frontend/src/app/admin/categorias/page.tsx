@@ -50,7 +50,7 @@ export default function AdminCategoriasPage() {
   const carregarCategorias = async () => {
     setLoading(true);
     try {
-      const response = await categoryService.getAll();
+      const response = await categoryService.getAllAdmin();
       if (response.success) {
         setCategorias(response.data || []);
       }

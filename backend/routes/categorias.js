@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   listarCategorias,
+  listarCategoriasAdmin,
   obterCategoria,
   listarProdutosPorCategoria,
   criarCategoria,
@@ -14,6 +15,7 @@ const upload = require('../middlewares/upload');
 
 // Rotas públicas
 router.get('/', listarCategorias);
+router.get('/admin', authenticate, isAdmin, listarCategoriasAdmin);
 router.get('/:id', obterCategoria);
 router.get('/:id/produtos', listarProdutosPorCategoria);
 

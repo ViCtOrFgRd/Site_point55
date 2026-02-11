@@ -11,9 +11,18 @@ import styles from './SearchBar.module.scss';
 interface SearchBarProps {
   placeholder?: string;
   autoFocus?: boolean;
+  limit?: number;
+  orderBy?: 'data_criacao' | 'preco' | 'nome' | 'vendas';
+  direction?: 'ASC' | 'DESC';
 }
 
-export default function SearchBar({ placeholder = 'Buscar produtos...', autoFocus = false }: SearchBarProps) {
+export default function SearchBar({
+  placeholder = 'Buscar produtos...',
+  autoFocus = false,
+  limit = 6,
+  orderBy = 'nome',
+  direction = 'ASC',
+}: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Product[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -44,9 +53,13 @@ export default function SearchBar({ placeholder = 'Buscar produtos...', autoFocu
     setLoading(true);
     const timeoutId = setTimeout(async () => {
       try {
-        const response = await productService.search(query, { limite: 5 });
+        const response = await productService.search(query, {
+          limite: limit,
+          ordem: orderBy,
+          direcao: direction,
+        });
         if (response.success && response.data) {
-          setResults(response.data.slice(0, 5)); // Limitar a 5 resultados
+          setResults(response.data.slice(0, limit));
           setIsOpen(true);
         }
       } catch (error) {
@@ -59,7 +72,7 @@ export default function SearchBar({ placeholder = 'Buscar produtos...', autoFocu
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [query]);
+  }, [query, limit, orderBy, direction]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

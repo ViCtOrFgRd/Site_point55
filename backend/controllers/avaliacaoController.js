@@ -35,7 +35,7 @@ const criarAvaliacao = async (req, res) => {
        JOIN pedidos p ON ip.pedido_id = p.id
        WHERE p.usuario_id = $1 
        AND ip.produto_id = $2 
-       AND p.status IN ('entregue', 'pago')`,
+      AND p.status IN ('entregue', 'devolucao', 'devolvido', 'pago')`,
       [userId, produtoId]
     );
 
@@ -303,7 +303,7 @@ const adicionarComentario = async (req, res) => {
        JOIN pedidos p ON ip.pedido_id = p.id
        WHERE p.usuario_id = $1 
        AND ip.produto_id = $2 
-       AND p.status IN ('entregue', 'pago')`,
+      AND p.status IN ('entregue', 'devolucao', 'devolvido', 'pago')`,
       [userId, produtoId]
     );
 

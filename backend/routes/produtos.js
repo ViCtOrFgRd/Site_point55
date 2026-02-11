@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   listarProdutos,
+  listarProdutosAdmin,
   obterProduto,
   listarPromocoes,
   listarDestaques,
@@ -23,6 +24,7 @@ const upload = require('../middlewares/upload');
 router.get('/', listarProdutos);
 router.get('/promocoes', listarPromocoes);
 router.get('/destaques', listarDestaques);
+router.get('/admin', authenticate, isAdmin, listarProdutosAdmin);
 router.get('/:id', obterProduto);
 
 // Rotas protegidas (admin)

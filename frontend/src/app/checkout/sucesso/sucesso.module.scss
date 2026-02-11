@@ -1,0 +1,105 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: radial-gradient(circle at top, #fff7ed 0%, #f1f5f9 45%, #e2e8f0 100%);
+}
+
+.card {
+  width: min(680px, 100%);
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 36px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
+  text-align: center;
+}
+
+.iconWrap {
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: #ffffff;
+}
+
+.card h1 {
+  font-size: 28px;
+  margin: 0 0 12px;
+  color: #0f172a;
+}
+
+.card p {
+  margin: 0 0 18px;
+  color: #475569;
+  font-size: 16px;
+}
+
+.orderInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  margin: 18px 0 24px;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.orderLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #ea580c;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.primary,
+.secondary {
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.primary {
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.secondary {
+  background: #fff7ed;
+  color: #9a3412;
+  border: 1px solid #fdba74;
+}
+
+.note {
+  font-size: 14px;
+  color: #64748b;
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: 28px 22px;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+}

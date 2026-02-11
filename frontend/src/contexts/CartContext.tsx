@@ -9,8 +9,8 @@ import { useToast } from './ToastContext';
 interface CartContextType {
   items: CartItem[];
   addItem: (product: Product, quantidade: number, tamanho?: string, cor?: string) => void;
-  removeItem: (productId: number) => void;
-  updateQuantity: (productId: number, quantidade: number) => void;
+  removeItem: (item: CartItem) => void;
+  updateQuantity: (item: CartItem, quantidade: number) => void;
   clearCart: () => void;
   getTotal: () => number;
   getItemsCount: () => number;
@@ -24,10 +24,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [syncing, setSyncing] = useState(false);
   const { user } = useAuth();
   const { showToast } = useToast();
+  const getStorageKey = (userId?: number | null) => (userId ? `cart_user_${userId}` : 'cart_guest');
+  const getItemKey = (item: CartItem) =>
+    `${item.produto?.id || item.produto_id || '0'}-${item.tamanho || ''}-${item.cor || ''}`;
 
   // Carregar carrinho: do backend se logado, senão do localStorage
   useEffect(() => {
     const loadCart = async () => {
+      const storageKey = getStorageKey(user?.id);
+      setItems([]);
       if (user) {
         try {
           const response = await carrinhoService.get();
@@ -45,15 +50,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
             setItems(formattedItems);
           }
         } catch (error) {
-          // Se falhar, carrega do localStorage
-          const savedCart = localStorage.getItem('cart');
+          // Se falhar, carrega do localStorage do usuario
+          const savedCart = localStorage.getItem(storageKey);
           if (savedCart) {
             setItems(JSON.parse(savedCart));
           }
         }
       } else {
         // Usuário não logado: usa localStorage
-        const savedCart = localStorage.getItem('cart');
+        const savedCart = localStorage.getItem(storageKey);
         if (savedCart) {
           setItems(JSON.parse(savedCart));
         }
@@ -64,31 +69,57 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Sincronizar carrinho do localStorage com backend após login
   useEffect(() => {
-    const syncAfterLogin = async () => {
-      if (user && items.length > 0 && !syncing) {
-        try {
-          setSyncing(true);
-          const itensParaSync = items.map(item => ({
-            produto_id: item.produto.id,
+    const syncGuestCart = async () => {
+      if (!user || syncing) return;
+
+      const guestCart = localStorage.getItem(getStorageKey(null));
+      if (!guestCart) return;
+
+      const parsed = JSON.parse(guestCart);
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        localStorage.removeItem(getStorageKey(null));
+        return;
+      }
+
+      try {
+        setSyncing(true);
+        const itensParaSync = parsed.map((item: any) => ({
+          produto_id: item.produto.id,
+          quantidade: item.quantidade,
+          tamanho: item.tamanho,
+          cor: item.cor,
+        }));
+        await carrinhoService.sync(itensParaSync);
+        localStorage.removeItem(getStorageKey(null));
+
+        const response = await carrinhoService.get();
+        if (response.success && response.data) {
+          const backendItems = response.data.itens || [];
+          const formattedItems = backendItems.map((item: any) => ({
+            id: item.id,
+            produto_id: item.produto_id,
+            produto: item.produto || item,
             quantidade: item.quantidade,
             tamanho: item.tamanho,
             cor: item.cor,
           }));
-          await carrinhoService.sync(itensParaSync);
-        } catch (error) {
-          console.error('Erro ao sincronizar carrinho:', error);
-        } finally {
-          setSyncing(false);
+          setItems(formattedItems);
         }
+      } catch (error) {
+        console.error('Erro ao sincronizar carrinho:', error);
+      } finally {
+        setSyncing(false);
       }
     };
-    syncAfterLogin();
+
+    syncGuestCart();
   }, [user]);
 
   // Salvar no localStorage sempre (backup)
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(items));
-  }, [items]);
+    const storageKey = getStorageKey(user?.id);
+    localStorage.setItem(storageKey, JSON.stringify(items));
+  }, [items, user]);
 
   const addItem = async (product: Product, quantidade: number, tamanho?: string, cor?: string) => {
     if (user) {
@@ -106,6 +137,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (response.success && response.data) {
           const backendItems = response.data.itens || [];
           const formattedItems = backendItems.map((item: any) => ({
+            id: item.id,
+            produto_id: item.produto_id,
             produto: item.produto || item,
             quantidade: item.quantidade,
             tamanho: item.tamanho,
@@ -147,15 +180,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const removeItem = async (productId: number) => {
-    console.log('removeItem called with productId:', productId);
-    console.log('Current items:', items);
+  const removeItem = async (item: CartItem) => {
+    const itemKey = getItemKey(item);
 
     if (user) {
       try {
-        // Encontra o item no carrinho
-        const itemToRemove = items.find(i => i.produto_id === productId);
-        console.log('Item to remove:', itemToRemove);
+        const itemToRemove = items.find((i) => getItemKey(i) === itemKey);
 
         if (!itemToRemove) {
           showToast('Produto não encontrado no carrinho', 'error');
@@ -164,14 +194,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
         // Se tem ID do banco, deleta pelo ID
         if (itemToRemove.id) {
-          console.log('Calling carrinhoService.removeItem with id:', itemToRemove.id);
           await carrinhoService.removeItem(itemToRemove.id);
         }
 
-        // Remove do estado local - APENAS o item com este productId
-        const newItems = items.filter((item) => item.produto_id !== productId);
-        console.log('New items after filter:', newItems);
-        setItems(newItems);
+        // Remove do estado local - apenas a variante selecionada
+        setItems((prevItems) => prevItems.filter((i) => getItemKey(i) !== itemKey));
 
         showToast('Produto removido do carrinho', 'success');
       } catch (error: any) {
@@ -180,37 +207,39 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
     } else {
       // Sem usuário, remove apenas localmente
-      const filtered = items.filter((item) => item.produto.id !== productId);
+      const filtered = items.filter((i) => getItemKey(i) !== itemKey);
       setItems(filtered);
-      localStorage.setItem('cart', JSON.stringify(filtered));
+      localStorage.setItem(getStorageKey(null), JSON.stringify(filtered));
       showToast('Produto removido do carrinho', 'success');
     }
   };
 
-  const updateQuantity = async (productId: number, quantidade: number) => {
+  const updateQuantity = async (item: CartItem, quantidade: number) => {
     if (quantidade <= 0) {
-      removeItem(productId);
+      removeItem(item);
       return;
     }
 
+    const itemKey = getItemKey(item);
+
     if (user) {
       try {
-        const item = items.find(i => i.produto_id === productId || i.produto.id === productId);
+        const itemToUpdate = items.find((i) => getItemKey(i) === itemKey);
         
-        if (!item) {
+        if (!itemToUpdate) {
           showToast('Produto não encontrado no carrinho', 'error');
           return;
         }
 
         // Se tem ID do banco, atualiza pelo ID
-        if (item.id) {
-          await carrinhoService.updateItem(item.id, quantidade);
+        if (itemToUpdate.id) {
+          await carrinhoService.updateItem(itemToUpdate.id, quantidade);
         }
 
         // Atualiza no estado local
         setItems((prevItems) =>
           prevItems.map((cartItem) =>
-            (cartItem.produto_id === productId || cartItem.produto.id === productId)
+            getItemKey(cartItem) === itemKey
               ? { ...cartItem, quantidade }
               : cartItem
           )
@@ -223,14 +252,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // Sem usuário, atualiza apenas localmente
       setItems((prevItems) =>
         prevItems.map((item) =>
-          item.produto.id === productId ? { ...item, quantidade } : item
+          getItemKey(item) === itemKey ? { ...item, quantidade } : item
         )
       );
       // Salva no localStorage
-      const updated = items.map(item =>
-        item.produto.id === productId ? { ...item, quantidade } : item
+      const updated = items.map((item) =>
+        getItemKey(item) === itemKey ? { ...item, quantidade } : item
       );
-      localStorage.setItem('cart', JSON.stringify(updated));
+      localStorage.setItem(getStorageKey(null), JSON.stringify(updated));
     }
   };
 
@@ -243,7 +272,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
     }
     setItems([]);
-    localStorage.removeItem('cart');
+    localStorage.removeItem(getStorageKey(user?.id));
   };
 
   const syncWithBackend = async () => {

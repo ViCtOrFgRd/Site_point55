@@ -8,6 +8,16 @@
   --gray-100: #f3f4f6;
   --gray-200: #e5e7eb;
   --gray-300: #d1d5db;
+  --container-max: 1280px;
+  --container-padding: clamp(16px, 2.5vw, 32px);
+  --text-base: clamp(15px, 0.9vw + 12px, 18px);
+  --text-small: clamp(13px, 0.6vw + 11px, 16px);
+  --text-large: clamp(18px, 1.2vw + 14px, 24px);
+  --radius-base: clamp(8px, 1vw, 14px);
+  --space-1: clamp(8px, 1.2vw, 16px);
+  --space-2: clamp(12px, 1.6vw, 24px);
+  --space-3: clamp(16px, 2.2vw, 32px);
+  --space-4: clamp(24px, 3vw, 48px);
 }
 
 * {
@@ -28,6 +38,8 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
+  font-size: var(--text-base);
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -50,13 +62,7 @@ img {
 
 .container {
   width: 100%;
-  max-width: 1200px;
+  max-width: var(--container-max);
   margin: 0 auto;
-  padding: 0 20px;
-}
-
-@media (max-width: 768px) {
-  .container {
-    padding: 0 16px;
-  }
+  padding: 0 var(--container-padding);
 }

@@ -16,8 +16,8 @@ const { isAdmin } = require('../middlewares/authorize');
 // Rotas públicas
 router.get('/', listarPromocoes);
 router.get('/vigentes', listarPromocoesVigentes);
-router.get('/:id', obterPromocao);
 router.get('/produtos/:id', verificarPromocoesAplicaveis);
+router.get('/:id', obterPromocao);
 
 // Rotas admin
 router.post('/', authenticate, isAdmin, criarPromocao);

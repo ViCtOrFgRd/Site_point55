@@ -19,6 +19,8 @@ export default function AdminRelatoriosPage() {
     produtosEstoqueZero: 0,
     pedidosPendentes: 0,
     pedidosEntregues: 0,
+    pedidosDevolucao: 0,
+    pedidosDevolvidos: 0,
   });
 
   useEffect(() => {
@@ -38,7 +40,7 @@ export default function AdminRelatoriosPage() {
     try {
       const [pedidosRes, produtosRes] = await Promise.all([
         orderService.getAll({}),
-        productService.getAll({ limite: 1000 }),
+        productService.getAllAdmin({ limite: 1000 }),
       ]);
 
       if (pedidosRes.success && produtosRes.success) {
@@ -47,7 +49,7 @@ export default function AdminRelatoriosPage() {
 
         const totalVendas = pedidos
           .filter((p: any) => p.status !== 'cancelado')
-          .reduce((acc: number, p: any) => acc + (p.valor_total || 0), 0);
+          .reduce((acc: number, p: any) => acc + parseFloat(p.valor_total || 0), 0);
 
         setStats({
           totalPedidos: pedidos.length,
@@ -56,6 +58,8 @@ export default function AdminRelatoriosPage() {
           produtosEstoqueZero: produtos.filter((p: any) => p.estoque === 0).length,
           pedidosPendentes: pedidos.filter((p: any) => p.status === 'pendente').length,
           pedidosEntregues: pedidos.filter((p: any) => p.status === 'entregue').length,
+          pedidosDevolucao: pedidos.filter((p: any) => p.status === 'devolucao').length,
+          pedidosDevolvidos: pedidos.filter((p: any) => p.status === 'devolvido').length,
         });
       }
     } catch (error) {
@@ -142,6 +146,14 @@ export default function AdminRelatoriosPage() {
               <div className={styles.statusItem}>
                 <span className={styles.statusLabel}>Entregues</span>
                 <span className={styles.statusValue}>{stats.pedidosEntregues}</span>
+              </div>
+              <div className={styles.statusItem}>
+                <span className={styles.statusLabel}>Devolucao</span>
+                <span className={styles.statusValue}>{stats.pedidosDevolucao}</span>
+              </div>
+              <div className={styles.statusItem}>
+                <span className={styles.statusLabel}>Devolvidos</span>
+                <span className={styles.statusValue}>{stats.pedidosDevolvidos}</span>
               </div>
               <div className={styles.statusItem}>
                 <span className={styles.statusLabel}>Taxa de Entrega</span>

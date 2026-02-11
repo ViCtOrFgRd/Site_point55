@@ -57,7 +57,10 @@ api.interceptors.response.use(
     if (typeof window !== 'undefined') {
       if (error.response?.status === 401) {
         localStorage.removeItem('token');
-        window.location.href = '/perfil'; // Redireciona para página de perfil/login
+        localStorage.removeItem('user');
+        if (window.location.pathname !== '/perfil') {
+          window.location.href = '/perfil'; // Redireciona para página de perfil/login
+        }
       }
     }
     
@@ -102,6 +105,19 @@ export const productService = {
   
   // Admin: Criar produto
   create: (data: any): Promise<ApiResponse> => api.post('/produtos', data),
+
+  // Admin: Listar produtos (completos)
+  getAllAdmin: (params?: {
+    categoria?: number | string;
+    busca?: string;
+    precoMin?: number;
+    precoMax?: number;
+    promocao?: boolean;
+    ordem?: 'data_criacao' | 'preco' | 'nome' | 'vendas';
+    direcao?: 'ASC' | 'DESC';
+    pagina?: number;
+    limite?: number;
+  }): Promise<ApiResponse> => api.get('/produtos/admin', { params }),
   
   // Admin: Atualizar produto
   update: (id: number, data: any): Promise<ApiResponse> => api.put(`/produtos/${id}`, data),
@@ -117,6 +133,7 @@ export const productService = {
 // ==================== CATEGORIAS ====================
 export const categoryService = {
   getAll: (): Promise<ApiResponse> => api.get('/categorias'),
+  getAllAdmin: (): Promise<ApiResponse> => api.get('/categorias/admin'),
   getById: (id: number): Promise<ApiResponse> => api.get(`/categorias/${id}`),
   
   // Admin
@@ -226,6 +243,41 @@ export const orderService = {
     api.put(`/pedidos/${id}/rastreio`, { codigo_rastreio, url_rastreamento }),
 };
 
+// ==================== DEVOLUCOES ====================
+export const returnService = {
+  create: (data: any): Promise<ApiResponse> => {
+    const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
+    return api.post('/devolucoes', data, isFormData ? {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    } : undefined);
+  },
+
+  getAll: (params?: { status?: string; pedido_id?: number; pagina?: number; limite?: number }): Promise<ApiResponse> => 
+    api.get('/devolucoes', { params }),
+
+  getById: (id: number): Promise<ApiResponse> => api.get(`/devolucoes/${id}`),
+
+  updateStatus: (id: number, status: string, admin_decisao?: string, admin_instrucoes?: string): Promise<ApiResponse> =>
+    api.patch(`/devolucoes/${id}/status`, { status, admin_decisao, admin_instrucoes }),
+
+  appeal: (id: number, justificativa: string): Promise<ApiResponse> =>
+    api.post(`/devolucoes/${id}/recorrer`, { justificativa }),
+};
+
+// ==================== FRETE (SUPERFRETE) ====================
+export const shippingService = {
+  calculate: (data: {
+    cep_destino: string;
+    valor_declarado?: number;
+    subtotal?: number;
+    peso?: number;
+    altura?: number;
+    largura?: number;
+    comprimento?: number;
+    payload?: any;
+  }): Promise<ApiResponse> => api.post('/superfrete/calcular', data),
+};
+
 // ==================== AVALIAÇÕES ====================
 export const reviewService = {
   // Listar avaliações de um produto
@@ -266,10 +318,11 @@ export const commentService = {
 
 // ==================== CUPONS ====================
 export const couponService = {
-  validate: (codigo: string): Promise<ApiResponse> => api.post('/cupons/validar', { codigo }),
+  validate: (codigo: string, subtotal: number): Promise<ApiResponse> =>
+    api.post('/cupons/validar', { codigo, subtotal }),
   
   // Admin: Gerenciar cupons
-  getAll: (): Promise<ApiResponse> => api.get('/cupons'),
+  getAll: (params?: { ativo?: boolean }): Promise<ApiResponse> => api.get('/cupons', { params }),
   create: (data: {
     codigo: string;
     descricao?: string;

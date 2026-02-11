@@ -1,20 +1,20 @@
 .page {
   min-height: 100vh;
   background: #fff;
-  padding: 2rem 0 4rem;
+  padding: var(--space-3) 0 var(--space-4);
 }
 
 .hero {
   text-align: center;
-  padding: 3rem 0;
+  padding: var(--space-4) 0;
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border-radius: 16px;
-  margin-bottom: 3rem;
+  border-radius: var(--radius-base);
+  margin-bottom: var(--space-4);
   color: #fff;
 
   .heroIcon {
-    font-size: 4rem;
-    margin-bottom: 1rem;
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    margin-bottom: var(--space-1);
     animation: rotate 3s linear infinite;
 
     @media (max-width: 768px) {
@@ -23,9 +23,9 @@
   }
 
   h1 {
-    font-size: 3rem;
+    font-size: clamp(1.8rem, 4vw, 3rem);
     font-weight: 700;
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-1);
 
     @media (max-width: 768px) {
       font-size: 2rem;
@@ -33,7 +33,7 @@
   }
 
   p {
-    font-size: 1.25rem;
+    font-size: var(--text-large);
     opacity: 0.95;
 
     @media (max-width: 768px) {
@@ -54,8 +54,8 @@
 .highlight {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 2rem;
-  margin-bottom: 4rem;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
@@ -65,8 +65,8 @@
 
 .highlightCard {
   background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-  padding: 2rem;
-  border-radius: 12px;
+  padding: var(--space-3);
+  border-radius: var(--radius-base);
   text-align: center;
   border: 2px solid #6ee7b7;
   transition: transform 0.3s, box-shadow 0.3s;
@@ -77,39 +77,40 @@
   }
 
   .icon {
-    font-size: 3rem;
+    font-size: clamp(2rem, 5vw, 3rem);
     color: #059669;
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-1);
   }
 
   h3 {
-    font-size: 1.5rem;
+    font-size: var(--text-large);
     font-weight: 700;
     color: #065f46;
-    margin-bottom: 0.75rem;
+    margin-bottom: var(--space-1);
   }
 
   p {
-    font-size: 1.05rem;
+    font-size: var(--text-small);
     color: #047857;
     line-height: 1.6;
   }
 }
 
 .content {
-  max-width: 1000px;
+  max-width: var(--container-max);
   margin: 0 auto;
+  padding: 0 var(--container-padding);
 }
 
 .section {
-  margin-bottom: 3rem;
+  margin-bottom: var(--space-4);
 
   h2 {
-    font-size: 1.75rem;
+    font-size: clamp(1.4rem, 3vw, 1.75rem);
     font-weight: 700;
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--space-2);
     color: #000;
-    padding-bottom: 0.5rem;
+    padding-bottom: var(--space-1);
     border-bottom: 2px solid #e5e7eb;
 
     @media (max-width: 768px) {
@@ -118,9 +119,9 @@
   }
 
   h3 {
-    font-size: 1.25rem;
+    font-size: var(--text-large);
     font-weight: 600;
-    margin: 1.5rem 0 1rem;
+    margin: var(--space-2) 0 var(--space-1);
     color: #1f2937;
 
     @media (max-width: 768px) {
@@ -129,10 +130,10 @@
   }
 
   p {
-    font-size: 1.05rem;
+    font-size: var(--text-small);
     line-height: 1.8;
     color: #4b5563;
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-1);
 
     strong {
       color: #000;
@@ -150,12 +151,12 @@
     margin: 1rem 0;
 
     li {
-      font-size: 1.05rem;
+      font-size: var(--text-small);
       line-height: 1.8;
       color: #4b5563;
       padding-left: 2rem;
       position: relative;
-      margin-bottom: 0.75rem;
+      margin-bottom: var(--space-1);
 
       &:before {
         content: "✓";
@@ -163,7 +164,7 @@
         left: 0.75rem;
         color: #10b981;
         font-weight: bold;
-        font-size: 1.3rem;
+        font-size: 1.2rem;
       }
 
       strong {
@@ -179,20 +180,20 @@
 }
 
 .steps {
-  margin: 2rem 0;
+  margin: var(--space-3) 0;
 }
 
 .step {
   display: flex;
-  gap: 1.5rem;
-  margin-bottom: 2.5rem;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
   position: relative;
 
   &:not(:last-child):after {
     content: '';
     position: absolute;
-    left: 1.875rem;
-    top: 4rem;
+    left: 1.6rem;
+    top: 3.6rem;
     width: 2px;
     height: calc(100% + 0.5rem);
     background: linear-gradient(180deg, #10b981 0%, #d1fae5 100%);
@@ -210,15 +211,15 @@
 }
 
 .stepNumber {
-  min-width: 3.75rem;
-  height: 3.75rem;
+  min-width: clamp(2.75rem, 6vw, 3.75rem);
+  height: clamp(2.75rem, 6vw, 3.75rem);
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: #fff;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: clamp(1.1rem, 3vw, 1.5rem);
   font-weight: 700;
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
   flex-shrink: 0;
@@ -228,14 +229,15 @@
   flex: 1;
 
   h3 {
-    font-size: 1.4rem;
+    font-size: var(--text-large);
     color: #059669;
     margin-top: 0;
-    margin-bottom: 0.75rem;
+    margin-bottom: var(--space-1);
   }
 
   p {
-    margin-bottom: 0.75rem;
+    margin-bottom: var(--space-1);
+    font-size: var(--text-small);
   }
 
   ul {
@@ -246,10 +248,10 @@
 .warning {
   background: #fef3c7;
   border-left: 4px solid #f59e0b;
-  padding: 0.75rem 1rem;
-  border-radius: 6px;
-  margin-top: 1rem;
-  font-size: 0.95rem;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-base);
+  margin-top: var(--space-1);
+  font-size: var(--text-small);
   color: #78350f;
 
   strong {

@@ -1,21 +1,21 @@
 .page {
   min-height: 100vh;
   background: #fff;
-  padding: 2rem 0 4rem;
+  padding: var(--space-3) 0 var(--space-4);
 }
 
 .hero {
   text-align: center;
-  padding: 3rem 0;
+  padding: var(--space-4) 0;
   background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-  border-radius: 16px;
-  margin-bottom: 3rem;
+  border-radius: var(--radius-base);
+  margin-bottom: var(--space-4);
 
   h1 {
-    font-size: 3rem;
+    font-size: clamp(1.8rem, 4vw, 3rem);
     font-weight: 700;
     color: #000;
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-1);
 
     @media (max-width: 768px) {
       font-size: 2rem;
@@ -23,7 +23,7 @@
   }
 
   p {
-    font-size: 1.25rem;
+    font-size: var(--text-large);
     color: #6b7280;
 
     @media (max-width: 768px) {
@@ -35,8 +35,8 @@
 .categorias {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 3rem;
+  gap: var(--space-1);
+  margin-bottom: var(--space-4);
   justify-content: center;
 
   @media (max-width: 768px) {
@@ -45,11 +45,11 @@
 }
 
 .categoriaBtn {
-  padding: 0.75rem 1.5rem;
+  padding: 0.7rem 1.4rem;
   background: #f3f4f6;
   border: 2px solid transparent;
   border-radius: 50px;
-  font-size: 1rem;
+  font-size: var(--text-small);
   font-weight: 600;
   color: #4b5563;
   cursor: pointer;
@@ -68,20 +68,21 @@
 
   @media (max-width: 768px) {
     padding: 0.6rem 1rem;
-    font-size: 0.9rem;
+    font-size: var(--text-small);
   }
 }
 
 .faqList {
-  max-width: 900px;
+  max-width: var(--container-max);
   margin: 0 auto;
+  padding: 0 var(--container-padding);
 }
 
 .faqItem {
   background: white;
   border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  margin-bottom: 1rem;
+  border-radius: var(--radius-base);
+  margin-bottom: var(--space-1);
   overflow: hidden;
   transition: all 0.3s ease;
 
@@ -95,12 +96,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.5rem;
+  padding: var(--space-2);
   background: white;
   border: none;
   cursor: pointer;
   text-align: left;
-  font-size: 1.1rem;
+  font-size: var(--text-small);
   font-weight: 600;
   color: #000;
   transition: background 0.3s ease;
@@ -111,7 +112,7 @@
 
   span {
     flex: 1;
-    padding-right: 1rem;
+    padding-right: var(--space-1);
   }
 
   svg {
@@ -120,24 +121,24 @@
   }
 
   @media (max-width: 768px) {
-    font-size: 1rem;
-    padding: 1.25rem;
+    font-size: var(--text-small);
+    padding: var(--space-2);
   }
 }
 
 .faqAnswer {
-  padding: 0 1.5rem 1.5rem;
+  padding: 0 var(--space-2) var(--space-2);
   animation: slideDown 0.3s ease;
 
   p {
-    font-size: 1rem;
+    font-size: var(--text-small);
     line-height: 1.8;
     color: #4b5563;
     margin: 0;
   }
 
   @media (max-width: 768px) {
-    padding: 0 1.25rem 1.25rem;
+    padding: 0 var(--space-2) var(--space-2);
   }
 }
 
@@ -154,15 +155,15 @@
 
 .contato {
   text-align: center;
-  margin-top: 4rem;
-  padding: 3rem;
+  margin-top: var(--space-4);
+  padding: var(--space-4);
   background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  border-radius: 16px;
+  border-radius: var(--radius-base);
 
   h2 {
-    font-size: 2rem;
+    font-size: clamp(1.4rem, 3vw, 2rem);
     font-weight: 700;
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-1);
     color: #000;
 
     @media (max-width: 768px) {
@@ -171,9 +172,9 @@
   }
 
   p {
-    font-size: 1.1rem;
+    font-size: var(--text-small);
     color: #4b5563;
-    margin-bottom: 2rem;
+    margin-bottom: var(--space-3);
 
     @media (max-width: 768px) {
       font-size: 1rem;
@@ -183,14 +184,14 @@
 
 .contactButtons {
   display: flex;
-  gap: 1rem;
+  gap: var(--space-1);
   justify-content: center;
   flex-wrap: wrap;
 
   a {
-    padding: 1rem 2rem;
+    padding: 0.8rem 1.6rem;
     border-radius: 50px;
-    font-size: 1rem;
+    font-size: var(--text-small);
     font-weight: 600;
     text-decoration: none;
     transition: all 0.3s ease;

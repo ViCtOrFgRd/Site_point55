@@ -1,44 +1,32 @@
 .page {
   min-height: 100vh;
   background: #fff;
-  padding: 2rem 0 4rem;
+  padding: var(--space-3) 0 var(--space-4);
 }
 
 .hero {
   text-align: center;
-  padding: 3rem 0;
+  padding: var(--space-4) 0;
   background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-  border-radius: 16px;
-  margin-bottom: 3rem;
+  border-radius: var(--radius-base);
+  margin-bottom: var(--space-4);
   color: #fff;
 
   .heroIcon {
-    font-size: 4rem;
-    margin-bottom: 1rem;
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    margin-bottom: var(--space-1);
     animation: pulse 2s ease-in-out infinite;
-
-    @media (max-width: 768px) {
-      font-size: 3rem;
-    }
   }
 
   h1 {
-    font-size: 3rem;
+    font-size: clamp(1.8rem, 4vw, 3rem);
     font-weight: 700;
-    margin-bottom: 1rem;
-
-    @media (max-width: 768px) {
-      font-size: 2rem;
-    }
+    margin-bottom: var(--space-1);
   }
 
   p {
-    font-size: 1.25rem;
+    font-size: var(--text-large);
     opacity: 0.95;
-
-    @media (max-width: 768px) {
-      font-size: 1.1rem;
-    }
   }
 }
 
@@ -52,25 +40,26 @@
 }
 
 .content {
-  max-width: 1000px;
+  max-width: var(--container-max);
   margin: 0 auto;
+  padding: 0 var(--container-padding);
 }
 
 .searchSection {
   background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
-  padding: 3rem;
-  border-radius: 16px;
-  margin-bottom: 3rem;
+  padding: var(--space-4);
+  border-radius: var(--radius-base);
+  margin-bottom: var(--space-4);
   border: 2px solid #c4b5fd;
 
   @media (max-width: 768px) {
-    padding: 2rem 1.5rem;
+    padding: var(--space-3) var(--space-2);
   }
 }
 
 .searchForm {
   display: flex;
-  gap: 1rem;
+  gap: var(--space-1);
   flex-direction: column;
 
   @media (min-width: 768px) {
@@ -84,20 +73,20 @@
 
   .searchIcon {
     position: absolute;
-    left: 1rem;
+    left: var(--space-1);
     top: 50%;
     transform: translateY(-50%);
-    font-size: 1.5rem;
+    font-size: clamp(1.1rem, 3vw, 1.5rem);
     color: #7c3aed;
   }
 }
 
 .input {
   width: 100%;
-  padding: 1rem 1rem 1rem 3.5rem;
-  font-size: 1.1rem;
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-4);
+  font-size: var(--text-small);
   border: 2px solid #c4b5fd;
-  border-radius: 12px;
+  border-radius: var(--radius-base);
   outline: none;
   transition: border-color 0.3s;
 
@@ -111,13 +100,13 @@
 }
 
 .btnRastrear {
-  padding: 1rem 2.5rem;
-  font-size: 1.1rem;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-small);
   font-weight: 600;
   background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
   color: #fff;
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-base);
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
   white-space: nowrap;
@@ -138,11 +127,11 @@
 }
 
 .erro {
-  margin-top: 1rem;
-  padding: 1rem;
+  margin-top: var(--space-1);
+  padding: var(--space-1);
   background: #fee2e2;
   border-left: 4px solid #ef4444;
-  border-radius: 8px;
+  border-radius: var(--radius-base);
 
   p {
     color: #991b1b;
@@ -154,50 +143,46 @@
 .resultSection {
   background: #fff;
   border: 2px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 2rem;
-  margin-bottom: 3rem;
+  border-radius: var(--radius-base);
+  padding: var(--space-3);
+  margin-bottom: var(--space-4);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 
   @media (max-width: 768px) {
-    padding: 1.5rem;
+    padding: var(--space-2);
   }
 }
 
 .resultHeader {
   border-bottom: 2px solid #e5e7eb;
-  padding-bottom: 1.5rem;
-  margin-bottom: 2rem;
+  padding-bottom: var(--space-2);
+  margin-bottom: var(--space-3);
 }
 
 .resultInfo {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-2);
 
   h2 {
-    font-size: 1.75rem;
+    font-size: clamp(1.4rem, 3vw, 1.75rem);
     color: #000;
     margin: 0 0 0.5rem;
-
-    @media (max-width: 768px) {
-      font-size: 1.4rem;
-    }
   }
 
   .status {
     display: inline-block;
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 0.9rem;
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: #fff;
     border-radius: 20px;
     font-weight: 600;
-    font-size: 1rem;
+    font-size: var(--text-small);
   }
 }
 
 .resultDetails {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+  gap: var(--space-1);
 }
 
 .detail {
@@ -206,13 +191,13 @@
   gap: 0.25rem;
 
   strong {
-    font-size: 0.9rem;
+    font-size: var(--text-xsmall);
     color: #6b7280;
     font-weight: 600;
   }
 
   span {
-    font-size: 1.1rem;
+    font-size: var(--text-small);
     color: #000;
     font-weight: 500;
   }
@@ -220,124 +205,113 @@
 
 .timeline {
   h3 {
-    font-size: 1.5rem;
+    font-size: var(--text-large);
     color: #000;
-    margin-bottom: 2rem;
+    margin-bottom: var(--space-3);
     font-weight: 700;
   }
 }
 
 .timelineItem {
   display: flex;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
   position: relative;
 
   &:not(:last-child):after {
     content: '';
     position: absolute;
-    left: 1.875rem;
-    top: 4rem;
+    left: 1.6rem;
+    top: 3.6rem;
     width: 2px;
     height: calc(100% - 1rem);
     background: linear-gradient(180deg, #8b5cf6 0%, #ede9fe 100%);
   }
 
   @media (max-width: 768px) {
-    gap: 1rem;
+    gap: var(--space-1);
   }
 }
 
 .timelineIcon {
-  min-width: 3.75rem;
-  height: 3.75rem;
+  min-width: clamp(2.75rem, 6vw, 3.75rem);
+  height: clamp(2.75rem, 6vw, 3.75rem);
   background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
   color: #fff;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.75rem;
+  font-size: clamp(1.2rem, 3vw, 1.75rem);
   box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
   flex-shrink: 0;
 }
 
 .timelineContent {
   flex: 1;
-  padding-top: 0.5rem;
+  padding-top: 0.4rem;
 }
 
 .timelineDate {
-  font-size: 0.95rem;
+  font-size: var(--text-xsmall);
   color: #6b7280;
   margin-bottom: 0.25rem;
   font-weight: 500;
 }
 
 .timelineSituacao {
-  font-size: 1.2rem;
+  font-size: var(--text-small);
   color: #000;
   font-weight: 600;
   margin-bottom: 0.25rem;
 }
 
 .timelineLocal {
-  font-size: 1rem;
+  font-size: var(--text-xsmall);
   color: #6b7280;
 }
 
 .section {
-  margin-bottom: 3rem;
+  margin-bottom: var(--space-4);
 
   h2 {
-    font-size: 1.75rem;
+    font-size: clamp(1.4rem, 3vw, 1.75rem);
     font-weight: 700;
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--space-2);
     color: #000;
-    padding-bottom: 0.5rem;
+    padding-bottom: var(--space-1);
     border-bottom: 2px solid #e5e7eb;
-
-    @media (max-width: 768px) {
-      font-size: 1.5rem;
-    }
   }
 
   h3 {
-    font-size: 1.25rem;
+    font-size: var(--text-large);
     font-weight: 600;
-    margin: 1.5rem 0 1rem;
+    margin: var(--space-2) 0 var(--space-1);
     color: #1f2937;
-
-    @media (max-width: 768px) {
-      font-size: 1.15rem;
-    }
   }
 
   p {
-    font-size: 1.05rem;
+    font-size: var(--text-small);
     line-height: 1.8;
     color: #4b5563;
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-1);
 
     strong {
       color: #000;
       font-weight: 600;
     }
 
-    @media (max-width: 768px) {
-      font-size: 1rem;
-    }
   }
 }
 
 .steps {
-  margin: 2rem 0;
+  margin: var(--space-3) 0;
 }
 
 .step {
   display: flex;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -347,15 +321,15 @@
 }
 
 .stepNumber {
-  min-width: 3.75rem;
-  height: 3.75rem;
+  min-width: clamp(2.75rem, 6vw, 3.75rem);
+  height: clamp(2.75rem, 6vw, 3.75rem);
   background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
   color: #fff;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: clamp(1.1rem, 3vw, 1.5rem);
   font-weight: 700;
   box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
   flex-shrink: 0;
@@ -365,47 +339,48 @@
   flex: 1;
 
   h3 {
-    font-size: 1.3rem;
+    font-size: var(--text-large);
     color: #7c3aed;
     margin-top: 0;
-    margin-bottom: 0.75rem;
+    margin-bottom: var(--space-1);
   }
 
   p {
     margin: 0;
+    font-size: var(--text-small);
   }
 }
 
 .statusList {
   display: grid;
-  gap: 1.5rem;
-  margin: 2rem 0;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
 }
 
 .statusItem {
   display: flex;
   align-items: flex-start;
-  gap: 1rem;
+  gap: var(--space-1);
   background: #f9fafb;
-  padding: 1.25rem;
-  border-radius: 12px;
+  padding: var(--space-2);
+  border-radius: var(--radius-base);
   border: 1px solid #e5e7eb;
 
   .statusIcon {
-    font-size: 2rem;
+    font-size: clamp(1.4rem, 4vw, 2rem);
     flex-shrink: 0;
     margin-top: 0.25rem;
   }
 
   h4 {
-    font-size: 1.15rem;
+    font-size: var(--text-large);
     color: #000;
     margin: 0 0 0.5rem;
     font-weight: 600;
   }
 
   p {
-    font-size: 1rem;
+    font-size: var(--text-small);
     color: #6b7280;
     margin: 0;
   }
@@ -413,25 +388,25 @@
 
 .faqList {
   display: grid;
-  gap: 1.5rem;
-  margin: 2rem 0;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
 }
 
 .faqItem {
   background: #f9fafb;
-  padding: 1.5rem;
-  border-radius: 12px;
+  padding: var(--space-2);
+  border-radius: var(--radius-base);
   border-left: 4px solid #8b5cf6;
 
   h3 {
-    font-size: 1.15rem;
+    font-size: var(--text-large);
     color: #7c3aed;
-    margin: 0 0 0.75rem;
+    margin: 0 0 var(--space-1);
     font-weight: 600;
   }
 
   p {
-    font-size: 1rem;
+    font-size: var(--text-small);
     color: #4b5563;
     margin: 0;
 
@@ -444,8 +419,8 @@
 .linksList {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1rem;
-  margin: 2rem 0;
+  gap: var(--space-1);
+  margin: var(--space-3) 0;
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
@@ -455,18 +430,18 @@
 .externalLink {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1rem 1.5rem;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
   background: #fff;
   border: 2px solid #e5e7eb;
-  border-radius: 12px;
+  border-radius: var(--radius-base);
   color: #1f2937;
   font-weight: 600;
   text-decoration: none;
   transition: all 0.2s;
 
   svg {
-    font-size: 1.5rem;
+    font-size: clamp(1.1rem, 3vw, 1.5rem);
     color: #8b5cf6;
   }
 
@@ -479,13 +454,13 @@
 
 .contact {
   background: #f5f3ff;
-  padding: 1.5rem;
-  border-radius: 12px;
-  margin-top: 1.5rem;
+  padding: var(--space-2);
+  border-radius: var(--radius-base);
+  margin-top: var(--space-2);
   border-left: 4px solid #8b5cf6;
 
   p {
-    font-size: 1.05rem;
+    font-size: var(--text-small);
     color: #5b21b6;
     margin-bottom: 0.5rem;
 

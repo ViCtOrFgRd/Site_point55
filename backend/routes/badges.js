@@ -15,6 +15,7 @@ const { isAdmin } = require('../middlewares/authorize');
 
 // Rotas públicas
 router.get('/', listarBadges);
+router.get('/produtos/:id/badges', listarBadgesDoProduto);
 router.get('/:id', obterBadge);
 
 // Rotas admin
@@ -23,7 +24,6 @@ router.put('/:id', authenticate, isAdmin, atualizarBadge);
 router.delete('/:id', authenticate, isAdmin, deletarBadge);
 
 // Rotas de relacionamento produto-badge
-router.get('/produtos/:id/badges', listarBadgesDoProduto);
 router.post('/produtos/:id/badges', authenticate, isAdmin, adicionarBadgeAoProduto);
 router.delete('/produtos/:id/badges/:badgeId', authenticate, isAdmin, removerBadgeDoProduto);
 

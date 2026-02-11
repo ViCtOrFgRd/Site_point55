@@ -3,23 +3,23 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  padding: var(--space-3);
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .registerBox {
   background: white;
-  padding: 3rem;
-  border-radius: 12px;
+  padding: var(--space-4);
+  border-radius: var(--radius-base);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
   width: 100%;
-  max-width: 550px;
+  max-width: clamp(320px, 55vw, 550px);
 }
 
 .title {
-  font-size: 2rem;
+  font-size: clamp(1.5rem, 3vw, 2rem);
   color: #333;
-  margin-bottom: 2rem;
+  margin-bottom: var(--space-3);
   text-align: center;
   font-weight: 600;
 }
@@ -27,17 +27,17 @@
 .error {
   background: #fee;
   color: #c33;
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
+  padding: var(--space-2);
+  border-radius: var(--radius-base);
+  margin-bottom: var(--space-2);
   border: 1px solid #fcc;
-  font-size: 0.9rem;
+  font-size: var(--text-small);
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: var(--space-2);
 }
 
 .formGroup {
@@ -48,14 +48,14 @@
   label {
     font-weight: 500;
     color: #555;
-    font-size: 0.9rem;
+    font-size: var(--text-small);
   }
 
   input {
-    padding: 0.875rem 1rem;
+    padding: 0.8rem var(--space-2);
     border: 2px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 1rem;
+    border-radius: var(--radius-base);
+    font-size: var(--text-small);
     transition: all 0.2s;
 
     &:focus {
@@ -82,14 +82,14 @@
 .submitButton {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 1rem;
+  padding: 0.9rem;
   border: none;
-  border-radius: 8px;
-  font-size: 1.1rem;
+  border-radius: var(--radius-base);
+  font-size: var(--text-small);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
-  margin-top: 0.5rem;
+  margin-top: var(--space-1);
 
   &:hover:not(:disabled) {
     transform: translateY(-2px);
@@ -108,12 +108,12 @@
 }
 
 .footer {
-  margin-top: 2rem;
+  margin-top: var(--space-3);
   text-align: center;
 
   p {
     color: #666;
-    font-size: 0.95rem;
+    font-size: var(--text-small);
   }
 }
 
@@ -131,18 +131,18 @@
 
 @media (max-width: 640px) {
   .container {
-    padding: 1rem;
+    padding: var(--space-2);
   }
 
   .registerBox {
-    padding: 2rem 1.5rem;
+    padding: var(--space-3) var(--space-2);
   }
 
   .title {
-    font-size: 1.5rem;
+    font-size: clamp(1.3rem, 4vw, 1.5rem);
   }
 
   .form {
-    gap: 1rem;
+    gap: var(--space-1);
   }
 }

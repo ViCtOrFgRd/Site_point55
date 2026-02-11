@@ -26,6 +26,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const token = localStorage.getItem('token');
       const userStr = localStorage.getItem('user');
+
+      if (!token) {
+        if (userStr) {
+          localStorage.removeItem('user');
+        }
+        setUser(null);
+        setLoading(false);
+        return;
+      }
       
       // Priorizar localStorage (mais rápido e confiável)
       if (userStr) {

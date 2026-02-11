@@ -4,44 +4,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Product } from '@/types';
 import { toNumber, formatPrice } from '@/utils/formatPrice';
-import { getColorBackground } from '@/utils/colorMapping';
+import { getColorVariationStyle } from '@/utils/colorMapping';
 import CategoryBadges from '@/components/CategoryBadges/CategoryBadges';
 import styles from './ProductCard.module.scss';
-
-// Helper para obter cor hexadecimal
-const getColorHex = (colorName: string): string => {
-  const colorMap: Record<string, string> = {
-    'Preto': '#000000',
-    'Branco': '#FFFFFF',
-    'Cinza': '#808080',
-    'Cinza-claro': '#D3D3D3',
-    'Cinza-escuro': '#404040',
-    'Azul': '#0066CC',
-    'Azul-claro': '#87CEEB',
-    'Azul-escuro': '#00008B',
-    'Vermelho': '#FF0000',
-    'Vermelho-escuro': '#8B0000',
-    'Verde': '#008000',
-    'Verde-claro': '#90EE90',
-    'Verde-escuro': '#006400',
-    'Amarelo': '#FFFF00',
-    'Laranja': '#FFA500',
-    'Rosa': '#FFC0CB',
-    'Rosa-escuro': '#DB7093',
-    'Roxo': '#800080',
-    'Marrom': '#8B4513',
-    'Bege': '#F5F5DC',
-    'Ouro': '#FFD700',
-    'Prata': '#C0C0C0',
-    'Turquesa': '#40E0D0',
-    'Teal': '#008080',
-    'Coral': '#FF7F50',
-    'Khaki': '#F0E68C',
-    'Salmon': '#FA8072',
-    'Chocolate': '#D2691E',
-  };
-  return colorMap[colorName] || '#CCCCCC';
-};
 
 interface ProductCardProps {
   product: Product;
@@ -56,8 +21,20 @@ export default function ProductCard({ product }: ProductCardProps) {
   const discountPercent = product.desconto_percentual || 
     (hasDiscount ? Math.round(((precoOriginal - preco) / precoOriginal) * 100) : 0);
 
-  const parcelamento = Math.floor(preco / 3);
-  const precoComPix = preco * 0.95; // 5% desconto no PIX
+  const parcelasMaximas = product.parcelas_maximas ? Number(product.parcelas_maximas) : 3;
+  const parcelas = parcelasMaximas > 0 ? parcelasMaximas : 3;
+  const parcelamento = Math.floor(preco / parcelas);
+  const precoComPix = product.preco_pix ? toNumber(product.preco_pix) : preco * 0.95;
+  const colorOptions = product.cores_disponiveis
+    ? Array.from(
+        new Map(
+          product.cores_disponiveis
+            .map((cor) => cor.trim())
+            .filter(Boolean)
+            .map((cor) => [cor.toLowerCase(), cor])
+        ).values()
+      )
+    : [];
 
   return (
     <Link href={`/produtos/${product.id}`} className={styles.card}>
@@ -109,27 +86,19 @@ export default function ProductCard({ product }: ProductCardProps) {
         )}
 
         {/* Cores Disponíveis */}
-        {product.cores_disponiveis && product.cores_disponiveis.length > 0 && (
+        {colorOptions.length > 0 && (
           <div className={styles.colors}>
-            {product.cores_disponiveis.slice(0, 5).map((cor, index) => {
-              // Importar aqui ou usar inline
-              const isGradient = cor.includes('/');
-              const style = isGradient 
-                ? { background: `linear-gradient(135deg, ${cor.split('/').map(c => getColorHex(c.trim())).join(', ')})` }
-                : { backgroundColor: getColorHex(cor) };
-              
-              return (
-                <div
-                  key={index}
-                  className={styles.colorDot}
-                  style={style}
-                  title={cor}
-                />
-              );
-            })}
-            {product.cores_disponiveis.length > 5 && (
+            {colorOptions.slice(0, 5).map((cor, index) => (
+              <div
+                key={`${cor}-${index}`}
+                className={styles.colorDot}
+                style={getColorVariationStyle(cor)}
+                title={cor}
+              />
+            ))}
+            {colorOptions.length > 5 && (
               <span className={styles.moreColors}>
-                +{product.cores_disponiveis.length - 5}
+                +{colorOptions.length - 5}
               </span>
             )}
           </div>
@@ -152,13 +121,13 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* Parcelamento */}
         <p className={styles.installment}>
-          3x de R$ {formatPrice(parcelamento)} sem juros
+          {parcelas}x de R$ {formatPrice(parcelamento)} sem juros
         </p>
 
         {/* Preço com PIX */}
         <div className={styles.pixPrice}>
-          <span className={styles.pixLabel}>💰 R$ {formatPrice(precoComPix)}</span>
-          <span className={styles.pixText}>no PIX (5% OFF)</span>
+          <span className={styles.pixLabel}>R$ {formatPrice(precoComPix)}</span>
+          <span className={styles.pixText}>no PIX</span>
         </div>
 
         {/* Avaliações */}

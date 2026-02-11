@@ -1,4 +1,5 @@
 const { pool } = require('../config/database');
+const { aplicarPromocoes } = require('../utils/promocoes');
 
 // GET /api/carrinho - Obter carrinho do usuário
 const obterCarrinho = async (req, res) => {
@@ -21,11 +22,27 @@ const obterCarrinho = async (req, res) => {
       [userId]
     );
 
+    const produtosBase = result.rows.map((item) => ({
+      id: item.produto_id,
+      preco: item.produto_preco,
+      preco_original: item.produto_preco_original,
+      desconto_percentual: item.produto_desconto,
+    }));
+
+    const produtosComPromocao = await aplicarPromocoes(produtosBase);
+    const produtosMap = new Map(
+      (produtosComPromocao || []).map((produto) => [produto.id, produto])
+    );
+
     // Calcular totais
     let subtotal = 0;
-    const itens = result.rows.map(item => {
-      const preco = parseFloat(item.produto_preco);
-      const itemSubtotal = preco * item.quantidade;
+    const itens = result.rows.map((item) => {
+      const produtoComPromocao = produtosMap.get(item.produto_id);
+      const precoAplicado = parseFloat(
+        produtoComPromocao?.preco ?? item.produto_preco
+      );
+      const precoFinal = Number.isNaN(precoAplicado) ? 0 : precoAplicado;
+      const itemSubtotal = precoFinal * item.quantidade;
       subtotal += itemSubtotal;
 
       return {
@@ -37,9 +54,10 @@ const obterCarrinho = async (req, res) => {
         produto: {
           id: item.produto_id,
           nome: item.produto_nome,
-          preco: item.produto_preco,
-          preco_original: item.produto_preco_original,
-          desconto_percentual: item.produto_desconto,
+          preco: produtoComPromocao?.preco ?? item.produto_preco,
+          preco_original: produtoComPromocao?.preco_original ?? item.produto_preco_original,
+          desconto_percentual: produtoComPromocao?.desconto_percentual ?? item.produto_desconto,
+          promocao_aplicada: produtoComPromocao?.promocao_aplicada,
           imagens: item.produto_imagens,
           estoque: item.produto_estoque,
           ativo: item.produto_ativo,

@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { FiBox, FiShoppingBag, FiStar, FiTag, FiUsers, FiBarChart2, FiAward, FiPercent } from 'react-icons/fi';
+import { FiBox, FiShoppingBag, FiStar, FiTag, FiUsers, FiBarChart2, FiAward, FiPercent, FiRefreshCcw } from 'react-icons/fi';
 import styles from './admin.module.scss';
 
 export default function AdminPage() {
@@ -52,6 +52,13 @@ export default function AdminPage() {
       description: 'Gerenciar pedidos e entregas',
       link: '/admin/pedidos',
       color: '#e74c3c',
+    },
+    {
+      title: 'Devolucoes',
+      icon: <FiRefreshCcw size={32} />,
+      description: 'Gerenciar trocas e devolucoes',
+      link: '/admin/devolucoes',
+      color: '#e67e22',
     },
     {
       title: 'Banners',

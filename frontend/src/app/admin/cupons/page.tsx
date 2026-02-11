@@ -18,7 +18,7 @@ interface Cupom {
   valor_minimo?: number;
   data_validade?: string;
   usos_maximos?: number;
-  usos_realizados: number;
+  usos_atuais: number;
   ativo: boolean;
   data_criacao: string;
 }
@@ -30,6 +30,7 @@ export default function AdminCuponsPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingCupom, setEditingCupom] = useState<Cupom | null>(null);
+  const [filtroStatus, setFiltroStatus] = useState<'all' | 'active' | 'inactive'>('all');
   
   const [formData, setFormData] = useState({
     codigo: '',
@@ -52,12 +53,16 @@ export default function AdminCuponsPage() {
     if (user && user.is_admin) {
       carregarCupons();
     }
-  }, [user]);
+  }, [user, filtroStatus]);
 
   const carregarCupons = async () => {
     setLoading(true);
     try {
-      const response = await couponService.getAll();
+      const params =
+        filtroStatus === 'all'
+          ? undefined
+          : { ativo: filtroStatus === 'active' };
+      const response = await couponService.getAll(params);
       if (response.success) {
         setCupons(response.data || []);
       }
@@ -169,11 +174,14 @@ export default function AdminCuponsPage() {
     return new Date(data).toLocaleDateString('pt-BR');
   };
 
-  const formatarValor = (valor: number, tipo: string) => {
+  const formatarValor = (valor: number | string | null | undefined, tipo: string) => {
+    const numero = typeof valor === 'number' ? valor : parseFloat(valor || '0');
+
     if (tipo === 'percentual') {
-      return `${valor}%`;
+      return `${Number.isNaN(numero) ? 0 : numero}%`;
     }
-    return `R$ ${valor.toFixed(2)}`;
+
+    return `R$ ${Number.isNaN(numero) ? '0.00' : numero.toFixed(2)}`;
   };
 
   if (authLoading || loading) {
@@ -228,9 +236,25 @@ export default function AdminCuponsPage() {
             <DollarSign size={24} />
             <div>
               <p>Total de Usos</p>
-              <h3>{cupons.reduce((acc, c) => acc + c.usos_realizados, 0)}</h3>
+              <h3>{cupons.reduce((acc, c) => acc + (c.usos_atuais || 0), 0)}</h3>
             </div>
           </div>
+        </div>
+
+        <div className={styles.filterBar}>
+          <label className={styles.filterLabel} htmlFor="filtroStatus">
+            Mostrar
+          </label>
+          <select
+            id="filtroStatus"
+            className={styles.filterSelect}
+            value={filtroStatus}
+            onChange={(e) => setFiltroStatus(e.target.value as 'all' | 'active' | 'inactive')}
+          >
+            <option value="all">Todos</option>
+            <option value="active">Ativos</option>
+            <option value="inactive">Inativos</option>
+          </select>
         </div>
 
         <div className={styles.tableContainer}>
@@ -273,7 +297,7 @@ export default function AdminCuponsPage() {
                       : 'Sem validade'}
                   </td>
                   <td>
-                    {cupom.usos_realizados}
+                    {cupom.usos_atuais}
                     {cupom.usos_maximos ? ` / ${cupom.usos_maximos}` : ' / Ilimitado'}
                   </td>
                   <td>

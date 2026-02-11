@@ -18,7 +18,12 @@ CREATE TABLE IF NOT EXISTS produtos (
     nome VARCHAR(255) NOT NULL,
     descricao TEXT,
     preco DECIMAL(10, 2) NOT NULL,
+    preco_pix DECIMAL(10, 2),
+    preco_debito DECIMAL(10, 2),
+    preco_credito DECIMAL(10, 2),
+    preco_boleto DECIMAL(10, 2),
     preco_original DECIMAL(10, 2),
+    parcelas_maximas INTEGER DEFAULT 3,
     desconto_percentual INTEGER DEFAULT 0,
     categoria_id INTEGER REFERENCES categorias(id) ON DELETE SET NULL,
     estoque INTEGER DEFAULT 0,
@@ -71,6 +76,7 @@ CREATE TABLE IF NOT EXISTS pedidos (
     total DECIMAL(10, 2) NOT NULL,
     forma_pagamento VARCHAR(50), -- cartao, pix, boleto
     codigo_rastreio VARCHAR(100),
+    cupom_codigo VARCHAR(50),
     endereco_entrega_id INTEGER REFERENCES enderecos(id),
     data_pedido TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     data_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -86,6 +92,46 @@ CREATE TABLE IF NOT EXISTS itens_pedido (
     subtotal DECIMAL(10, 2) NOT NULL,
     tamanho VARCHAR(10),
     cor VARCHAR(50)
+);
+
+-- Tabela de Devolucoes
+CREATE TABLE IF NOT EXISTS devolucoes (
+    id SERIAL PRIMARY KEY,
+    usuario_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+    pedido_id INTEGER REFERENCES pedidos(id) ON DELETE SET NULL,
+    tipo VARCHAR(20) NOT NULL,
+    status VARCHAR(20) DEFAULT 'solicitado',
+    motivo VARCHAR(120) NOT NULL,
+    justificativa TEXT NOT NULL,
+    observacoes TEXT,
+    admin_decisao TEXT,
+    admin_instrucoes TEXT,
+    aprovado_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+    justificativa_recorrencia TEXT,
+    data_recorrencia TIMESTAMP,
+    data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    data_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabela de Itens da Devolucao
+CREATE TABLE IF NOT EXISTS devolucao_itens (
+    id SERIAL PRIMARY KEY,
+    devolucao_id INTEGER REFERENCES devolucoes(id) ON DELETE CASCADE,
+    pedido_item_id INTEGER REFERENCES itens_pedido(id) ON DELETE SET NULL,
+    produto_id INTEGER REFERENCES produtos(id) ON DELETE SET NULL,
+    quantidade INTEGER NOT NULL,
+    tamanho VARCHAR(10),
+    cor VARCHAR(50),
+    motivo_item VARCHAR(120)
+);
+
+-- Tabela de Anexos da Devolucao
+CREATE TABLE IF NOT EXISTS devolucao_anexos (
+    id SERIAL PRIMARY KEY,
+    devolucao_id INTEGER REFERENCES devolucoes(id) ON DELETE CASCADE,
+    arquivo_url TEXT NOT NULL,
+    arquivo_nome VARCHAR(255),
+    data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Tabela de Avaliações
@@ -158,6 +204,16 @@ CREATE TABLE IF NOT EXISTS cupons (
     data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Tabela de uso de cupons por usuario
+CREATE TABLE IF NOT EXISTS cupons_usuarios (
+    id SERIAL PRIMARY KEY,
+    cupom_id INTEGER NOT NULL REFERENCES cupons(id) ON DELETE CASCADE,
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    pedido_id INTEGER REFERENCES pedidos(id) ON DELETE SET NULL,
+    data_uso TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(cupom_id, usuario_id)
+);
+
 -- Tabela de Newsletter
 CREATE TABLE IF NOT EXISTS newsletter (
     id SERIAL PRIMARY KEY,
@@ -183,11 +239,18 @@ CREATE INDEX idx_produtos_categoria ON produtos(categoria_id);
 CREATE INDEX idx_produtos_ativo ON produtos(ativo);
 CREATE INDEX idx_pedidos_usuario ON pedidos(usuario_id);
 CREATE INDEX idx_pedidos_status ON pedidos(status);
+CREATE INDEX idx_devolucoes_usuario ON devolucoes(usuario_id);
+CREATE INDEX idx_devolucoes_pedido ON devolucoes(pedido_id);
+CREATE INDEX idx_devolucoes_status ON devolucoes(status);
 CREATE INDEX idx_avaliacoes_produto ON avaliacoes(produto_id);
 CREATE INDEX idx_comentarios_produto ON comentarios(produto_id);
 CREATE INDEX idx_promocoes_ativa ON promocoes(ativa);
 CREATE INDEX idx_cupons_codigo ON cupons(codigo);
 CREATE INDEX idx_usuarios_email ON usuarios(email);
+CREATE INDEX idx_cupons_usuarios_cupom ON cupons_usuarios(cupom_id);
+CREATE INDEX idx_cupons_usuarios_usuario ON cupons_usuarios(usuario_id);
+CREATE INDEX idx_cupons_usuarios_pedido ON cupons_usuarios(pedido_id);
+CREATE INDEX idx_cupons_usuarios_data ON cupons_usuarios(data_uso);
 
 -- Inserir categorias padrão
 INSERT INTO categorias (nome, slug, ordem) VALUES

@@ -122,6 +122,23 @@
   }
 }
 
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  input {
+    width: auto;
+    margin: 0;
+  }
+
+  label {
+    margin: 0;
+    font-weight: 500;
+    color: #495057;
+  }
+}
+
 .formRow {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

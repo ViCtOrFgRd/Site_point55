@@ -1,4 +1,6 @@
 const { pool } = require('../config/database');
+const { obterPromocoesAtivas, aplicarPromocaoProduto } = require('../utils/promocoes');
+const { calcularFreteSuperfrete } = require('../services/superfreteService');
 
 // POST /api/pedidos - Criar novo pedido
 const criarPedido = async (req, res) => {
@@ -40,7 +42,7 @@ const criarPedido = async (req, res) => {
 
     // Verificar se endereço pertence ao usuário
     const enderecoResult = await client.query(
-      'SELECT id FROM enderecos WHERE id = $1 AND usuario_id = $2',
+      'SELECT id, cep FROM enderecos WHERE id = $1 AND usuario_id = $2',
       [endereco_entrega_id, userId]
     );
 
@@ -51,6 +53,8 @@ const criarPedido = async (req, res) => {
         error: 'Endereço inválido',
       });
     }
+
+    const promocoesAtivas = await obterPromocoesAtivas(client);
 
     // Calcular totais e verificar estoque
     let subtotal = 0;
@@ -84,7 +88,17 @@ const criarPedido = async (req, res) => {
         });
       }
 
-      const preco_unitario = parseFloat(produto.preco);
+      const produtoComPromocao = aplicarPromocaoProduto(
+        {
+          id: produto.id,
+          preco: produto.preco,
+          preco_original: produto.preco_original,
+        },
+        promocoesAtivas
+      );
+
+      const precoAplicado = parseFloat(produtoComPromocao?.preco ?? produto.preco);
+      const preco_unitario = Number.isNaN(precoAplicado) ? parseFloat(produto.preco) : precoAplicado;
       const subtotal_item = preco_unitario * quantidade;
       subtotal += subtotal_item;
 
@@ -106,34 +120,102 @@ const criarPedido = async (req, res) => {
 
     // Aplicar cupom se fornecido
     let desconto = 0;
-    if (cupom_codigo) {
+    let cupomUsado = null;
+    const cupomCodigo = cupom_codigo ? cupom_codigo.toUpperCase() : null;
+
+    if (cupomCodigo) {
       const cupomResult = await client.query(
         `SELECT * FROM cupons 
          WHERE codigo = $1 AND ativo = true 
          AND (data_validade IS NULL OR data_validade >= NOW())
          AND (usos_maximos IS NULL OR usos_atuais < usos_maximos)`,
-        [cupom_codigo]
+        [cupomCodigo]
       );
 
-      if (cupomResult.rows.length > 0) {
-        const cupom = cupomResult.rows[0];
-        
-        if (cupom.tipo_desconto === 'percentual') {
-          desconto = (subtotal * cupom.valor_desconto) / 100;
-        } else {
-          desconto = cupom.valor_desconto;
-        }
-
-        // Atualizar uso do cupom
-        await client.query(
-          'UPDATE cupons SET usos_atuais = usos_atuais + 1 WHERE id = $1',
-          [cupom.id]
-        );
+      if (cupomResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          success: false,
+          error: 'Cupom invalido',
+        });
       }
+
+      const cupom = cupomResult.rows[0];
+
+      if (cupom.data_validade && new Date(cupom.data_validade) < new Date()) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          success: false,
+          error: 'Cupom invalido',
+        });
+      }
+
+      if (cupom.usos_maximos && cupom.usos_atuais >= cupom.usos_maximos) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          success: false,
+          error: 'Cupom esgotado',
+        });
+      }
+
+      const jaUsouResult = await client.query(
+        `SELECT id FROM cupons_usuarios 
+         WHERE cupom_id = $1 AND usuario_id = $2`,
+        [cupom.id, userId]
+      );
+
+      if (jaUsouResult.rows.length > 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          success: false,
+          error: 'Ja utilizado',
+        });
+      }
+
+      if (cupom.valor_minimo && subtotal < parseFloat(cupom.valor_minimo)) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          success: false,
+          error: 'Cupom invalido',
+        });
+      }
+
+      if (cupom.tipo_desconto === 'percentual') {
+        desconto = (subtotal * cupom.valor_desconto) / 100;
+      } else {
+        desconto = cupom.valor_desconto;
+      }
+
+      if (desconto > subtotal) {
+        desconto = subtotal;
+      }
+
+      cupomUsado = cupom;
     }
 
-    // Calcular frete (mock - valor fixo)
-    const frete = 15.00;
+    const endereco = enderecoResult.rows[0];
+    const fretePadrao = Number.parseFloat(process.env.FRETE_PADRAO || '15');
+    const freteGratisAcima = Number.parseFloat(process.env.FRETE_GRATIS_ACIMA || '200');
+
+    // Calcular frete (SuperFrete com fallback)
+    let frete = Number.isFinite(fretePadrao) ? fretePadrao : 15.0;
+
+    if (Number.isFinite(freteGratisAcima) && subtotal >= freteGratisAcima) {
+      frete = 0;
+    } else {
+      try {
+        const cotacao = await calcularFreteSuperfrete({
+          cepDestino: endereco.cep,
+          valorDeclarado: subtotal,
+        });
+
+        if (cotacao?.best?.valor !== null && cotacao?.best?.valor !== undefined) {
+          frete = cotacao.best.valor;
+        }
+      } catch (error) {
+        console.error('Erro ao calcular frete no SuperFrete:', error?.response?.data || error.message || error);
+      }
+    }
 
     // Calcular total
     const total = subtotal - desconto + frete;
@@ -141,10 +223,20 @@ const criarPedido = async (req, res) => {
     // Criar pedido
     const pedidoResult = await client.query(
       `INSERT INTO pedidos 
-       (usuario_id, status, subtotal, desconto, frete, total, forma_pagamento, endereco_entrega_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       (usuario_id, status, subtotal, desconto, frete, total, forma_pagamento, endereco_entrega_id, cupom_codigo)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
-      [userId, 'pendente', subtotal, desconto, frete, total, forma_pagamento, endereco_entrega_id]
+      [
+        userId,
+        'pendente',
+        subtotal,
+        desconto,
+        frete,
+        total,
+        forma_pagamento,
+        endereco_entrega_id,
+        cupomCodigo,
+      ]
     );
 
     const pedido = pedidoResult.rows[0];
@@ -164,6 +256,19 @@ const criarPedido = async (req, res) => {
           item.tamanho,
           item.cor,
         ]
+      );
+    }
+
+    if (cupomUsado) {
+      await client.query(
+        'UPDATE cupons SET usos_atuais = usos_atuais + 1 WHERE id = $1',
+        [cupomUsado.id]
+      );
+
+      await client.query(
+        `INSERT INTO cupons_usuarios (cupom_id, usuario_id, pedido_id)
+         VALUES ($1, $2, $3)`,
+        [cupomUsado.id, userId, pedido.id]
       );
     }
 
@@ -339,7 +444,16 @@ const atualizarStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    const statusPermitidos = ['pendente', 'pago', 'processando', 'enviado', 'entregue', 'cancelado'];
+    const statusPermitidos = [
+      'pendente',
+      'pago',
+      'processando',
+      'enviado',
+      'devolucao',
+      'devolvido',
+      'entregue',
+      'cancelado',
+    ];
     
     if (!status || !statusPermitidos.includes(status)) {
       return res.status(400).json({

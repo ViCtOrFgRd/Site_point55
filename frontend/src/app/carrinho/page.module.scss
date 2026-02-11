@@ -1,25 +1,25 @@
 .page {
   min-height: 100vh;
   background: #f9fafb;
-  padding: 2rem 0;
+  padding: var(--space-3) 0;
 }
 
 .container {
-  max-width: 1400px;
+  max-width: var(--container-max);
   margin: 0 auto;
-  padding: 0 2rem;
+  padding: 0 var(--container-padding);
 
   h1 {
-    font-size: 2.5rem;
+    font-size: clamp(1.8rem, 3.5vw, 2.5rem);
     font-weight: 700;
-    margin-bottom: 2rem;
+    margin-bottom: var(--space-3);
   }
 }
 
 .content {
   display: grid;
   grid-template-columns: 1fr 400px;
-  gap: 2rem;
+  gap: var(--space-3);
 
   @media (max-width: 1024px) {
     grid-template-columns: 1fr;
@@ -29,29 +29,29 @@
 .cartItems {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-2);
 }
 
 .cartItem {
   display: grid;
   grid-template-columns: 120px 1fr auto 150px auto;
-  gap: 1.5rem;
+  gap: var(--space-2);
   align-items: center;
   background: white;
-  padding: 1.5rem;
-  border-radius: 12px;
+  padding: var(--space-2);
+  border-radius: var(--radius-base);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 
   @media (max-width: 768px) {
     grid-template-columns: 80px 1fr;
-    gap: 1rem;
+    gap: var(--space-1);
   }
 
   .itemImage {
     position: relative;
     width: 120px;
     height: 160px;
-    border-radius: 8px;
+    border-radius: var(--radius-base);
     overflow: hidden;
     background: #f3f4f6;
 
@@ -67,19 +67,19 @@
       align-items: center;
       justify-content: center;
       color: #9ca3af;
-      font-size: 0.8rem;
+      font-size: var(--text-small);
     }
   }
 
   .itemInfo {
     h3 {
-      font-size: 1.1rem;
+      font-size: var(--text-large);
       font-weight: 600;
-      margin-bottom: 0.5rem;
+      margin-bottom: var(--space-1);
     }
 
     p {
-      font-size: 0.9rem;
+      font-size: var(--text-small);
       color: #6b7280;
       margin: 0.25rem 0;
     }
@@ -88,10 +88,10 @@
   .itemQuantity {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: var(--space-1);
     background: #f3f4f6;
     padding: 0.5rem;
-    border-radius: 8px;
+    border-radius: var(--radius-base);
 
     @media (max-width: 768px) {
       grid-column: 1 / -1;
@@ -99,14 +99,14 @@
     }
 
     button {
-      width: 32px;
-      height: 32px;
+      width: clamp(28px, 4vw, 32px);
+      height: clamp(28px, 4vw, 32px);
       display: flex;
       align-items: center;
       justify-content: center;
       background: white;
       border: none;
-      border-radius: 4px;
+      border-radius: var(--radius-base);
       cursor: pointer;
       transition: background 0.2s;
 
@@ -131,13 +131,13 @@
     }
 
     .unitPrice {
-      font-size: 0.85rem;
+      font-size: var(--text-small);
       color: #6b7280;
       margin-bottom: 0.25rem;
     }
 
     .totalPrice {
-      font-size: 1.25rem;
+      font-size: var(--text-large);
       font-weight: 700;
       color: #000;
     }
@@ -158,64 +158,65 @@
 
     @media (max-width: 768px) {
       position: absolute;
-      top: 1rem;
-      right: 1rem;
+      top: var(--space-1);
+      right: var(--space-1);
     }
   }
 }
 
 .summary {
   background: white;
-  padding: 2rem;
-  border-radius: 12px;
+  padding: var(--space-3);
+  border-radius: var(--radius-base);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   height: fit-content;
   position: sticky;
-  top: 2rem;
+  top: var(--space-3);
 
   h2 {
-    font-size: 1.5rem;
+    font-size: var(--text-large);
     font-weight: 700;
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--space-2);
   }
 
   .summaryLine {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 1rem;
-    font-size: 1rem;
+    margin-bottom: var(--space-1);
+    font-size: var(--text-small);
     color: #6b7280;
   }
 
   .freteInfo {
-    font-size: 0.85rem;
+    font-size: var(--text-small);
     color: #059669;
     background: #dcfce7;
     padding: 0.5rem;
-    border-radius: 6px;
-    margin: 1rem 0;
+    border-radius: var(--radius-base);
+    margin: var(--space-1) 0;
     text-align: center;
   }
 
   .summaryTotal {
     display: flex;
     justify-content: space-between;
-    padding-top: 1.5rem;
-    margin-top: 1.5rem;
+    padding-top: var(--space-2);
+    margin-top: var(--space-2);
     border-top: 2px solid #e5e7eb;
-    font-size: 1.5rem;
+    font-size: var(--text-large);
     font-weight: 700;
   }
 
   .checkoutButton, .continueButton {
     width: 100%;
-    padding: 1rem;
+    padding: 0.9rem;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--radius-base);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    margin-top: 1rem;
+    margin-top: var(--space-1);
+    font-size: var(--text-small);
   }
 
   .checkoutButton {
@@ -249,14 +250,14 @@
     text-align: center;
 
     h1 {
-      font-size: 2rem;
+      font-size: clamp(1.6rem, 3vw, 2rem);
       margin-bottom: 1rem;
     }
 
     p {
-      font-size: 1.1rem;
+      font-size: var(--text-small);
       color: #6b7280;
-      margin-bottom: 2rem;
+      margin-bottom: var(--space-3);
     }
 
     .shopButton {

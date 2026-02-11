@@ -1,12 +1,12 @@
 .container {
   min-height: 100vh;
-  padding: 2rem 1rem;
+  padding: var(--space-3) var(--container-padding);
   background: linear-gradient(135deg, #f5f7fa 0%, #e8eef4 100%);
 }
 
 .content {
-  max-width: 500px;
-  margin: 3rem auto;
+  max-width: clamp(320px, 50vw, 520px);
+  margin: var(--space-4) auto;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -14,25 +14,25 @@
 
 .card {
   background: white;
-  border-radius: 16px;
+  border-radius: var(--radius-base);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-  padding: 3rem;
+  padding: var(--space-4);
   width: 100%;
 
   @media (max-width: 640px) {
-    padding: 2rem 1.5rem;
+    padding: var(--space-3) var(--space-2);
   }
 }
 
 .header {
   text-align: center;
-  margin-bottom: 2.5rem;
+  margin-bottom: var(--space-3);
 
   .icon {
-    width: 60px;
-    height: 60px;
-    margin: 0 auto 1.5rem;
-    padding: 15px;
+    width: clamp(50px, 8vw, 60px);
+    height: clamp(50px, 8vw, 60px);
+    margin: 0 auto var(--space-2);
+    padding: 12px;
     background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
     color: white;
     border-radius: 50%;
@@ -40,9 +40,9 @@
   }
 
   h1 {
-    font-size: 1.75rem;
+    font-size: clamp(1.4rem, 3vw, 1.75rem);
     color: #1f2937;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-1);
     font-weight: 700;
 
     @media (max-width: 640px) {
@@ -52,14 +52,14 @@
 
   p {
     color: #6b7280;
-    font-size: 0.95rem;
+    font-size: var(--text-small);
   }
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--space-2);
 }
 
 .formGroup {
@@ -70,16 +70,16 @@
   label {
     font-weight: 600;
     color: #374151;
-    font-size: 0.95rem;
+    font-size: var(--text-small);
   }
 
   input {
     width: 100%;
-    padding: 0.875rem 1rem;
+    padding: 0.8rem var(--space-2);
     padding-right: 3rem;
     border: 2px solid #e5e7eb;
-    border-radius: 10px;
-    font-size: 1rem;
+    border-radius: var(--radius-base);
+    font-size: var(--text-small);
     transition: all 0.3s ease;
     font-family: inherit;
 
@@ -112,7 +112,7 @@
 
 .togglePassword {
   position: absolute;
-  right: 1rem;
+  right: var(--space-1);
   background: none;
   border: none;
   color: #6b7280;
@@ -135,15 +135,15 @@
 
 .requisitos {
   background: #f9fafb;
-  padding: 1.25rem;
-  border-radius: 10px;
+  padding: var(--space-2);
+  border-radius: var(--radius-base);
   border: 1px solid #e5e7eb;
 
   p {
     font-weight: 600;
     color: #374151;
-    margin-bottom: 0.75rem;
-    font-size: 0.9rem;
+    margin-bottom: var(--space-1);
+    font-size: var(--text-small);
   }
 
   ul {
@@ -156,7 +156,7 @@
 
     li {
       color: #6b7280;
-      font-size: 0.875rem;
+      font-size: var(--text-small);
       padding-left: 1.5rem;
       position: relative;
 
@@ -184,13 +184,13 @@
 .erro {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
+  gap: var(--space-1);
+  padding: var(--space-2);
   background: #fef2f2;
   border: 1px solid #fecaca;
-  border-radius: 10px;
+  border-radius: var(--radius-base);
   color: #dc2626;
-  font-size: 0.9rem;
+  font-size: var(--text-small);
 
   svg {
     min-width: 20px;
@@ -200,16 +200,16 @@
 
 .submitButton {
   width: 100%;
-  padding: 1rem;
+  padding: 0.9rem;
   background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
   color: white;
   border: none;
-  border-radius: 10px;
-  font-size: 1rem;
+  border-radius: var(--radius-base);
+  font-size: var(--text-small);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  margin-top: 0.5rem;
+  margin-top: var(--space-1);
 
   &:hover:not(:disabled) {
     transform: translateY(-2px);
@@ -228,9 +228,9 @@
 }
 
 .footer {
-  margin-top: 2rem;
+  margin-top: var(--space-3);
   text-align: center;
-  padding-top: 1.5rem;
+  padding-top: var(--space-2);
   border-top: 1px solid #e5e7eb;
 
   a {
@@ -248,12 +248,12 @@
 
 .sucessoCard {
   text-align: center;
-  padding: 3rem 2rem;
+  padding: var(--space-4) var(--space-2);
 
   .sucessoIcon {
-    width: 80px;
-    height: 80px;
-    margin: 0 auto 2rem;
+    width: clamp(64px, 10vw, 80px);
+    height: clamp(64px, 10vw, 80px);
+    margin: 0 auto var(--space-3);
     color: #059669;
     animation: checkmark 0.6s ease;
   }

@@ -83,7 +83,7 @@ function NovaSenhaContent() {
       if (data.success) {
         setSucesso(true);
         setTimeout(() => {
-          router.push('/login');
+          router.push('/perfil');
         }, 3000);
       } else {
         setErro(data.error || 'Erro ao redefinir senha');
@@ -110,9 +110,9 @@ function NovaSenhaContent() {
             <FiCheckCircle className={styles.sucessoIcon} />
             <h1>Senha Redefinida!</h1>
             <p>Sua senha foi alterada com sucesso.</p>
-            <p>Redirecionando para o login...</p>
-            <Link href="/login" className={styles.loginLink}>
-              Ir para Login
+            <p>Redirecionando para a sua conta...</p>
+            <Link href="/perfil" className={styles.loginLink}>
+              Ir para Minha Conta
             </Link>
           </div>
         </div>
@@ -222,7 +222,7 @@ function NovaSenhaContent() {
           </form>
 
           <div className={styles.footer}>
-            <Link href="/login">Voltar para Login</Link>
+            <Link href="/perfil">Voltar para Minha Conta</Link>
           </div>
         </div>
       </div>

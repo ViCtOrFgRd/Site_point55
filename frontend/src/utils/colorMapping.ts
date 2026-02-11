@@ -36,6 +36,30 @@ const colorMap: Record<string, string> = {
   'Chocolate': '#D2691E',
 };
 
+const normalizeColorKey = (value: string): string => value.trim().toLowerCase();
+
+const colorMapNormalized: Record<string, string> = Object.entries(colorMap).reduce(
+  (acc, [key, hex]) => {
+    acc[normalizeColorKey(key)] = hex;
+    return acc;
+  },
+  {} as Record<string, string>
+);
+
+const getHexForColor = (value: string): string => {
+  const normalized = normalizeColorKey(value);
+  return colorMapNormalized[normalized] || '#CCCCCC';
+};
+
+const formatColorLabel = (value: string): string => {
+  const trim = value.trim();
+  if (!trim) return '';
+  return trim
+    .split('-')
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase())
+    .join('-');
+};
+
 /**
  * Converte um nome de cor para valor hexadecimal
  * Suporta cores simples e combinações com "/"
@@ -53,7 +77,7 @@ export const convertColorToHex = (colorName: string): string => {
   }
 
   // Se for uma cor única
-  return colorMap[trimmed] || `linear-gradient(135deg, ${colorMap['Cinza']}, ${colorMap['Cinza-claro']})`;
+  return getHexForColor(trimmed) || `linear-gradient(135deg, ${colorMap['Cinza']}, ${colorMap['Cinza-claro']})`;
 };
 
 /**
@@ -62,7 +86,7 @@ export const convertColorToHex = (colorName: string): string => {
  */
 const getGradientColors = (colorString: string): string => {
   const parts = colorString.split('/').map((c) => c.trim());
-  const hexColors = parts.map((c) => colorMap[c] || '#CCCCCC');
+  const hexColors = parts.map((c) => getHexForColor(c));
 
   if (hexColors.length === 2) {
     return `${hexColors[0]}, ${hexColors[1]}`;
@@ -84,10 +108,10 @@ export const getColorBackground = (colorName: string): string => {
 
   if (trimmed.includes('/')) {
     const parts = trimmed.split('/').map((c) => c.trim());
-    return colorMap[parts[0]] || '#CCCCCC';
+    return getHexForColor(parts[0]);
   }
 
-  return colorMap[trimmed] || '#CCCCCC';
+  return getHexForColor(trimmed);
 };
 
 /**
@@ -97,11 +121,13 @@ export const getColorLabel = (colorName: string): string => {
   const trimmed = colorName.trim();
 
   if (trimmed.includes('/')) {
-    const parts = trimmed.split('/').map((c) => c.trim());
+    const parts = trimmed
+      .split('/')
+      .map((c) => formatColorLabel(c));
     return `${parts.join(' e ')} (Meio-a-meio)`;
   }
 
-  return trimmed;
+  return formatColorLabel(trimmed);
 };
 
 /**

@@ -3,12 +3,20 @@ const { pool } = require('../config/database');
 // POST /api/cupons/validar - Validar cupom de desconto
 const validarCupom = async (req, res) => {
   try {
-    const { codigo } = req.body;
+    const { codigo, subtotal } = req.body;
+    const usuarioId = req.usuario?.id;
 
     if (!codigo) {
       return res.status(400).json({
         success: false,
-        error: 'Código do cupom é obrigatório',
+        error: 'Codigo do cupom e obrigatorio',
+      });
+    }
+
+    if (subtotal === undefined || subtotal === null || Number.isNaN(parseFloat(subtotal))) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cupom invalido',
       });
     }
 
@@ -20,9 +28,9 @@ const validarCupom = async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({
+      return res.status(400).json({
         success: false,
-        error: 'Cupom não encontrado ou inválido',
+        error: 'Cupom invalido',
       });
     }
 
@@ -32,7 +40,7 @@ const validarCupom = async (req, res) => {
     if (cupom.data_validade && new Date(cupom.data_validade) < new Date()) {
       return res.status(400).json({
         success: false,
-        error: 'Cupom expirado',
+        error: 'Cupom invalido',
       });
     }
 
@@ -44,10 +52,33 @@ const validarCupom = async (req, res) => {
       });
     }
 
+    const subtotalNumero = parseFloat(subtotal);
+    if (cupom.valor_minimo && subtotalNumero < parseFloat(cupom.valor_minimo)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cupom invalido',
+      });
+    }
+
+    if (usuarioId) {
+      const jaUsouResult = await pool.query(
+        `SELECT id FROM cupons_usuarios
+         WHERE cupom_id = $1 AND usuario_id = $2`,
+        [cupom.id, usuarioId]
+      );
+
+      if (jaUsouResult.rows.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Ja utilizado',
+        });
+      }
+    }
+
     // Cupom válido
     res.json({
       success: true,
-      message: 'Cupom válido',
+      message: 'Cupom valido',
       data: {
         id: cupom.id,
         codigo: cupom.codigo,
@@ -68,14 +99,81 @@ const validarCupom = async (req, res) => {
   }
 };
 
-// GET /api/cupons - Listar cupons ativos (admin)
+// GET /api/cupons/historico/:cupomId - Historico de uso do cupom (admin)
+const listarHistoricoCupons = async (req, res) => {
+  try {
+    const { cupomId } = req.params;
+    const { limite = 50, pagina = 1 } = req.query;
+    const offset = (pagina - 1) * limite;
+
+    const cupomResult = await pool.query(
+      'SELECT * FROM cupons WHERE id = $1',
+      [cupomId]
+    );
+
+    if (cupomResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Cupom nao encontrado',
+      });
+    }
+
+    const historicoResult = await pool.query(
+      `SELECT
+        cu.id,
+        cu.cupom_id,
+        cu.usuario_id,
+        u.nome as usuario_nome,
+        u.email as usuario_email,
+        cu.pedido_id,
+        cu.data_uso,
+        p.total as pedido_valor
+      FROM cupons_usuarios cu
+      JOIN usuarios u ON cu.usuario_id = u.id
+      LEFT JOIN pedidos p ON cu.pedido_id = p.id
+      WHERE cu.cupom_id = $1
+      ORDER BY cu.data_uso DESC
+      LIMIT $2 OFFSET $3`,
+      [cupomId, parseInt(limite, 10), offset]
+    );
+
+    const countResult = await pool.query(
+      'SELECT COUNT(*) FROM cupons_usuarios WHERE cupom_id = $1',
+      [cupomId]
+    );
+
+    res.json({
+      success: true,
+      cupom: cupomResult.rows[0],
+      historico: historicoResult.rows,
+      total: parseInt(countResult.rows[0].count, 10),
+      pagina: parseInt(pagina, 10),
+      limite: parseInt(limite, 10),
+    });
+  } catch (error) {
+    console.error('Erro ao listar historico:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao listar historico',
+    });
+  }
+};
+
+// GET /api/cupons - Listar cupons (admin)
 const listarCupons = async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT * FROM cupons 
-       WHERE ativo = true
-       ORDER BY data_criacao DESC`
-    );
+    const { ativo } = req.query;
+    let query = 'SELECT * FROM cupons';
+    const params = [];
+
+    if (ativo !== undefined) {
+      query += ' WHERE ativo = $1';
+      params.push(ativo === 'true');
+    }
+
+    query += ' ORDER BY data_criacao DESC';
+
+    const result = await pool.query(query, params);
 
     res.json({
       success: true,
@@ -168,24 +266,70 @@ const criarCupom = async (req, res) => {
 const atualizarCupom = async (req, res) => {
   try {
     const { id } = req.params;
-    const { ativo, usos_maximos, data_validade } = req.body;
+    const {
+      codigo,
+      descricao,
+      tipo_desconto,
+      valor_desconto,
+      valor_minimo,
+      data_validade,
+      usos_maximos,
+      ativo,
+    } = req.body;
 
-    const result = await pool.query(
-      `UPDATE cupons 
-       SET ativo = COALESCE($1, ativo),
-           usos_maximos = COALESCE($2, usos_maximos),
-           data_validade = COALESCE($3, data_validade)
-       WHERE id = $4
-       RETURNING *`,
-      [ativo, usos_maximos, data_validade, id]
-    );
+    if (tipo_desconto && !['percentual', 'fixo'].includes(tipo_desconto)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Tipo de desconto deve ser "percentual" ou "fixo"',
+      });
+    }
 
-    if (result.rows.length === 0) {
+    const cupomAtual = await pool.query('SELECT * FROM cupons WHERE id = $1', [id]);
+    if (cupomAtual.rows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'Cupom não encontrado',
       });
     }
+
+    if (codigo) {
+      const existente = await pool.query(
+        'SELECT id FROM cupons WHERE codigo = $1 AND id != $2',
+        [codigo.toUpperCase(), id]
+      );
+
+      if (existente.rows.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Código de cupom já existe',
+        });
+      }
+    }
+
+    const result = await pool.query(
+      `UPDATE cupons 
+       SET codigo = COALESCE($1, codigo),
+           descricao = COALESCE($2, descricao),
+           tipo_desconto = COALESCE($3, tipo_desconto),
+           valor_desconto = COALESCE($4, valor_desconto),
+           valor_minimo = COALESCE($5, valor_minimo),
+           data_validade = COALESCE($6, data_validade),
+           usos_maximos = COALESCE($7, usos_maximos),
+           ativo = COALESCE($8, ativo)
+       WHERE id = $9
+       RETURNING *`,
+      [
+        codigo ? codigo.toUpperCase() : null,
+        descricao ?? null,
+        tipo_desconto ?? null,
+        valor_desconto !== undefined ? parseFloat(valor_desconto) : null,
+        valor_minimo !== undefined && valor_minimo !== null ? parseFloat(valor_minimo) : null,
+        data_validade ?? null,
+        usos_maximos !== undefined && usos_maximos !== null ? parseInt(usos_maximos, 10) : null,
+        ativo !== undefined ? ativo : null,
+        id,
+      ]
+    );
 
     res.json({
       success: true,
@@ -238,4 +382,5 @@ module.exports = {
   criarCupom,
   atualizarCupom,
   deletarCupom,
+  listarHistoricoCupons,
 };

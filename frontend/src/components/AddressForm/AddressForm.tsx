@@ -15,7 +15,7 @@ interface AddressFormProps {
     cidade: string;
     estado: string;
     cep: string;
-    principal?: boolean;
+    is_principal?: boolean;
   };
   onSubmit: (data: any) => Promise<void>;
   onCancel: () => void;
@@ -35,7 +35,7 @@ export default function AddressForm({ address, onSubmit, onCancel, isEdit = fals
     cidade: address?.cidade || '',
     estado: address?.estado || '',
     cep: address?.cep || '',
-    principal: address?.principal || false,
+    is_principal: address?.is_principal || false,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -244,8 +244,8 @@ export default function AddressForm({ address, onSubmit, onCancel, isEdit = fals
             <label>
               <input
                 type="checkbox"
-                checked={formData.principal}
-                onChange={(e) => setFormData({ ...formData, principal: e.target.checked })}
+                checked={formData.is_principal}
+                onChange={(e) => setFormData({ ...formData, is_principal: e.target.checked })}
               />
               <span>Definir como endereço principal</span>
             </label>

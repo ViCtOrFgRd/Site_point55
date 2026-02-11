@@ -1,5 +1,5 @@
 .breadcrumbs {
-  padding: 16px 0;
+  padding: var(--space-1) 0;
   background: #f9f9f9;
   border-bottom: 1px solid #e0e0e0;
 }
@@ -8,20 +8,20 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-1);
   list-style: none;
   margin: 0;
   padding: 0;
-  max-width: 1200px;
+  max-width: var(--container-max);
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 var(--container-padding);
 }
 
 .breadcrumbItem {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: var(--space-1);
+  font-size: var(--text-small);
 
   &:first-child {
     .breadcrumbLink {
@@ -30,7 +30,7 @@
       gap: 6px;
       
       svg {
-        font-size: 16px;
+        font-size: clamp(14px, 1.6vw, 16px);
       }
     }
   }
@@ -38,7 +38,7 @@
 
 .separator {
   color: #999;
-  font-size: 14px;
+  font-size: var(--text-small);
 }
 
 .breadcrumbLink {
@@ -59,12 +59,12 @@
 
 @media (max-width: 768px) {
   .breadcrumbs {
-    padding: 12px 0;
+    padding: var(--space-1) 0;
   }
 
   .breadcrumbList {
-    padding: 0 16px;
-    font-size: 13px;
+    padding: 0 var(--container-padding);
+    font-size: var(--text-small);
   }
 
   .breadcrumbItem {

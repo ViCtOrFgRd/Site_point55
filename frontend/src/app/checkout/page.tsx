@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { orderService, addressService, couponService } from '@/services/api';
+import { orderService, addressService, couponService, shippingService } from '@/services/api';
 import { useRouter } from 'next/navigation';
 import { CreditCard, MapPin, Package } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs/Breadcrumbs';
@@ -15,21 +15,28 @@ export default function CheckoutPage() {
   const { items, getTotal, clearCart } = useCart();
   const { user } = useAuth();
   const router = useRouter();
-  const { success, error } = useNotification();
+  const { success, error: notifyError } = useNotification();
 
   const [enderecos, setEnderecos] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [validandoCupom, setValidandoCupom] = useState(false);
   const [cupomAplicado, setCupomAplicado] = useState<any>(null);
+  const [isFinalizando, setIsFinalizando] = useState(false);
+  const [frete, setFrete] = useState<number | null>(null);
+  const [freteLoading, setFreteLoading] = useState(false);
+  const [shippingOptions, setShippingOptions] = useState<Array<{ servico: string; valor: number; prazo?: number | null }>>([]);
+  const [selectedServico, setSelectedServico] = useState<string>('');
 
   const [checkoutData, setCheckoutData] = useState({
     endereco_entrega_id: 0,
-    forma_pagamento: 'pix' as 'cartao' | 'pix' | 'boleto',
+    forma_pagamento: 'pix' as 'cartao' | 'pix' | 'boleto' | 'local',
     cupom_codigo: '',
   });
 
   const subtotal = getTotal();
-  const frete = subtotal > 200 ? 0 : 15.0;
+  const freteGratisAcima = Number(process.env.NEXT_PUBLIC_FRETE_GRATIS_ACIMA || 200);
+  const freteFallback = Number(process.env.NEXT_PUBLIC_FRETE_PADRAO || 15);
+  const freteValor = frete === null ? freteFallback : frete;
   
   // Calcular desconto do cupom
   const calcularDesconto = () => {
@@ -48,9 +55,13 @@ export default function CheckoutPage() {
   };
   
   const desconto = calcularDesconto();
-  const total = subtotal + frete - desconto;
+  const total = subtotal + freteValor - desconto;
 
   useEffect(() => {
+    if (isFinalizando) {
+      return;
+    }
+
     if (!user) {
       router.push('/perfil');
       return;
@@ -62,7 +73,113 @@ export default function CheckoutPage() {
     }
 
     carregarEnderecos();
-  }, [user, items]);
+  }, [user, items, isFinalizando]);
+
+  useEffect(() => {
+    const enderecoSelecionado = enderecos.find(
+      (endereco) => endereco.id === checkoutData.endereco_entrega_id
+    );
+
+    if (!enderecoSelecionado || subtotal <= 0) {
+      setFrete(null);
+      setShippingOptions([]);
+      setSelectedServico('');
+      return;
+    }
+
+    if (subtotal >= freteGratisAcima) {
+      setFrete(0);
+      setShippingOptions([
+        { servico: 'Retirar no local', valor: 0, prazo: 0 },
+      ]);
+      setSelectedServico('Retirar no local');
+      return;
+    }
+
+    const cepDestino = enderecoSelecionado.cep;
+
+    if (!cepDestino) {
+      setFrete(null);
+      return;
+    }
+
+    let isActive = true;
+    setFreteLoading(true);
+
+    shippingService
+      .calculate({
+        cep_destino: cepDestino,
+        valor_declarado: subtotal,
+        subtotal,
+      })
+      .then((response) => {
+        if (!isActive) {
+          return;
+        }
+        const cotacoes = Array.isArray(response?.data?.cotacoes)
+          ? response.data.cotacoes
+          : [];
+        const normalizedOptions = cotacoes
+          .map((item: any) => {
+            const valorNumero = typeof item?.valor === 'number'
+              ? item.valor
+              : Number.parseFloat(String(item?.valor ?? item?.price ?? item?.preco ?? '').replace(',', '.'));
+            return {
+              servico: String(item?.servico ?? item?.name ?? item?.nome ?? item?.id ?? 'servico'),
+              valor: valorNumero,
+              prazo: item?.prazo ?? item?.delivery_time ?? null,
+            };
+          })
+          .filter((item: any) => Number.isFinite(item.valor));
+
+        const valor = response?.data?.valor ?? response?.data?.valor_frete;
+        const valorNumero = typeof valor === 'number'
+          ? valor
+          : Number.parseFloat(String(valor ?? '').replace(',', '.'));
+        const servico = response?.data?.servico ? String(response.data.servico) : '';
+
+        if (normalizedOptions.length > 0) {
+          const withPickup = [
+            { servico: 'Retirar no local', valor: 0, prazo: 0 },
+            ...normalizedOptions,
+          ];
+          setShippingOptions(withPickup);
+          const defaultService = servico || normalizedOptions[0].servico;
+          const defaultOption = normalizedOptions.find((item) => item.servico === defaultService) || normalizedOptions[0];
+          setSelectedServico(defaultService);
+          setFrete(defaultOption.valor);
+          return;
+        }
+
+        if (Number.isFinite(valorNumero)) {
+          setShippingOptions(servico ? [{ servico, valor: valorNumero, prazo: null }] : []);
+          setSelectedServico(servico || 'servico');
+          setFrete(valorNumero);
+          return;
+        }
+
+        setShippingOptions([{ servico: 'Retirar no local', valor: 0, prazo: 0 }]);
+        setSelectedServico('Retirar no local');
+        setFrete(0);
+      })
+      .catch(() => {
+        if (!isActive) {
+          return;
+        }
+        setShippingOptions([{ servico: 'Retirar no local', valor: 0, prazo: 0 }]);
+        setSelectedServico('Retirar no local');
+        setFrete(0);
+      })
+      .finally(() => {
+        if (isActive) {
+          setFreteLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [checkoutData.endereco_entrega_id, enderecos, subtotal, freteGratisAcima, freteFallback]);
 
   const carregarEnderecos = async () => {
     try {
@@ -79,34 +196,36 @@ export default function CheckoutPage() {
         }
       }
     } catch (error) {
-      console.error('Erro ao carregar endereços:', error);
+      const message = (error as any)?.message || 'Erro ao carregar enderecos';
+      notifyError(message);
     }
   };
 
   const validarCupom = async () => {
     if (!checkoutData.cupom_codigo.trim()) {
-      showToast('Digite um código de cupom', 'error');
+      notifyError('Digite um codigo de cupom');
       return;
     }
     
     setValidandoCupom(true);
     try {
-      const response = await couponService.validate(checkoutData.cupom_codigo);
+      const response = await couponService.validate(checkoutData.cupom_codigo, subtotal);
       
       if (response.success && response.data) {
         const cupom = response.data;
         
         // Verificar valor mínimo
         if (cupom.valor_minimo && subtotal < cupom.valor_minimo) {
-          showToast(`Cupom requer compra mínima de R$ ${parseFloat(cupom.valor_minimo).toFixed(2)}`, 'error');
+          notifyError(`Cupom requer compra minima de R$ ${parseFloat(cupom.valor_minimo).toFixed(2)}`);
           return;
         }
         
         setCupomAplicado(cupom);
-        showToast('Cupom aplicado com sucesso! 🎉', 'success');
+        success('Cupom aplicado com sucesso');
       }
-    } catch (error: any) {
-      showToast(error.message || 'Cupom inválido ou expirado', 'error');
+    } catch (err: any) {
+      const message = err?.message || 'Cupom invalido ou expirado';
+      notifyError(message);
       setCupomAplicado(null);
     } finally {
       setValidandoCupom(false);
@@ -116,22 +235,23 @@ export default function CheckoutPage() {
   const removerCupom = () => {
     setCupomAplicado(null);
     setCheckoutData(prev => ({ ...prev, cupom_codigo: '' }));
-    showToast('Cupom removido', 'success');
+    success('Cupom removido');
   };
 
   const handleFinalizarPedido = async () => {
     if (checkoutData.endereco_entrega_id === 0) {
-      showToast('Por favor, selecione um endereço de entrega', 'error');
+      notifyError('Por favor, selecione um endereco de entrega');
       return;
     }
 
     // Validar se todos os itens têm produtos válidos
     if (items.some(item => !item.produto || !item.produto.id)) {
-      showToast('Erro: alguns itens do carrinho estão inválidos', 'error');
+      notifyError('Erro: alguns itens do carrinho estao invalidos');
       return;
     }
 
     setLoading(true);
+    setIsFinalizando(true);
 
     try {
       // Preparar dados do pedido
@@ -150,12 +270,14 @@ export default function CheckoutPage() {
       const response = await orderService.create(pedidoData);
 
       if (response.success && response.data) {
-        clearCart();
-        showToast('Pedido criado com sucesso!', 'success');
-        router.push(`/pedidos/${response.data.id}`);
+        await clearCart();
+        success('Pedido criado com sucesso');
+        router.push(`/checkout/sucesso?pedido=${response.data.id}`);
       }
     } catch (error: any) {
-      showToast(error.message || 'Erro ao criar pedido. Tente novamente.', 'error');
+      const message = error.message || 'Erro ao criar pedido. Tente novamente.';
+      notifyError(message);
+      setIsFinalizando(false);
     } finally {
       setLoading(false);
     }
@@ -275,6 +397,23 @@ export default function CheckoutPage() {
                     <p>Vencimento em 3 dias úteis</p>
                   </div>
                 </label>
+
+                <label className={styles.paymentOption}>
+                  <input
+                    type="radio"
+                    name="pagamento"
+                    value="local"
+                    checked={checkoutData.forma_pagamento === 'local'}
+                    onChange={(e) => setCheckoutData(prev => ({ 
+                      ...prev, 
+                      forma_pagamento: e.target.value as any 
+                    }))}
+                  />
+                  <div>
+                    <strong>Pagamento na retirada</strong>
+                    <p>Pague no local ao retirar o pedido</p>
+                  </div>
+                </label>
               </div>
             </div>
 
@@ -342,8 +481,43 @@ export default function CheckoutPage() {
 
             <div className={styles.summaryLine}>
               <span>Frete</span>
-              <span>{frete === 0 ? 'GRÁTIS' : `R$ ${typeof frete === 'number' ? frete.toFixed(2) : parseFloat(frete || 0).toFixed(2)}`}</span>
+              <span>
+                {freteLoading || frete === null
+                  ? 'Calculando...'
+                  : frete === 0
+                    ? 'GRÁTIS'
+                    : `R$ ${frete.toFixed(2)}`}
+              </span>
             </div>
+
+            {shippingOptions.length > 0 && (
+              <div className={styles.shippingOptions}>
+                <span className={styles.shippingTitle}>Opcoes de entrega</span>
+                {shippingOptions.map((option) => (
+                  <label key={`${option.servico}-${option.valor}`} className={styles.shippingOption}>
+                    <input
+                      type="radio"
+                      name="shipping"
+                      value={option.servico}
+                      checked={selectedServico === option.servico}
+                      onChange={() => {
+                        setSelectedServico(option.servico);
+                        setFrete(option.valor);
+                      }}
+                    />
+                    <div className={styles.shippingMeta}>
+                      <span>{option.servico}</span>
+                      {option.servico === 'Retirar no local' ? (
+                        <small>Pronto em ate 5 horas</small>
+                      ) : option.prazo ? (
+                        <small>{option.prazo} dia(s)</small>
+                      ) : null}
+                    </div>
+                    <span className={styles.shippingPrice}>R$ {option.valor.toFixed(2)}</span>
+                  </label>
+                ))}
+              </div>
+            )}
 
             {desconto > 0 && (
               <div className={styles.summaryLine}>
@@ -364,6 +538,23 @@ export default function CheckoutPage() {
             >
               {loading ? 'Processando...' : 'Finalizar Pedido'}
             </button>
+
+                <label className={styles.paymentOption}>
+                  <input
+                    type="radio"
+                    name="pagamento"
+                    value="local"
+                    checked={checkoutData.forma_pagamento === 'local'}
+                    onChange={(e) => setCheckoutData(prev => ({ 
+                      ...prev, 
+                      forma_pagamento: e.target.value as any 
+                    }))}
+                  />
+                  <div>
+                    <strong>Pagamento na retirada</strong>
+                    <p>Pague no local ao retirar o pedido</p>
+                  </div>
+                </label>
 
             <p className={styles.securePayment}>
               🔒 Pagamento seguro e protegido

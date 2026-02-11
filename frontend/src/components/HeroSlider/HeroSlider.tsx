@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, CSSProperties } from 'react';
 import Link from 'next/link';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { bannerService } from '@/services/api';
@@ -29,7 +29,7 @@ const defaultSlides: Slide[] = [
     subtitle: 'Até 70% OFF em peças selecionadas',
     buttonText: 'Ver Ofertas',
     buttonLink: '/promocoes',
-    image: '/images/banner1.jpg',
+    image: '/logan/logan2.jpeg',
     backgroundColor: '#0C1C3A',
   },
   {
@@ -38,7 +38,7 @@ const defaultSlides: Slide[] = [
     subtitle: 'Primavera/Verão 2026',
     buttonText: 'Conferir',
     buttonLink: '/produtos',
-    image: '/images/banner2.jpg',
+    image: '/logan/logan2.jpeg',
     backgroundColor: '#0C1C3A',
   },
   {
@@ -47,7 +47,7 @@ const defaultSlides: Slide[] = [
     subtitle: 'Em compras acima de R$ 200',
     buttonText: 'Aproveitar',
     buttonLink: '/produtos',
-    image: '/images/banner3.jpg',
+    image: '/logan/logan2.jpeg',
     backgroundColor: '#1a2a4a',
   },
 ];
@@ -145,14 +145,75 @@ export default function HeroSlider({
     return null;
   }
 
+  const normalizeHex = (value: string) => {
+    if (!value) return '#0C1C3A';
+    const hex = value.trim();
+    if (/^#[0-9A-Fa-f]{6}$/.test(hex)) return hex;
+    if (/^#[0-9A-Fa-f]{3}$/.test(hex)) {
+      const r = hex[1];
+      const g = hex[2];
+      const b = hex[3];
+      return `#${r}${r}${g}${g}${b}${b}`;
+    }
+    return '#0C1C3A';
+  };
+
+  const hexToRgb = (hex: string) => {
+    const clean = normalizeHex(hex).slice(1);
+    const r = parseInt(clean.slice(0, 2), 16);
+    const g = parseInt(clean.slice(2, 4), 16);
+    const b = parseInt(clean.slice(4, 6), 16);
+    return { r, g, b };
+  };
+
+  const getLuminance = (hex: string) => {
+    const { r, g, b } = hexToRgb(hex);
+    const srgb = [r, g, b].map((c) => {
+      const v = c / 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
+  };
+
+  const getBannerTheme = (bg: string) => {
+    const background = normalizeHex(bg);
+    const luminance = getLuminance(background);
+    const isLight = luminance > 0.62;
+
+    return {
+      background,
+      titleColor: isLight ? '#0B0F1A' : '#FFFFFF',
+      subtitleColor: isLight ? 'rgba(11, 15, 26, 0.75)' : 'rgba(255, 255, 255, 0.85)',
+      buttonBg: isLight ? '#0B0F1A' : '#FFFFFF',
+      buttonText: isLight ? '#FFFFFF' : '#0B0F1A',
+      buttonBorder: isLight ? 'rgba(11, 15, 26, 0.35)' : 'rgba(255, 255, 255, 0.5)',
+      buttonHoverBg: isLight ? '#16223A' : '#E6ECF8',
+      shadowColor: isLight ? 'rgba(0, 0, 0, 0.2)' : 'rgba(0, 0, 0, 0.45)',
+    };
+  };
+
   return (
     <div className={styles.heroSlider}>
       <div className={styles.slidesContainer}>
         {slides.map((slide, index) => (
+          (() => {
+            const theme = getBannerTheme(slide.backgroundColor);
+            const slideStyle: CSSProperties = {
+              backgroundColor: theme.background,
+              ['--banner-title-color' as any]: theme.titleColor,
+              ['--banner-subtitle-color' as any]: theme.subtitleColor,
+              ['--banner-button-bg' as any]: theme.buttonBg,
+              ['--banner-button-text' as any]: theme.buttonText,
+              ['--banner-button-border' as any]: theme.buttonBorder,
+              ['--banner-button-hover-bg' as any]: theme.buttonHoverBg,
+              ['--banner-shadow-color' as any]: theme.shadowColor,
+            };
+
+            return (
           <div
             key={slide.id}
             className={`${styles.slide} ${index === currentSlide ? styles.active : ''}`}
-            style={{ backgroundColor: slide.backgroundColor }}
+            style={slideStyle}
           >
             <div className={styles.slideContent}>
               <div className={styles.textContent}>
@@ -173,6 +234,8 @@ export default function HeroSlider({
               )}
             </div>
           </div>
+            );
+          })()
         ))}
       </div>
 

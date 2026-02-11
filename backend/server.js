@@ -98,6 +98,8 @@ const promocoesRoutes = require('./routes/promocoes');
 const carrinhoRoutes = require('./routes/carrinho');
 const bannersRoutes = require('./routes/banners');
 const favoritosRoutes = require('./routes/favoritos');
+const superfreteRoutes = require('./routes/superfrete');
+const devolucoesRoutes = require('./routes/devolucoes');
 
 // Usar rotas
 app.use('/api/auth', authRoutes);
@@ -114,6 +116,8 @@ app.use('/api/promocoes', promocoesRoutes);
 app.use('/api/carrinho', carrinhoRoutes);
 app.use('/api/banners', bannersRoutes);
 app.use('/api/favoritos', favoritosRoutes);
+app.use('/api/superfrete', superfreteRoutes);
+app.use('/api/devolucoes', devolucoesRoutes);
 
 // Middleware de erro 404
 app.use((req, res, next) => {

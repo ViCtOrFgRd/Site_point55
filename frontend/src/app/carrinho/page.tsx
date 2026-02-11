@@ -58,11 +58,11 @@ export default function CarrinhoPage() {
                 </div>
 
                 <div className={styles.itemQuantity}>
-                  <button onClick={() => updateQuantity(item.produto.id, item.quantidade - 1)}>
+                  <button onClick={() => updateQuantity(item, item.quantidade - 1)}>
                     <Minus size={18} />
                   </button>
                   <span>{item.quantidade}</span>
-                  <button onClick={() => updateQuantity(item.produto.id, item.quantidade + 1)}>
+                  <button onClick={() => updateQuantity(item, item.quantidade + 1)}>
                     <Plus size={18} />
                   </button>
                 </div>
@@ -78,7 +78,7 @@ export default function CarrinhoPage() {
 
                 <button
                   className={styles.removeButton}
-                  onClick={() => removeItem(item.produto.id)}
+                  onClick={() => removeItem(item)}
                 >
                   <Trash2 size={18} />
                 </button>

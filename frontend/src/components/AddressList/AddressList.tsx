@@ -12,7 +12,7 @@ interface Address {
   cidade: string;
   estado: string;
   cep: string;
-  principal: boolean;
+  is_principal: boolean;
 }
 
 interface AddressListProps {
@@ -44,8 +44,8 @@ export default function AddressList({ addresses, onEdit, onDelete, onSetPrincipa
   return (
     <div className={styles.list}>
       {addresses.map((address) => (
-        <div key={address.id} className={`${styles.card} ${address.principal ? styles.principal : ''}`}>
-          {address.principal && (
+        <div key={address.id} className={`${styles.card} ${address.is_principal ? styles.principal : ''}`}>
+          {address.is_principal && (
             <div className={styles.badge}>
               <FiStar /> Principal
             </div>
@@ -70,7 +70,7 @@ export default function AddressList({ addresses, onEdit, onDelete, onSetPrincipa
           </div>
 
           <div className={styles.actions}>
-            {!address.principal && (
+            {!address.is_principal && (
               <button
                 onClick={() => onSetPrincipal(address.id)}
                 className={styles.setPrincipalButton}
@@ -90,7 +90,7 @@ export default function AddressList({ addresses, onEdit, onDelete, onSetPrincipa
               onClick={() => onDelete(address.id)}
               className={styles.deleteButton}
               title="Excluir endereço"
-              disabled={address.principal}
+              disabled={address.is_principal}
             >
               <FiTrash2 />
             </button>

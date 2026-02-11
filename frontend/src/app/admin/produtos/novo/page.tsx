@@ -23,15 +23,23 @@ export default function NovoProdutoPage() {
     nome: '',
     descricao: '',
     preco: 0,
+    preco_pix: 0,
+    preco_debito: 0,
+    preco_credito: 0,
+    preco_boleto: 0,
     preco_original: 0,
+    parcelas_maximas: 3,
     desconto_percentual: 0,
     categoria_id: '',
+    categoria_ids: [] as string[],
     estoque: 0,
     imagens: [] as string[],
     cores_disponiveis: [] as string[],
     tamanhos_disponiveis: [] as string[],
     ativo: true,
   });
+
+  const [usarMesmoValorPagamentos, setUsarMesmoValorPagamentos] = useState(true);
 
   const [imagemInput, setImagemInput] = useState('');
   const [imagemTipo, setImagemTipo] = useState<'url' | 'upload'>('url');
@@ -52,7 +60,7 @@ export default function NovoProdutoPage() {
 
   const carregarCategorias = async () => {
     try {
-      const response = await categoryService.getAll();
+      const response = await categoryService.getAllAdmin();
       if (response.success) {
         setCategorias(response.data || []);
       }
@@ -64,18 +72,25 @@ export default function NovoProdutoPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.nome || !formData.preco || !formData.categoria_id) {
+    if (!formData.nome || !formData.preco || formData.categoria_ids.length === 0) {
       showError('Preencha os campos obrigatórios: Nome, Preço e Categoria');
       return;
     }
 
     setLoading(true);
     try {
+      const categoriaIds = formData.categoria_ids.map((id) => parseInt(id, 10)).filter((id) => !Number.isNaN(id));
       const data = {
         ...formData,
-        categoria_id: parseInt(formData.categoria_id),
+        categoria_id: categoriaIds[0] || parseInt(formData.categoria_id, 10),
+        categoria_ids: categoriaIds,
         preco: parseFloat(formData.preco.toString()),
+        preco_pix: formData.preco_pix > 0 ? parseFloat(formData.preco_pix.toString()) : parseFloat(formData.preco.toString()),
+        preco_debito: formData.preco_debito > 0 ? parseFloat(formData.preco_debito.toString()) : parseFloat(formData.preco.toString()),
+        preco_credito: formData.preco_credito > 0 ? parseFloat(formData.preco_credito.toString()) : parseFloat(formData.preco.toString()),
+        preco_boleto: formData.preco_boleto > 0 ? parseFloat(formData.preco_boleto.toString()) : parseFloat(formData.preco.toString()),
         preco_original: parseFloat(formData.preco_original.toString()) || null,
+        parcelas_maximas: parseInt(formData.parcelas_maximas.toString(), 10) || 3,
         desconto_percentual: parseFloat(formData.desconto_percentual.toString()) || 0,
         estoque: parseInt(formData.estoque.toString()),
       };
@@ -200,6 +215,34 @@ export default function NovoProdutoPage() {
     });
   };
 
+  const handleCreditoChange = (valor: number) => {
+    if (usarMesmoValorPagamentos) {
+      setFormData(prev => ({
+        ...prev,
+        preco_credito: valor,
+        preco_debito: valor,
+        preco_boleto: valor,
+      }));
+      return;
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      preco_credito: valor,
+    }));
+  };
+
+  const handleToggleMesmoValor = (checked: boolean) => {
+    setUsarMesmoValorPagamentos(checked);
+    if (checked) {
+      setFormData(prev => ({
+        ...prev,
+        preco_debito: prev.preco_credito || prev.preco,
+        preco_boleto: prev.preco_credito || prev.preco,
+      }));
+    }
+  };
+
   // Calcular desconto automaticamente
   useEffect(() => {
     if (formData.preco_original > 0 && formData.preco > 0) {
@@ -258,20 +301,28 @@ export default function NovoProdutoPage() {
             </div>
 
             <div className={styles.formGroup}>
-              <label>Categoria *</label>
+              <label>Categorias *</label>
               <select
-                name="categoria_id"
-                value={formData.categoria_id}
-                onChange={(e) => setFormData({ ...formData, categoria_id: e.target.value })}
+                multiple
+                name="categoria_ids"
+                value={formData.categoria_ids}
+                onChange={(e) => {
+                  const selected = Array.from(e.target.selectedOptions).map((opt) => opt.value);
+                  setFormData({
+                    ...formData,
+                    categoria_ids: selected,
+                    categoria_id: selected[0] || '',
+                  });
+                }}
                 required
               >
-                <option value="">Selecione uma categoria</option>
                 {categorias.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.nome}
                   </option>
                 ))}
               </select>
+              <small>Segure Ctrl (Windows) para selecionar mais de uma.</small>
             </div>
           </div>
 
@@ -316,6 +367,83 @@ export default function NovoProdutoPage() {
                   disabled
                 />
                 <small>Calculado automaticamente</small>
+              </div>
+            </div>
+
+            <div className={styles.formGroup}>
+              <div className={styles.checkboxRow}>
+                <input
+                  type="checkbox"
+                  checked={usarMesmoValorPagamentos}
+                  onChange={(e) => handleToggleMesmoValor(e.target.checked)}
+                  id="mesmo-valor-pagamentos"
+                />
+                <label htmlFor="mesmo-valor-pagamentos">
+                  Usa o mesmo valor no credito, debito e boleto
+                </label>
+              </div>
+            </div>
+
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
+                <label>Quantidade de Parcelas</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.parcelas_maximas}
+                  onChange={(e) => setFormData({ ...formData, parcelas_maximas: parseInt(e.target.value) || 1 })}
+                  placeholder="3"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Preço no PIX (R$)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.preco_pix}
+                  onChange={(e) => setFormData({ ...formData, preco_pix: parseFloat(e.target.value) })}
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Preço no Credito (R$)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.preco_credito}
+                  onChange={(e) => handleCreditoChange(parseFloat(e.target.value))}
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Preço no Debito (R$)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.preco_debito}
+                  onChange={(e) => setFormData({ ...formData, preco_debito: parseFloat(e.target.value) })}
+                  placeholder="0.00"
+                  disabled={usarMesmoValorPagamentos}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Preço no Boleto (R$)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.preco_boleto}
+                  onChange={(e) => setFormData({ ...formData, preco_boleto: parseFloat(e.target.value) })}
+                  placeholder="0.00"
+                  disabled={usarMesmoValorPagamentos}
+                />
               </div>
             </div>
 

@@ -149,6 +149,65 @@ const enviarEmailConfirmacaoPedido = async (destinatario, pedido) => {
 };
 
 /**
+ * Enviar email de boas-vindas
+ */
+const enviarEmailBoasVindas = async (destinatario, nome) => {
+  const mailOptions = {
+    from: {
+      name: 'Point55',
+      address: process.env.EMAIL_USER || 'atendimento.sacpoint@gmail.com'
+    },
+    to: destinatario,
+    subject: 'Bem-vindo a Point55',
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+          .button { display: inline-block; background: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Bem-vindo a Point55!</h1>
+          </div>
+          <div class="content">
+            <p>Ola, ${nome || 'cliente'}!</p>
+            <p>Sua conta foi criada com sucesso. Agora voce pode acompanhar pedidos, salvar enderecos e aproveitar nossas ofertas.</p>
+            <center>
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/perfil" class="button">Acessar Minha Conta</a>
+            </center>
+            <p>Se precisar de ajuda, fale com a gente pelo WhatsApp: (11) 99338-5579</p>
+          </div>
+          <div class="footer">
+            <p>Point55 - Seu Estilo, Nossa Paixao</p>
+            <p>Este e um email automatico, nao responda.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Email de boas-vindas enviado:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('❌ Erro ao enviar email de boas-vindas:', error);
+    throw error;
+  }
+};
+
+/**
  * Enviar email genérico
  */
 const enviarEmail = async (destinatario, assunto, html) => {
@@ -175,5 +234,6 @@ const enviarEmail = async (destinatario, assunto, html) => {
 module.exports = {
   enviarEmailRecuperacaoSenha,
   enviarEmailConfirmacaoPedido,
-  enviarEmail
+  enviarEmail,
+  enviarEmailBoasVindas
 };

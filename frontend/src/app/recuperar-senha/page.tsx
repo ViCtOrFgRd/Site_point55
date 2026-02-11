@@ -106,7 +106,7 @@ export default function RecuperarSenhaPage() {
                 </button>
 
                 <div className={styles.links}>
-                  <Link href="/login">Voltar para o Login</Link>
+                  <Link href="/perfil">Voltar para a Minha Conta</Link>
                   <Link href="/cadastro">Criar uma Conta</Link>
                 </div>
               </form>
@@ -140,8 +140,8 @@ export default function RecuperarSenhaPage() {
                 >
                   Enviar Novamente
                 </button>
-                <Link href="/login" className={styles.linkLogin}>
-                  Voltar para o Login
+                <Link href="/perfil" className={styles.linkLogin}>
+                  Voltar para a Minha Conta
                 </Link>
               </div>
             )}

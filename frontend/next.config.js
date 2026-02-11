@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  turbopack: {
+    root: __dirname,
+  },
   // Permitir requisições cross-origin do IP público
   allowedDevOrigins: ['45.176.139.246:3000', '45.176.139.246'],
   images: {

@@ -174,8 +174,8 @@ export default function RegistroPage() {
         <div className={styles.footer}>
           <p>
             Já tem uma conta?{' '}
-            <Link href="/login" className={styles.link}>
-              Faça login
+            <Link href="/perfil" className={styles.link}>
+              Fazer login
             </Link>
           </p>
         </div>

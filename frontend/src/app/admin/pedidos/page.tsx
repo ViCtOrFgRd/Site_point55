@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { orderService } from '@/services/api';
 import Link from 'next/link';
-import { FiArrowLeft, FiPackage, FiCheckCircle, FiTruck, FiX } from 'react-icons/fi';
+import { FiArrowLeft, FiPackage, FiCheckCircle, FiTruck } from 'react-icons/fi';
 import styles from './pedidos.module.scss';
 
 export default function AdminPedidosPage() {
@@ -14,6 +14,18 @@ export default function AdminPedidosPage() {
   const [pedidos, setPedidos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState('');
+  const [statusDrafts, setStatusDrafts] = useState<Record<number, string>>({});
+
+  const statusOptions = [
+    { value: 'pendente', label: 'Pendente' },
+    { value: 'pago', label: 'Pago' },
+    { value: 'processando', label: 'Processando' },
+    { value: 'enviado', label: 'Enviado' },
+    { value: 'devolucao', label: 'Devolucao' },
+    { value: 'devolvido', label: 'Devolvido' },
+    { value: 'entregue', label: 'Entregue (legado)' },
+    { value: 'cancelado', label: 'Cancelado' },
+  ];
 
   useEffect(() => {
     if (!authLoading && (!user || !user.is_admin)) {
@@ -26,6 +38,14 @@ export default function AdminPedidosPage() {
       carregarPedidos();
     }
   }, [user, filtroStatus]);
+
+  useEffect(() => {
+    const drafts: Record<number, string> = {};
+    pedidos.forEach((pedido) => {
+      drafts[pedido.id] = pedido.status;
+    });
+    setStatusDrafts(drafts);
+  }, [pedidos]);
 
   const carregarPedidos = async () => {
     setLoading(true);
@@ -42,8 +62,7 @@ export default function AdminPedidosPage() {
     }
   };
 
-  const handleAtualizarStatus = async (pedidoId: number) => {
-    const novoStatus = prompt('Digite o novo status (pendente/pago/enviado/entregue/cancelado):');
+  const handleAtualizarStatus = async (pedidoId: number, novoStatus: string) => {
     if (!novoStatus) return;
 
     try {
@@ -55,6 +74,13 @@ export default function AdminPedidosPage() {
     } catch (error: any) {
       alert(error.message || 'Erro ao atualizar status');
     }
+  };
+
+  const handleStatusChange = (pedidoId: number, value: string) => {
+    setStatusDrafts((prev) => ({
+      ...prev,
+      [pedidoId]: value,
+    }));
   };
 
   const handleAdicionarRastreio = async (pedidoId: number) => {
@@ -69,31 +95,6 @@ export default function AdminPedidosPage() {
       }
     } catch (error: any) {
       alert(error.message || 'Erro ao adicionar rastreio');
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    const classes: any = {
-      pendente: 'badgeWarning',
-      pago: 'badgeInfo',
-      processando: 'badgeInfo',
-      enviado: 'badgePrimary',
-      entregue: 'badgeSuccess',
-      cancelado: 'badgeDanger',
-    };
-    return classes[status] || 'badgeSecondary';
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'entregue':
-        return <FiCheckCircle />;
-      case 'enviado':
-        return <FiTruck />;
-      case 'cancelado':
-        return <FiX />;
-      default:
-        return <FiPackage />;
     }
   };
 
@@ -169,7 +170,9 @@ export default function AdminPedidosPage() {
             <option value="pago">Pago</option>
             <option value="processando">Processando</option>
             <option value="enviado">Enviado</option>
-            <option value="entregue">Entregue</option>
+            <option value="devolucao">Devolucao</option>
+            <option value="devolvido">Devolvido</option>
+            <option value="entregue">Entregue (legado)</option>
             <option value="cancelado">Cancelado</option>
           </select>
         </div>
@@ -198,6 +201,7 @@ export default function AdminPedidosPage() {
                   <td>
                     <span className={styles.paymentMethod}>
                       {pedido.forma_pagamento === 'pix' ? 'PIX' :
+                       pedido.forma_pagamento === 'cartao' ? 'Cartão de Crédito' :
                        pedido.forma_pagamento === 'credito' ? 'Cartão de Crédito' :
                        pedido.forma_pagamento === 'debito' ? 'Cartão de Débito' :
                        pedido.forma_pagamento === 'boleto' ? 'Boleto' :
@@ -205,9 +209,17 @@ export default function AdminPedidosPage() {
                     </span>
                   </td>
                   <td>
-                    <span className={`${styles.badge} ${styles[getStatusBadge(pedido.status)]}`}>
-                      {getStatusIcon(pedido.status)} {pedido.status}
-                    </span>
+                    <select
+                      className={styles.statusSelect}
+                      value={statusDrafts[pedido.id] || pedido.status}
+                      onChange={(event) => handleStatusChange(pedido.id, event.target.value)}
+                    >
+                      {statusOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
                   </td>
                   <td>
                     {pedido.codigo_rastreio || (
@@ -220,10 +232,10 @@ export default function AdminPedidosPage() {
                         Ver
                       </Link>
                       <button
-                        onClick={() => handleAtualizarStatus(pedido.id)}
+                        onClick={() => handleAtualizarStatus(pedido.id, statusDrafts[pedido.id] || pedido.status)}
                         className={styles.btnEdit}
                       >
-                        Status
+                        Atualizar
                       </button>
                       <button
                         onClick={() => handleAdicionarRastreio(pedido.id)}

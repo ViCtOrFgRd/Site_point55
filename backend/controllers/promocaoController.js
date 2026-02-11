@@ -324,7 +324,11 @@ const verificarPromocoesAplicaveis = async (req, res) => {
        WHERE ativa = true
        AND data_inicio <= NOW()
        AND data_fim >= NOW()
-       AND ($1 = ANY(produtos_aplicaveis) OR produtos_aplicaveis = '{}')
+       AND (
+         produtos_aplicaveis IS NULL
+         OR produtos_aplicaveis = '{}'
+         OR $1 = ANY(produtos_aplicaveis)
+       )
        ORDER BY desconto_percentual DESC, desconto_valor DESC`,
       [produtoId]
     );

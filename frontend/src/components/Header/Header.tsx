@@ -3,8 +3,9 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FiShoppingCart, FiUser, FiSearch, FiMenu, FiX, FiSettings, FiLogOut } from 'react-icons/fi';
+import { FiShoppingCart, FiUser, FiMenu, FiX, FiSettings, FiLogOut, FiPackage } from 'react-icons/fi';
 import { useAuth } from '@/contexts/AuthContext';
+import SearchBar from '@/components/SearchBar/SearchBar';
 import styles from './Header.module.scss';
 
 export default function Header() {
@@ -15,7 +16,7 @@ export default function Header() {
 
   const handleLogout = () => {
     logout();
-    router.push('/login');
+    router.push('/perfil');
   };
 
   return (
@@ -45,9 +46,8 @@ export default function Header() {
           </nav>
 
           {/* Barra de Busca */}
-          <div className={styles.searchBar}>
-            <FiSearch />
-            <input type="text" placeholder="Buscar produtos..." />
+          <div className={styles.searchBarWrapper}>
+            <SearchBar limit={8} orderBy="vendas" direction="DESC" />
           </div>
 
           {/* Ações */}
@@ -59,6 +59,9 @@ export default function Header() {
             )}
             <Link href="/perfil" className={styles.iconButton} title="Perfil">
               <FiUser size={22} />
+            </Link>
+            <Link href="/pedidos" className={styles.iconButton} title="Meus pedidos">
+              <FiPackage size={22} />
             </Link>
             <Link href="/carrinho" className={styles.iconButton} title="Carrinho">
               <FiShoppingCart size={22} />
@@ -86,34 +89,40 @@ export default function Header() {
             {menuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
           </button>
         </div>
-      </header>
 
-      {/* Menu Mobile */}
-      {menuOpen && (
-        <div className={styles.mobileMenu}>
-          <nav>
-            <Link href="/" onClick={() => setMenuOpen(false)}>Home</Link>
-            <Link href="/produtos" onClick={() => setMenuOpen(false)}>Produtos</Link>
-            <Link href="/produtos?categoria=roupas-femininas" onClick={() => setMenuOpen(false)}>Feminino</Link>
-            <Link href="/produtos?categoria=roupas-masculinas" onClick={() => setMenuOpen(false)}>Masculino</Link>
-            <Link href="/produtos?categoria=acessorios" onClick={() => setMenuOpen(false)}>Acessórios</Link>
-            <Link href="/promocoes" onClick={() => setMenuOpen(false)}>Promoções</Link>
-            {user && user.is_admin && (
-              <Link href="/admin" onClick={() => setMenuOpen(false)}>
-                <FiSettings /> Admin
+        {/* Menu Mobile */}
+        {menuOpen && (
+          <div className={styles.mobileMenu}>
+            <div className={styles.mobileSearch}>
+              <SearchBar limit={8} orderBy="vendas" direction="DESC" />
+            </div>
+            <nav>
+              <Link href="/" onClick={() => setMenuOpen(false)}>Home</Link>
+              <Link href="/produtos" onClick={() => setMenuOpen(false)}>Produtos</Link>
+              <Link href="/produtos?categoria=roupas-femininas" onClick={() => setMenuOpen(false)}>Feminino</Link>
+              <Link href="/produtos?categoria=roupas-masculinas" onClick={() => setMenuOpen(false)}>Masculino</Link>
+              <Link href="/produtos?categoria=acessorios" onClick={() => setMenuOpen(false)}>Acessórios</Link>
+              <Link href="/promocoes" onClick={() => setMenuOpen(false)}>Promoções</Link>
+              {user && user.is_admin && (
+                <Link href="/admin" onClick={() => setMenuOpen(false)}>
+                  <FiSettings /> Admin
+                </Link>
+              )}
+              <Link href="/pedidos" onClick={() => setMenuOpen(false)}>
+                <FiPackage /> Meus pedidos
               </Link>
-            )}
-            {user && (
-              <button 
-                onClick={() => { handleLogout(); setMenuOpen(false); }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%', padding: '10px 0' }}
-              >
-                <FiLogOut /> Sair
-              </button>
-            )}
-          </nav>
-        </div>
-      )}
+              {user && (
+                <button 
+                  onClick={() => { handleLogout(); setMenuOpen(false); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%', padding: '10px 0' }}
+                >
+                  <FiLogOut /> Sair
+                </button>
+              )}
+            </nav>
+          </div>
+        )}
+      </header>
     </>
   );
 }

@@ -31,7 +31,7 @@ export default function AdminAvaliacoesPage() {
     setLoading(true);
     try {
       // Carregar produtos para depois buscar avaliações
-      const produtosRes = await productService.getAll({ limite: 100 });
+      const produtosRes = await productService.getAllAdmin({ limite: 100 });
       if (produtosRes.success) {
         const prods = produtosRes.data || [];
         setProdutos(prods);

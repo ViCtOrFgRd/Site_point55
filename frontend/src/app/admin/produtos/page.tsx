@@ -35,8 +35,8 @@ export default function AdminProdutosPage() {
     setLoading(true);
     try {
       const [produtosRes, categoriasRes] = await Promise.all([
-        productService.getAll({ limite: 10000 }),
-        categoryService.getAll(),
+        productService.getAllAdmin({ limite: 10000 }),
+        categoryService.getAllAdmin(),
       ]);
 
       if (produtosRes.success) {
@@ -72,7 +72,10 @@ export default function AdminProdutosPage() {
 
   const produtosFiltrados = products.filter((p) => {
     const matchBusca = !busca || p.nome.toLowerCase().includes(busca.toLowerCase());
-    const matchCategoria = !categoriaFiltro || p.categoria_id?.toString() === categoriaFiltro;
+    const categoriaId = parseInt(categoriaFiltro, 10);
+    const matchCategoria = !categoriaFiltro
+      || (Array.isArray(p.categoria_ids) && p.categoria_ids.includes(categoriaId))
+      || p.categoria_id?.toString() === categoriaFiltro;
     return matchBusca && matchCategoria;
   });
 
@@ -150,6 +153,7 @@ export default function AdminProdutosPage() {
                 <th>Produto</th>
                 <th>Categoria</th>
                 <th>Preço</th>
+                <th>Parcelas</th>
                 <th>Estoque</th>
                 <th>Status</th>
                 <th>Ações</th>
@@ -161,14 +165,21 @@ export default function AdminProdutosPage() {
                   <td>#{produto.id}</td>
                   <td>
                     <div className={styles.productInfo}>
-                      {produto.imagem_url && (
-                        <img src={produto.imagem_url} alt={produto.nome} />
-                      )}
+                      {(() => {
+                        const imageUrl = Array.isArray(produto.imagens)
+                          ? produto.imagens[0]
+                          : produto.imagens;
+
+                        return imageUrl ? (
+                          <img src={imageUrl} alt={produto.nome} />
+                        ) : null;
+                      })()}
                       <span>{produto.nome}</span>
                     </div>
                   </td>
-                  <td>{produto.categoria_nome || '-'}</td>
+                  <td>{Array.isArray(produto.categoria_nomes) ? produto.categoria_nomes[0] : produto.categoria_nome || '-'}</td>
                   <td>R$ {typeof produto.preco === 'number' ? produto.preco.toFixed(2) : parseFloat(produto.preco || 0).toFixed(2)}</td>
+                  <td>{produto.parcelas_maximas ? `${produto.parcelas_maximas}x` : '3x'}</td>
                   <td>
                     <span
                       className={`${styles.badge} ${

@@ -1,29 +1,33 @@
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
-  padding: 2rem 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
 
   @media (max-width: 768px) {
     grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
+    gap: var(--space-1);
   }
 
   @media (max-width: 480px) {
-    gap: 0.75rem;
+    gap: var(--space-1);
   }
 }
 
 .empty {
   text-align: center;
-  padding: 4rem 2rem;
+  padding: var(--space-4) var(--space-2);
   color: #6b7280;
-  font-size: 1.1rem;
+  font-size: var(--text-small);
 }
 
 .skeleton {
   background: white;
-  border-radius: 12px;
+  border-radius: var(--radius-base);
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 
@@ -37,11 +41,11 @@
 
   .skeletonText {
     height: 20px;
-    margin: 1rem;
+    margin: var(--space-2);
     background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
     background-size: 200% 100%;
     animation: loading 1.5s infinite;
-    border-radius: 4px;
+    border-radius: var(--radius-base);
 
     &:last-child {
       width: 60%;

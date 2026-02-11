@@ -2,7 +2,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { pool } = require('../config/database');
-const { enviarEmailRecuperacaoSenha } = require('../services/emailService');
+const { enviarEmailRecuperacaoSenha, enviarEmailBoasVindas } = require('../services/emailService');
 
 // Gerar token JWT
 const gerarToken = (usuario) => {
@@ -17,16 +17,77 @@ const gerarToken = (usuario) => {
   );
 };
 
+const isCpfValido = (cpfDigits) => {
+  if (!cpfDigits || cpfDigits.length !== 11) return false;
+  if (/^(\d)\1{10}$/.test(cpfDigits)) return false;
+
+  const calcDigito = (base, fatorInicial) => {
+    let soma = 0;
+    for (let i = 0; i < base.length; i += 1) {
+      soma += parseInt(base[i], 10) * (fatorInicial - i);
+    }
+    const resto = (soma * 10) % 11;
+    return resto === 10 ? 0 : resto;
+  };
+
+  const baseNove = cpfDigits.slice(0, 9);
+  const digito1 = calcDigito(baseNove, 10);
+  const baseDez = cpfDigits.slice(0, 10);
+  const digito2 = calcDigito(baseDez, 11);
+
+  return digito1 === parseInt(cpfDigits[9], 10) && digito2 === parseInt(cpfDigits[10], 10);
+};
+
 // POST /api/auth/registro - Registrar novo usuário
 const registrar = async (req, res) => {
   try {
     const { nome, email, senha, telefone, cpf, data_nascimento } = req.body;
+    const cpfNormalizado = typeof cpf === 'string' ? cpf.replace(/\D/g, '') : '';
+    const telefoneNormalizado = typeof telefone === 'string' ? telefone.replace(/\D/g, '') : '';
+    const dataNascimentoValida = Boolean(data_nascimento) && !Number.isNaN(Date.parse(data_nascimento));
+    const cpfFormatoValido = typeof cpf === 'string' && /^[0-9.\-\s]+$/.test(cpf);
+    const telefoneFormatoValido = typeof telefone === 'string' && /^[0-9+()\-\s]+$/.test(telefone);
 
     // Validação básica
-    if (!nome || !email || !senha) {
+    if (!nome || !email || !senha || !telefone || !cpf || !data_nascimento) {
       return res.status(400).json({
         success: false,
-        error: 'Nome, email e senha são obrigatórios',
+        error: 'Nome, email, senha, telefone, CPF e data de nascimento são obrigatórios',
+      });
+    }
+
+    if (cpfNormalizado.length !== 11 || !isCpfValido(cpfNormalizado)) {
+      return res.status(400).json({
+        success: false,
+        error: 'CPF inválido',
+      });
+    }
+
+    if (!cpfFormatoValido) {
+      return res.status(400).json({
+        success: false,
+        error: 'CPF contém caracteres inválidos',
+      });
+    }
+
+    if (telefoneNormalizado.length < 10 || telefoneNormalizado.length > 11) {
+      return res.status(400).json({
+        success: false,
+        error: 'Telefone inválido',
+      });
+    }
+
+    if (!telefoneFormatoValido) {
+      return res.status(400).json({
+        success: false,
+        error: 'Telefone contém caracteres inválidos',
+      });
+    }
+
+    if (!dataNascimentoValida) {
+      return res.status(400).json({
+        success: false,
+        error: 'Data de nascimento inválida',
       });
     }
 
@@ -44,10 +105,10 @@ const registrar = async (req, res) => {
     }
 
     // Verificar se CPF já existe (se fornecido)
-    if (cpf) {
+    if (cpfNormalizado) {
       const cpfExiste = await pool.query(
         'SELECT id FROM usuarios WHERE cpf = $1',
-        [cpf]
+        [cpfNormalizado]
       );
 
       if (cpfExiste.rows.length > 0) {
@@ -68,13 +129,19 @@ const registrar = async (req, res) => {
        (nome, email, senha_hash, telefone, cpf, data_nascimento, is_admin)
        VALUES ($1, $2, $3, $4, $5, $6, false)
        RETURNING id, nome, email, telefone, cpf, data_cadastro, is_admin`,
-      [nome, email, senhaHash, telefone, cpf, data_nascimento]
+      [nome, email, senhaHash, telefone, cpfNormalizado, data_nascimento]
     );
 
     const usuario = result.rows[0];
 
     // Gerar token
     const token = gerarToken(usuario);
+
+    try {
+      await enviarEmailBoasVindas(usuario.email, usuario.nome);
+    } catch (emailError) {
+      console.error('Erro ao enviar email de boas-vindas:', emailError);
+    }
 
     res.status(201).json({
       success: true,

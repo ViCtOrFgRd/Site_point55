@@ -7,7 +7,7 @@ import Link from 'next/link';
 import Breadcrumbs from '@/components/Breadcrumbs/Breadcrumbs';
 import { Pedido } from '@/types';
 import { orderService } from '@/services/api';
-import { FiPackage, FiClock, FiCheck, FiTruck, FiX, FiFilter } from 'react-icons/fi';
+import { FiPackage, FiClock, FiCheck, FiTruck, FiX, FiFilter, FiRefreshCcw } from 'react-icons/fi';
 import styles from './pedidos.module.scss';
 
 export default function PedidosPage() {
@@ -55,6 +55,9 @@ export default function PedidosPage() {
         return <FiPackage />;
       case 'enviado':
         return <FiTruck />;
+      case 'devolucao':
+        return <FiRefreshCcw />;
+      case 'devolvido':
       case 'entregue':
         return <FiCheck />;
       case 'cancelado':
@@ -70,6 +73,8 @@ export default function PedidosPage() {
       pago: 'Pago',
       processando: 'Processando',
       enviado: 'Enviado',
+      devolucao: 'Devolucao',
+      devolvido: 'Devolvido',
       entregue: 'Entregue',
       cancelado: 'Cancelado',
     };
@@ -82,6 +87,8 @@ export default function PedidosPage() {
       pago: '#42A5F5',
       processando: '#AB47BC',
       enviado: '#29B6F6',
+      devolucao: '#FFB74D',
+      devolvido: '#66BB6A',
       entregue: '#66BB6A',
       cancelado: '#EF5350',
     };
@@ -145,10 +152,16 @@ export default function PedidosPage() {
             <FiTruck /> Enviados
           </button>
           <button
-            className={`${styles.filterButton} ${filtroStatus === 'entregue' ? styles.active : ''}`}
-            onClick={() => setFiltroStatus('entregue')}
+            className={`${styles.filterButton} ${filtroStatus === 'devolucao' ? styles.active : ''}`}
+            onClick={() => setFiltroStatus('devolucao')}
           >
-            <FiCheck /> Entregues
+            <FiRefreshCcw /> Devolucao
+          </button>
+          <button
+            className={`${styles.filterButton} ${filtroStatus === 'devolvido' ? styles.active : ''}`}
+            onClick={() => setFiltroStatus('devolvido')}
+          >
+            <FiCheck /> Devolvidos
           </button>
         </div>
 

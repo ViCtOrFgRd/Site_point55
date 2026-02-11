@@ -1,7 +1,7 @@
 .searchBar {
   position: relative;
   width: 100%;
-  max-width: 600px;
+  max-width: clamp(320px, 60vw, 600px);
 }
 
 .searchForm {
@@ -10,7 +10,7 @@
   align-items: center;
   background: #fff;
   border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  border-radius: var(--radius-base);
   overflow: hidden;
   transition: all 0.3s ease;
 
@@ -22,18 +22,18 @@
 
 .searchIcon {
   position: absolute;
-  left: 16px;
+  left: var(--space-1);
   color: #666;
-  font-size: 20px;
+  font-size: clamp(16px, 2.2vw, 20px);
   pointer-events: none;
 }
 
 .searchInput {
   flex: 1;
-  padding: 12px 48px 12px 48px;
+  padding: clamp(10px, 1.8vw, 12px) clamp(40px, 5vw, 48px);
   border: none;
   outline: none;
-  font-size: 15px;
+  font-size: var(--text-small);
   color: #000;
 
   &::placeholder {
@@ -43,11 +43,11 @@
 
 .clearButton {
   position: absolute;
-  right: 16px;
+  right: var(--space-1);
   background: none;
   border: none;
   color: #666;
-  font-size: 20px;
+  font-size: clamp(16px, 2.2vw, 20px);
   cursor: pointer;
   padding: 4px;
   display: flex;
@@ -67,18 +67,19 @@
   right: 0;
   background: #fff;
   border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  border-radius: var(--radius-base);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  max-height: 400px;
+  max-height: clamp(240px, 60vh, 420px);
   overflow-y: auto;
   z-index: 1000;
 }
 
 .loading,
 .noResults {
-  padding: 24px;
+  padding: var(--space-2);
   text-align: center;
   color: #666;
+  font-size: var(--text-small);
 }
 
 .results {
@@ -88,8 +89,8 @@
 .resultItem {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
   cursor: pointer;
   transition: background 0.2s;
 
@@ -99,10 +100,10 @@
 }
 
 .resultImage {
-  width: 60px;
-  height: 60px;
+  width: clamp(46px, 6vw, 60px);
+  height: clamp(46px, 6vw, 60px);
   flex-shrink: 0;
-  border-radius: 4px;
+  border-radius: var(--radius-base);
   overflow: hidden;
   background: #f5f5f5;
 
@@ -119,7 +120,7 @@
   justify-content: center;
   width: 100%;
   height: 100%;
-  font-size: 10px;
+  font-size: var(--text-small);
   color: #999;
 }
 
@@ -128,7 +129,7 @@
   min-width: 0;
 
   h4 {
-    font-size: 14px;
+    font-size: var(--text-small);
     font-weight: 600;
     margin: 0 0 4px 0;
     color: #000;
@@ -141,29 +142,29 @@
 .resultPrice {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-1);
 }
 
 .oldPrice {
-  font-size: 12px;
+  font-size: var(--text-small);
   color: #999;
   text-decoration: line-through;
 }
 
 .price {
-  font-size: 14px;
+  font-size: var(--text-small);
   font-weight: 700;
   color: #000;
 }
 
 .seeAllButton {
   width: 100%;
-  padding: 12px 16px;
+  padding: var(--space-1) var(--space-2);
   border: none;
   border-top: 1px solid #e0e0e0;
   background: #f9f9f9;
   color: #000;
-  font-size: 14px;
+  font-size: var(--text-small);
   font-weight: 600;
   cursor: pointer;
   text-align: center;
@@ -180,15 +181,15 @@
   }
 
   .dropdown {
-    max-height: 300px;
+    max-height: clamp(200px, 50vh, 320px);
   }
 
   .resultItem {
-    padding: 10px 12px;
+    padding: var(--space-1) var(--space-1);
   }
 
   .resultImage {
-    width: 50px;
-    height: 50px;
+    width: clamp(44px, 8vw, 50px);
+    height: clamp(44px, 8vw, 50px);
   }
 }

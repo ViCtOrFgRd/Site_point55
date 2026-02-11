@@ -96,7 +96,7 @@ export default function AdminBadgesPage() {
 
   const carregarProdutos = async () => {
     try {
-      const response = await productService.getAll({ limite: 1000 });
+      const response = await productService.getAllAdmin({ limite: 1000 });
       if (response.success) {
         setProdutos(response.data || []);
       }

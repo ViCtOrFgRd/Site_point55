@@ -1,81 +1,169 @@
 const { pool } = require('../config/database');
+const { aplicarPromocoes } = require('../utils/promocoes');
 
-// Helper: Aplicar promoções vigentes aos produtos
-const aplicarPromocoes = async (produtos) => {
-  if (!produtos || produtos.length === 0) return produtos;
-
+// GET /api/produtos/admin - Listar produtos (admin, sem filtros de visibilidade)
+const listarProdutosAdmin = async (req, res) => {
   try {
-    // Buscar promoções vigentes e ativas
-    const promocoesResult = await pool.query(
-      `SELECT id, tipo_desconto, desconto_percentual, desconto_valor, produtos_aplicaveis
-       FROM promocoes
-       WHERE ativa = true 
-         AND data_inicio <= NOW()
-         AND data_fim >= NOW()`
-    );
+    const {
+      categoria,
+      busca,
+      precoMin,
+      precoMax,
+      promocao,
+      ordem = 'data_criacao',
+      direcao = 'DESC',
+      limite = 1000,
+      pagina = 1,
+    } = req.query;
 
-    const promocoesAtivas = promocoesResult.rows;
-    if (promocoesAtivas.length === 0) return produtos;
+    const offset = (pagina - 1) * limite;
+    let query = `
+      SELECT DISTINCT p.*,
+             ARRAY_AGG(DISTINCT c.id) FILTER (WHERE c.id IS NOT NULL) as categoria_ids,
+             ARRAY_AGG(DISTINCT c.nome) FILTER (WHERE c.nome IS NOT NULL) as categoria_nomes,
+             ARRAY_AGG(DISTINCT c.slug) FILTER (WHERE c.slug IS NOT NULL) as categoria_slugs
+      FROM produtos p
+      LEFT JOIN produto_categorias pc ON p.id = pc.produto_id
+      LEFT JOIN categorias c ON pc.categoria_id = c.id
+      WHERE 1=1
+    `;
+    const params = [];
+    let paramCount = 1;
 
-    // Aplicar promoções a cada produto
-    return produtos.map(produto => {
-      let melhorDesconto = 0;
-      let promocaoAplicada = null;
-
-      for (const promo of promocoesAtivas) {
-        // Verificar se promoção se aplica ao produto
-        const aplicavel = !promo.produtos_aplicaveis || 
-                          promo.produtos_aplicaveis.length === 0 ||
-                          promo.produtos_aplicaveis.includes(produto.id);
-
-        if (aplicavel) {
-          let desconto = 0;
-          
-          if (promo.tipo_desconto === 'percentual') {
-            desconto = promo.desconto_percentual || 0;
-          } else if (promo.tipo_desconto === 'valor_fixo') {
-            desconto = ((promo.desconto_valor || 0) / parseFloat(produto.preco)) * 100;
-          }
-
-          if (desconto > melhorDesconto) {
-            melhorDesconto = desconto;
-            promocaoAplicada = promo;
-          }
-        }
+    if (categoria) {
+      const isNumeric = !isNaN(categoria);
+      if (isNumeric) {
+        query += ` AND EXISTS (SELECT 1 FROM produto_categorias WHERE produto_id = p.id AND categoria_id = $${paramCount})`;
+        params.push(categoria);
+      } else {
+        query += ` AND EXISTS (SELECT 1 FROM produto_categorias pc2 JOIN categorias c2 ON pc2.categoria_id = c2.id WHERE pc2.produto_id = p.id AND c2.slug = $${paramCount})`;
+        params.push(categoria);
       }
+      paramCount++;
+    }
 
-      // Se há desconto de promoção, aplicar
-      if (melhorDesconto > 0 && promocaoAplicada) {
-        const precoOriginal = parseFloat(produto.preco_original || produto.preco);
-        let novoPreco;
+    if (busca) {
+      query += ` AND (p.nome ILIKE $${paramCount} OR p.descricao ILIKE $${paramCount})`;
+      params.push(`%${busca}%`);
+      paramCount++;
+    }
 
-        if (promocaoAplicada.tipo_desconto === 'percentual') {
-          novoPreco = precoOriginal * (1 - melhorDesconto / 100);
-        } else {
-          novoPreco = precoOriginal - (promocaoAplicada.desconto_valor || 0);
-        }
+    if (precoMin) {
+      query += ` AND p.preco >= $${paramCount}`;
+      params.push(precoMin);
+      paramCount++;
+    }
 
-        // Garantir que o preço não fique negativo
-        novoPreco = Math.max(novoPreco, 0.01);
+    if (precoMax) {
+      query += ` AND p.preco <= $${paramCount}`;
+      params.push(precoMax);
+      paramCount++;
+    }
 
-        return {
-          ...produto,
-          preco_original: precoOriginal,
-          preco: novoPreco.toFixed(2),
-          desconto_percentual: Math.round(melhorDesconto),
-          promocao_aplicada: {
-            id: promocaoAplicada.id,
-            tipo: promocaoAplicada.tipo_desconto,
-            valor: melhorDesconto
-          }
-        };
+    if (promocao === 'true') {
+      query += ` AND (
+        p.desconto_percentual > 0
+        OR EXISTS (
+          SELECT 1 FROM promocoes
+          WHERE ativa = true
+          AND data_inicio <= NOW()
+          AND data_fim >= NOW()
+          AND (
+            produtos_aplicaveis IS NULL
+            OR produtos_aplicaveis = '{}'
+            OR p.id = ANY(produtos_aplicaveis)
+          )
+        )
+      )`;
+    }
+
+    const ordensPermitidas = {
+      data_criacao: 'p.data_criacao',
+      preco: 'p.preco',
+      nome: 'p.nome',
+      vendas: 'p.vendas_total',
+    };
+    const ordenacao = ordensPermitidas[ordem] || 'p.data_criacao';
+    const direcaoOrdem = direcao.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
+    query += ` GROUP BY p.id`;
+    query += ` ORDER BY ${ordenacao} ${direcaoOrdem}`;
+    query += ` LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
+    params.push(limite, offset);
+
+    const result = await pool.query(query, params);
+
+    let countQuery = `SELECT COUNT(DISTINCT p.id) FROM produtos p
+                      LEFT JOIN produto_categorias pc ON p.id = pc.produto_id
+                      LEFT JOIN categorias c ON pc.categoria_id = c.id
+                      WHERE 1=1`;
+    const countParams = [];
+    let countParamNum = 1;
+
+    if (categoria) {
+      const isNumeric = !isNaN(categoria);
+      if (isNumeric) {
+        countQuery += ` AND EXISTS (SELECT 1 FROM produto_categorias WHERE produto_id = p.id AND categoria_id = $${countParamNum})`;
+        countParams.push(categoria);
+      } else {
+        countQuery += ` AND EXISTS (SELECT 1 FROM produto_categorias pc2 JOIN categorias c2 ON pc2.categoria_id = c2.id WHERE pc2.produto_id = p.id AND c2.slug = $${countParamNum})`;
+        countParams.push(categoria);
       }
+      countParamNum++;
+    }
 
-      return produto;
+    if (busca) {
+      countQuery += ` AND (p.nome ILIKE $${countParamNum} OR p.descricao ILIKE $${countParamNum})`;
+      countParams.push(`%${busca}%`);
+      countParamNum++;
+    }
+
+    if (precoMin) {
+      countQuery += ` AND p.preco >= $${countParamNum}`;
+      countParams.push(precoMin);
+      countParamNum++;
+    }
+
+    if (precoMax) {
+      countQuery += ` AND p.preco <= $${countParamNum}`;
+      countParams.push(precoMax);
+      countParamNum++;
+    }
+
+    if (promocao === 'true') {
+      countQuery += ` AND (
+        p.desconto_percentual > 0
+        OR EXISTS (
+          SELECT 1 FROM promocoes
+          WHERE ativa = true
+          AND data_inicio <= NOW()
+          AND data_fim >= NOW()
+          AND (
+            produtos_aplicaveis IS NULL
+            OR produtos_aplicaveis = '{}'
+            OR p.id = ANY(produtos_aplicaveis)
+          )
+        )
+      )`;
+    }
+
+    const countResult = await pool.query(countQuery, countParams);
+    const produtosComPromocao = await aplicarPromocoes(result.rows);
+
+    res.json({
+      success: true,
+      count: produtosComPromocao.length,
+      total: parseInt(countResult.rows[0].count),
+      pagina: parseInt(pagina),
+      totalPaginas: Math.ceil(countResult.rows[0].count / limite),
+      data: produtosComPromocao,
     });
   } catch (error) {
-    console.error('Erro ao aplicar promoções:', error);
-    return produtos; // Retornar produtos sem promoções em caso de erro
+    console.error('Erro ao listar produtos (admin):', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao buscar produtos',
+    });
   }
 };
 
@@ -144,7 +232,20 @@ const listarProdutos = async (req, res) => {
 
     // Filtro por promoção
     if (promocao === 'true') {
-      query += ` AND p.desconto_percentual > 0`;
+      query += ` AND (
+        p.desconto_percentual > 0
+        OR EXISTS (
+          SELECT 1 FROM promocoes
+          WHERE ativa = true
+          AND data_inicio <= NOW()
+          AND data_fim >= NOW()
+          AND (
+            produtos_aplicaveis IS NULL
+            OR produtos_aplicaveis = '{}'
+            OR p.id = ANY(produtos_aplicaveis)
+          )
+        )
+      )`;
     }
 
     // Ordenação
@@ -203,7 +304,20 @@ const listarProdutos = async (req, res) => {
     }
 
     if (promocao === 'true') {
-      countQuery += ` AND p.desconto_percentual > 0`;
+      countQuery += ` AND (
+        p.desconto_percentual > 0
+        OR EXISTS (
+          SELECT 1 FROM promocoes
+          WHERE ativa = true
+          AND data_inicio <= NOW()
+          AND data_fim >= NOW()
+          AND (
+            produtos_aplicaveis IS NULL
+            OR produtos_aplicaveis = '{}'
+            OR p.id = ANY(produtos_aplicaveis)
+          )
+        )
+      )`;
     }
 
     const countResult = await pool.query(countQuery, countParams);
@@ -310,7 +424,7 @@ const listarPromocoes = async (req, res) => {
        FROM produtos p
        LEFT JOIN produto_categorias pc ON p.id = pc.produto_id
        LEFT JOIN categorias c ON pc.categoria_id = c.id
-       WHERE p.ativo = true AND p.estoque > 0 AND (
+       WHERE p.ativo = true AND p.estoque > 0 AND p.preco > 0 AND (
          p.desconto_percentual > 0 
          OR EXISTS (
            SELECT 1 FROM promocoes 
@@ -350,7 +464,7 @@ const listarPromocoes = async (req, res) => {
     let countQuery = `SELECT COUNT(DISTINCT p.id) FROM produtos p
        LEFT JOIN produto_categorias pc ON p.id = pc.produto_id
        LEFT JOIN categorias c ON pc.categoria_id = c.id
-       WHERE p.ativo = true AND p.estoque > 0 AND (
+       WHERE p.ativo = true AND p.estoque > 0 AND p.preco > 0 AND (
          p.desconto_percentual > 0 
          OR EXISTS (
            SELECT 1 FROM promocoes 
@@ -382,13 +496,15 @@ const listarPromocoes = async (req, res) => {
 
     const countResult = await pool.query(countQuery, countParams);
 
+    const produtosComPromocao = await aplicarPromocoes(result.rows);
+
     res.json({
       success: true,
-      count: result.rows.length,
+      count: produtosComPromocao.length,
       total: parseInt(countResult.rows[0].count),
       pagina: parseInt(pagina),
       totalPaginas: Math.ceil(countResult.rows[0].count / limite),
-      data: result.rows,
+      data: produtosComPromocao,
     });
   } catch (error) {
     console.error('Erro ao listar promoções:', error);
@@ -406,10 +522,15 @@ const listarDestaques = async (req, res) => {
     const { limite = 8 } = req.query;
 
     const result = await pool.query(
-      `SELECT p.*, c.nome as categoria_nome, c.slug as categoria_slug
+      `SELECT p.*, 
+              ARRAY_AGG(DISTINCT c.id) FILTER (WHERE c.id IS NOT NULL) as categoria_ids,
+              ARRAY_AGG(DISTINCT c.nome) FILTER (WHERE c.nome IS NOT NULL) as categoria_nomes,
+              ARRAY_AGG(DISTINCT c.slug) FILTER (WHERE c.slug IS NOT NULL) as categoria_slugs
        FROM produtos p
-       LEFT JOIN categorias c ON p.categoria_id = c.id
-       WHERE p.ativo = true AND p.estoque > 0
+       LEFT JOIN produto_categorias pc ON p.id = pc.produto_id
+       LEFT JOIN categorias c ON pc.categoria_id = c.id
+       WHERE p.ativo = true AND p.estoque > 0 AND p.preco > 0
+       GROUP BY p.id
        ORDER BY p.vendas_total DESC, p.data_criacao DESC
        LIMIT $1`,
       [limite]
@@ -436,7 +557,12 @@ const criarProduto = async (req, res) => {
       nome,
       descricao,
       preco,
+      preco_pix,
+      preco_debito,
+      preco_credito,
+      preco_boleto,
       preco_original,
+      parcelas_maximas,
       desconto_percentual,
       categoria_id,
       categoria_ids, // Suporta múltiplas categorias
@@ -467,6 +593,23 @@ const criarProduto = async (req, res) => {
     // Conversão de tipos com validação robusta
     preco = parseFloat(String(preco).trim());
     if (isNaN(preco)) preco = 0;
+
+    preco_pix = preco_pix !== undefined && preco_pix !== null ? parseFloat(String(preco_pix).trim()) : preco;
+    if (isNaN(preco_pix)) preco_pix = preco;
+
+    preco_debito = preco_debito !== undefined && preco_debito !== null ? parseFloat(String(preco_debito).trim()) : preco;
+    if (isNaN(preco_debito)) preco_debito = preco;
+
+    preco_credito = preco_credito !== undefined && preco_credito !== null ? parseFloat(String(preco_credito).trim()) : preco;
+    if (isNaN(preco_credito)) preco_credito = preco;
+
+    preco_boleto = preco_boleto !== undefined && preco_boleto !== null ? parseFloat(String(preco_boleto).trim()) : preco;
+    if (isNaN(preco_boleto)) preco_boleto = preco;
+
+    parcelas_maximas = parcelas_maximas !== undefined && parcelas_maximas !== null
+      ? parseInt(String(parcelas_maximas).trim(), 10)
+      : 3;
+    if (isNaN(parcelas_maximas) || parcelas_maximas <= 0) parcelas_maximas = 3;
     
     preco_original = preco_original ? parseFloat(String(preco_original).trim()) : null;
     if (preco_original && isNaN(preco_original)) preco_original = null;
@@ -489,15 +632,21 @@ const criarProduto = async (req, res) => {
     
     const result = await pool.query(
       `INSERT INTO produtos 
-       (nome, descricao, preco, preco_original, desconto_percentual, categoria_id, 
-        estoque, imagens, cores_disponiveis, tamanhos_disponiveis, ativo)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       (nome, descricao, preco, preco_pix, preco_debito, preco_credito, preco_boleto,
+        preco_original, parcelas_maximas, desconto_percentual, categoria_id, estoque,
+        imagens, cores_disponiveis, tamanhos_disponiveis, ativo)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
        RETURNING *`,
       [
         nome,
         descricao,
         preco,
+        preco_pix,
+        preco_debito,
+        preco_credito,
+        preco_boleto,
         preco_original,
+        parcelas_maximas,
         desconto_percentual,
         primeiraCategoria,
         estoque,
@@ -567,7 +716,12 @@ const atualizarProduto = async (req, res) => {
       'nome',
       'descricao',
       'preco',
+      'preco_pix',
+      'preco_debito',
+      'preco_credito',
+      'preco_boleto',
       'preco_original',
+      'parcelas_maximas',
       'desconto_percentual',
       'categoria_id',
       'estoque',
@@ -594,11 +748,13 @@ const atualizarProduto = async (req, res) => {
       }
 
       // Conversão especial para campos numéricos
-      if (['preco', 'preco_original', 'desconto_percentual', 'estoque', 'categoria_id'].includes(campo)) {
+      if (['preco', 'preco_pix', 'preco_debito', 'preco_credito', 'preco_boleto', 'preco_original', 'parcelas_maximas', 'desconto_percentual', 'estoque', 'categoria_id'].includes(campo)) {
         if (valor === '' || valor === null) {
           // Para preco_original, permitir NULL
           if (campo === 'preco_original') {
             valor = null;
+          } else if (campo === 'parcelas_maximas') {
+            valor = 3;
           } else if (campo === 'desconto_percentual' || campo === 'estoque') {
             valor = 0;
           } else {
@@ -608,11 +764,15 @@ const atualizarProduto = async (req, res) => {
         } else {
           // Converter para string antes de fazer parseFloat para evitar problemas
           const strValue = String(valor).trim();
-          let numValue = parseFloat(strValue);
+          let numValue = campo === 'parcelas_maximas'
+            ? parseInt(strValue, 10)
+            : parseFloat(strValue);
           
           if (isNaN(numValue)) {
             console.warn(`⚠️ Valor inválido para campo ${campo}: "${valor}"`);
-            if (campo === 'desconto_percentual' || campo === 'estoque') {
+            if (campo === 'parcelas_maximas') {
+              valor = 3;
+            } else if (campo === 'desconto_percentual' || campo === 'estoque') {
               valor = 0;
             } else {
               // Ignorar valores que não são números válidos
@@ -622,6 +782,8 @@ const atualizarProduto = async (req, res) => {
             // Para desconto_percentual, converter para inteiro
             if (campo === 'desconto_percentual') {
               valor = Math.round(numValue);
+            } else if (campo === 'parcelas_maximas') {
+              valor = numValue <= 0 ? 3 : numValue;
             } else {
               valor = numValue;
             }
@@ -787,6 +949,7 @@ const deletarProduto = async (req, res) => {
 
 module.exports = {
   listarProdutos,
+  listarProdutosAdmin,
   obterProduto,
   listarPromocoes,
   listarDestaques,
