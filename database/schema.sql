@@ -30,6 +30,8 @@ CREATE TABLE IF NOT EXISTS produtos (
     imagens TEXT[], -- Array de URLs das imagens
     cores_disponiveis TEXT[], -- Array de cores
     tamanhos_disponiveis TEXT[], -- Array de tamanhos (P, M, G, GG)
+    estoque_cores JSONB DEFAULT '{}'::jsonb,
+    estoque_variantes JSONB DEFAULT '{}'::jsonb,
     ativo BOOLEAN DEFAULT TRUE,
     vendas_total INTEGER DEFAULT 0,
     data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -75,7 +77,22 @@ CREATE TABLE IF NOT EXISTS pedidos (
     frete DECIMAL(10, 2) DEFAULT 0,
     total DECIMAL(10, 2) NOT NULL,
     forma_pagamento VARCHAR(50), -- cartao, pix, boleto
+    entrega_tipo VARCHAR(20) DEFAULT 'entrega',
+    retirada_codigo_hash VARCHAR(255),
+    retirada_codigo_gerado_em TIMESTAMP,
+    retirada_confirmada_em TIMESTAMP,
+    retirada_confirmada_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+    retirada_confirmado_por_nome VARCHAR(255),
+    retirada_observacao TEXT,
+    pagamento_na_retirada BOOLEAN DEFAULT FALSE,
+    retirada_prazo_vencimento DATE,
+    retirada_cancelado_automatico BOOLEAN DEFAULT FALSE,
     codigo_rastreio VARCHAR(100),
+    superfrete_pedido_id TEXT,
+    superfrete_etiqueta_id TEXT,
+    superfrete_status TEXT,
+    superfrete_etiqueta_url TEXT,
+    superfrete_raw_json JSONB,
     cupom_codigo VARCHAR(50),
     endereco_entrega_id INTEGER REFERENCES enderecos(id),
     data_pedido TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -157,6 +174,15 @@ CREATE TABLE IF NOT EXISTS comentarios (
     ativo BOOLEAN DEFAULT TRUE
 );
 
+-- Controle de votos "útil" por usuário (1 voto por comentário por usuário)
+CREATE TABLE IF NOT EXISTS comentarios_uteis (
+    id SERIAL PRIMARY KEY,
+    comentario_id INTEGER NOT NULL REFERENCES comentarios(id) ON DELETE CASCADE,
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    data_voto TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(comentario_id, usuario_id)
+);
+
 -- Tabela de Promoções
 CREATE TABLE IF NOT EXISTS promocoes (
     id SERIAL PRIMARY KEY,
@@ -171,6 +197,64 @@ CREATE TABLE IF NOT EXISTS promocoes (
     produtos_aplicaveis INTEGER[], -- Array de IDs de produtos
     data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Tabela de Notificações
+CREATE TABLE IF NOT EXISTS notificacoes (
+    id SERIAL PRIMARY KEY,
+    recipient_type VARCHAR(20) NOT NULL,
+    recipient_id INTEGER REFERENCES usuarios(id) ON DELETE CASCADE,
+    tipo_evento VARCHAR(50) NOT NULL,
+    titulo VARCHAR(120) NOT NULL,
+    mensagem TEXT NOT NULL,
+    payload JSONB,
+    lida_em TIMESTAMP,
+    criada_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabela de Notificações por Usuário (estado de globais)
+CREATE TABLE IF NOT EXISTS notificacoes_usuarios (
+    notificacao_id INTEGER REFERENCES notificacoes(id) ON DELETE CASCADE,
+    usuario_id INTEGER REFERENCES usuarios(id) ON DELETE CASCADE,
+    lida_em TIMESTAMP,
+    apagada_em TIMESTAMP,
+    PRIMARY KEY (notificacao_id, usuario_id)
+);
+
+-- Auditoria de retiradas (tentativas e eventos)
+CREATE TABLE IF NOT EXISTS retirada_auditoria (
+    id SERIAL PRIMARY KEY,
+    pedido_id INTEGER REFERENCES pedidos(id) ON DELETE CASCADE,
+    admin_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+    tipo_evento VARCHAR(50),
+    descricao TEXT,
+    ip_admin VARCHAR(45),
+    data_evento TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Configuração de locais/horarios de retirada
+CREATE TABLE IF NOT EXISTS retirada_config (
+    id SERIAL PRIMARY KEY,
+    nome_local VARCHAR(255) NOT NULL,
+    endereco VARCHAR(255) NOT NULL,
+    numero VARCHAR(20),
+    complemento VARCHAR(100),
+    bairro VARCHAR(100),
+    cidade VARCHAR(100),
+    estado VARCHAR(2),
+    cep VARCHAR(9),
+    horario_segunda_sabado VARCHAR(20),
+    horario_domingo VARCHAR(20),
+    horario_feriados VARCHAR(20),
+    prazo_dias_retirada INTEGER DEFAULT 7,
+    ativo BOOLEAN DEFAULT TRUE,
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Índices para performance
+CREATE INDEX IF NOT EXISTS idx_pedidos_entrega_tipo ON pedidos(entrega_tipo);
+CREATE INDEX IF NOT EXISTS idx_pedidos_retirada_prazo ON pedidos(retirada_prazo_vencimento);
+CREATE INDEX IF NOT EXISTS idx_retirada_auditoria_pedido ON retirada_auditoria(pedido_id);
 
 -- Tabela de Badges (Selos)
 CREATE TABLE IF NOT EXISTS badges (
@@ -244,7 +328,15 @@ CREATE INDEX idx_devolucoes_pedido ON devolucoes(pedido_id);
 CREATE INDEX idx_devolucoes_status ON devolucoes(status);
 CREATE INDEX idx_avaliacoes_produto ON avaliacoes(produto_id);
 CREATE INDEX idx_comentarios_produto ON comentarios(produto_id);
+CREATE INDEX idx_comentarios_uteis_comentario ON comentarios_uteis(comentario_id);
+CREATE INDEX idx_comentarios_uteis_usuario ON comentarios_uteis(usuario_id);
 CREATE INDEX idx_promocoes_ativa ON promocoes(ativa);
+CREATE INDEX idx_notificacoes_recipient_type ON notificacoes(recipient_type);
+CREATE INDEX idx_notificacoes_recipient_id ON notificacoes(recipient_id);
+CREATE INDEX idx_notificacoes_lida ON notificacoes(lida_em);
+CREATE INDEX idx_notificacoes_criada ON notificacoes(criada_em);
+CREATE INDEX idx_notificacoes_usuarios_usuario ON notificacoes_usuarios(usuario_id);
+CREATE INDEX idx_notificacoes_usuarios_apagada ON notificacoes_usuarios(apagada_em);
 CREATE INDEX idx_cupons_codigo ON cupons(codigo);
 CREATE INDEX idx_usuarios_email ON usuarios(email);
 CREATE INDEX idx_cupons_usuarios_cupom ON cupons_usuarios(cupom_id);

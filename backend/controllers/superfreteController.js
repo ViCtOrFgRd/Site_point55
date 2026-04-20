@@ -64,7 +64,7 @@ const calcularFrete = async (req, res) => {
         const volumes = await calcularVolumesFrete(itens);
         volumesParaFrete = formatarParaServicoFrete(volumes);
         
-        console.log('📦 Volumes calculados:', {
+        console.info('📦 Volumes calculados:', {
           quantidade_volumes: volumesParaFrete.length,
           volumes: volumesParaFrete
         });
@@ -91,12 +91,17 @@ const calcularFrete = async (req, res) => {
     });
 
     if (!result.best) {
-      return res.status(502).json({
-        success: false,
-        error: 'Nao foi possivel obter cotacao de frete',
+      const freteFallback = parseNumber(process.env.FRETE_PADRAO) ?? 15;
+      return res.json({
+        success: true,
         data: {
+          valor: freteFallback,
+          prazo: null,
+          servico: 'frete_fallback',
           cotacoes: result.quotes,
           raw: result.raw,
+          fallback_aplicado: true,
+          motivo_fallback: 'sem_cotacao_valida',
         },
       });
     }
@@ -116,19 +121,30 @@ const calcularFrete = async (req, res) => {
     console.error('   Mensagem:', error.message);
     console.error('   Stack:', error.stack);
     console.error('   Response Data:', error?.response?.data);
-    
-    return res.status(500).json({
-      success: false,
-      error: 'Erro ao calcular frete no SuperFrete',
+
+    const freteFallback = parseNumber(process.env.FRETE_PADRAO) ?? 15;
+    return res.json({
+      success: true,
+      data: {
+        valor: freteFallback,
+        prazo: null,
+        servico: 'frete_fallback',
+        cotacoes: [],
+        raw: null,
+        fallback_aplicado: true,
+        motivo_fallback: 'erro_superfrete',
+      },
       debug: {
         message: error.message,
-        type: error.constructor.name
-      }
+        type: error.constructor.name,
+        response: error.superfreteResponse || error?.response?.data || null,
+        hint: error.superfreteHint || null,
+      },
     });
   }
 };
 
-// GET /api/superfrete/pacotes - Informacoes dos pacotes
+// GET /api/superfrete/pacotes - Informações dos pacotes
 const obterPacotes = async (req, res) => {
   try {
     const result = await obterInformacoesPacotesSuperfrete();
@@ -137,11 +153,11 @@ const obterPacotes = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    console.error('Erro ao obter informacoes de pacotes:', error?.response?.data || error.message || error);
+    console.error('Erro ao obter informações de pacotes:', error?.response?.data || error.message || error);
     const details = error?.response?.data || null;
     return res.status(500).json({
       success: false,
-      error: 'Erro ao obter informacoes de pacotes no SuperFrete',
+      error: 'Erro ao obter informações de pacotes no SuperFrete',
       details: process.env.NODE_ENV === 'development' ? details : undefined,
     });
   }

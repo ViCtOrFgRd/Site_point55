@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { promocaoService, productService } from '@/services/api';
 import Link from 'next/link';
 import { FiArrowLeft, FiPlus, FiEdit, FiTrash2, FiPercent, FiCalendar, FiToggleLeft, FiToggleRight, FiX } from 'react-icons/fi';
+import { confirmAction } from '@/utils/alerts';
 import styles from './promocoes.module.scss';
 
 interface Promocao {
@@ -54,6 +57,8 @@ export default function AdminPromocoesPage() {
     ativa: true,
   });
 
+  const displayZeroAsEmpty = (value: number) => (value === 0 ? '' : value);
+
   useEffect(() => {
     if (!authLoading && (!user || !user.is_admin)) {
       router.push('/perfil');
@@ -72,7 +77,7 @@ export default function AdminPromocoesPage() {
     try {
       const response = await promocaoService.getAll();
       if (response.success) {
-        setPromocoes(response.data || []);
+        setPromocoes(Array.isArray(response.data) ? response.data : []);
       }
     } catch (error) {
       console.error('Erro ao carregar promoções:', error);
@@ -86,7 +91,7 @@ export default function AdminPromocoesPage() {
     try {
       const response = await productService.getAllAdmin({ limite: 1000 });
       if (response.success) {
-        setProdutos(response.data || []);
+        setProdutos(Array.isArray(response.data) ? response.data : []);
       }
     } catch (error) {
       console.error('Erro ao carregar produtos:', error);
@@ -113,7 +118,7 @@ export default function AdminPromocoesPage() {
 
     const dadosPromocao = {
       ...formData,
-      produtos_aplicaveis: selectedProdutos.length > 0 ? selectedProdutos : undefined,
+      produtos_aplicaveis: selectedProdutos,
     };
     
     try {
@@ -155,7 +160,12 @@ export default function AdminPromocoesPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir esta promoção?')) {
+    const confirmed = await confirmAction(
+      'Excluir promoção',
+      'Tem certeza que deseja excluir esta promoção?',
+      'Excluir'
+    );
+    if (!confirmed) {
       return;
     }
     
@@ -395,7 +405,9 @@ export default function AdminPromocoesPage() {
                       step="0.01"
                       min="0"
                       max={formData.tipo_desconto === 'percentual' ? 100 : undefined}
-                      value={formData.tipo_desconto === 'percentual' ? formData.desconto_percentual : formData.desconto_valor}
+                      value={displayZeroAsEmpty(
+                        formData.tipo_desconto === 'percentual' ? formData.desconto_percentual : formData.desconto_valor
+                      )}
                       onChange={(e) => setFormData({
                         ...formData,
                         [formData.tipo_desconto === 'percentual' ? 'desconto_percentual' : 'desconto_valor']: Number(e.target.value)

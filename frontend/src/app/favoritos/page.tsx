@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -199,13 +201,15 @@ export default function FavoritosPage() {
 
                   <Link href={`/produto/${produto.slug}`} className={styles.imageLink}>
                     <div className={styles.imageWrapper}>
-                      <Image
-                        src={produto.imagem_principal || '/images/placeholder.jpg'}
-                        alt={produto.nome}
-                        fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        className={styles.image}
-                      />
+                      {produto.imagem_principal ? (
+                        <Image
+                          src={produto.imagem_principal}
+                          alt={produto.nome}
+                          fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          className={styles.image}
+                        />
+                      ) : null}
                     </div>
                   </Link>
 

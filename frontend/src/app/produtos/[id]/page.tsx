@@ -1,6 +1,8 @@
+/* eslint-disable @next/next/no-img-element, @typescript-eslint/no-unused-vars, react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, CSSProperties } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -30,11 +32,19 @@ export default function ProdutoPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([]);
   const [comentarios, setComentarios] = useState<Comentario[]>([]);
+  const [totalAvaliacoes, setTotalAvaliacoes] = useState(0);
+  const [totalComentarios, setTotalComentarios] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [isZoomActive, setIsZoomActive] = useState(false);
+  const [zoomOrigin, setZoomOrigin] = useState('50% 50%');
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [quantidade, setQuantidade] = useState(1);
+
+  const normalizeSize = (value: string) => value.trim().toUpperCase();
+  const normalizeColor = (value: string) => value.replace(/@\s*\d{1,3}\s*%?$/i, '').trim().toUpperCase();
+  const normalizeVariantKey = (size: string, color: string) => `${normalizeSize(size)}|${normalizeColor(color)}`;
 
   // Estados para adicionar avaliação/comentário
   const [novaAvaliacao, setNovaAvaliacao] = useState(0);
@@ -63,7 +73,7 @@ export default function ProdutoPage() {
 
       const response = await productService.getById(productId);
       if (response.success && response.data) {
-        setProduct(response.data);
+        setProduct(response.data as any);
       }
     } catch (error) {
       console.error('Erro ao carregar produto:', error);
@@ -80,8 +90,10 @@ export default function ProdutoPage() {
       }
 
       const response = await reviewService.getByProduct(productId);
-      if (response.success && response.data) {
-        setAvaliacoes(response.data);
+      if (response.success) {
+        const listaAvaliacoes = Array.isArray(response.data) ? response.data : [];
+        setAvaliacoes(listaAvaliacoes);
+        setTotalAvaliacoes(response.total ?? listaAvaliacoes.length);
       }
     } catch (error) {
       console.error('Erro ao carregar avaliações:', error);
@@ -95,8 +107,10 @@ export default function ProdutoPage() {
       }
 
       const response = await commentService.getByProduct(productId);
-      if (response.success && response.data) {
-        setComentarios(response.data);
+      if (response.success) {
+        const listaComentarios = Array.isArray(response.data) ? response.data : [];
+        setComentarios(listaComentarios);
+        setTotalComentarios(response.total ?? listaComentarios.length);
       }
     } catch (error) {
       console.error('Erro ao carregar comentários:', error);
@@ -197,6 +211,11 @@ export default function ProdutoPage() {
       return false;
     }
 
+    if (maxQuantidadeDisponivel <= 0) {
+      toast.warning('Esta variação está sem estoque');
+      return false;
+    }
+
     addItem(product, quantidade, selectedSize, selectedColor);
     toast.success('Produto adicionado ao carrinho!');
     return true;
@@ -208,6 +227,30 @@ export default function ProdutoPage() {
       router.push('/carrinho');
     }
   };
+
+  useEffect(() => {
+    if (!product) {
+      return;
+    }
+
+    const estoqueVariantes = product.estoque_variantes || {};
+    const usaEstoquePorVariacao = Object.keys(estoqueVariantes).length > 0;
+
+    let maxQuantidade = Number(product.estoque || 0);
+
+    if (usaEstoquePorVariacao && selectedSize && selectedColor) {
+      maxQuantidade = Number(estoqueVariantes[normalizeVariantKey(selectedSize, selectedColor)] || 0);
+    } else if (product.estoque_tamanhos && Object.keys(product.estoque_tamanhos).length > 0 && selectedSize) {
+      maxQuantidade = Number(product.estoque_tamanhos[normalizeSize(selectedSize)] || 0);
+    }
+
+    const estoqueAtual = Math.max(0, maxQuantidade);
+    const quantidadeMaxima = Math.max(1, estoqueAtual);
+
+    if (quantidade > quantidadeMaxima) {
+      setQuantidade(quantidadeMaxima);
+    }
+  }, [product, selectedSize, selectedColor, quantidade]);
 
   if (loading || !product) {
     return (
@@ -241,6 +284,93 @@ export default function ProdutoPage() {
   const precoDebito = product.preco_debito ? toNumber(product.preco_debito) : preco;
   const precoBoleto = product.preco_boleto ? toNumber(product.preco_boleto) : preco;
 
+  const estoqueVariantes = product.estoque_variantes || {};
+  const usaEstoquePorVariacao = Object.keys(estoqueVariantes).length > 0;
+
+  const estoquePorTamanhoParaSelecao = (product.tamanhos_disponiveis || []).reduce((acc, size) => {
+    const sizeKey = normalizeSize(size);
+
+    if (usaEstoquePorVariacao) {
+      if (selectedColor) {
+        const variantKey = normalizeVariantKey(sizeKey, selectedColor);
+        acc[sizeKey] = Number(estoqueVariantes[variantKey] || 0);
+      } else {
+        const totalSize = (product.cores_disponiveis || []).reduce((sum, color) => {
+          const variantKey = normalizeVariantKey(sizeKey, color);
+          return sum + Number(estoqueVariantes[variantKey] || 0);
+        }, 0);
+        acc[sizeKey] = totalSize;
+      }
+    } else {
+      acc[sizeKey] = Number(product.estoque_tamanhos?.[sizeKey] || 0);
+    }
+
+    return acc;
+  }, {} as Record<string, number>);
+
+  const disabledColors = (product.cores_disponiveis || []).filter((color) => {
+    if (!usaEstoquePorVariacao) return false;
+
+    const colorKey = normalizeColor(color);
+    if (selectedSize) {
+      const variantKey = normalizeVariantKey(selectedSize, colorKey);
+      return Number(estoqueVariantes[variantKey] || 0) <= 0;
+    }
+
+    const totalColor = (product.tamanhos_disponiveis || []).reduce((sum, size) => {
+      const variantKey = normalizeVariantKey(size, colorKey);
+      return sum + Number(estoqueVariantes[variantKey] || 0);
+    }, 0);
+
+    return totalColor <= 0;
+  });
+
+  const maxQuantidadeDisponivel = (() => {
+    if (usaEstoquePorVariacao && selectedSize && selectedColor) {
+      return Number(estoqueVariantes[normalizeVariantKey(selectedSize, selectedColor)] || 0);
+    }
+
+    if (product.estoque_tamanhos && Object.keys(product.estoque_tamanhos).length > 0 && selectedSize) {
+      return Number(product.estoque_tamanhos[normalizeSize(selectedSize)] || 0);
+    }
+
+    return Number(product.estoque || 0);
+  })();
+
+  const estoqueExibicao = Math.max(0, maxQuantidadeDisponivel);
+  const imagemPrincipal = product.imagens[selectedImage];
+
+  const handleImageMouseEnter = () => {
+    if (!imagemPrincipal) {
+      return;
+    }
+
+    setIsZoomActive(true);
+  };
+
+  const handleImageMouseLeave = () => {
+    setIsZoomActive(false);
+    setZoomOrigin('50% 50%');
+  };
+
+  const handleImageMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!imagemPrincipal) {
+      return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
+    const posX = Math.min(100, Math.max(0, x));
+    const posY = Math.min(100, Math.max(0, y));
+
+    setZoomOrigin(`${posX}% ${posY}%`);
+  };
+
+  const mainImageStyle: CSSProperties = {
+    transformOrigin: zoomOrigin
+  };
+
   return (
     <div className={styles.page}>
       <Breadcrumbs 
@@ -254,11 +384,17 @@ export default function ProdutoPage() {
         <div className={styles.productContainer}>
           {/* Galeria de Imagens */}
           <div className={styles.gallery}>
-            <div className={styles.mainImage}>
-              {product.imagens[selectedImage] ? (
+            <div
+              className={`${styles.mainImage} ${isZoomActive ? styles.zoomed : ''}`}
+              onMouseEnter={handleImageMouseEnter}
+              onMouseLeave={handleImageMouseLeave}
+              onMouseMove={handleImageMouseMove}
+            >
+              {imagemPrincipal ? (
                 <img 
-                  src={product.imagens[selectedImage]} 
+                  src={imagemPrincipal}
                   alt={product.nome}
+                  style={mainImageStyle}
                 />
               ) : (
                 <div className={styles.noImage}>Sem imagem</div>
@@ -311,7 +447,7 @@ export default function ProdutoPage() {
 
             <div className={styles.rating}>
               <RatingStars rating={product.media_avaliacoes || 0} size="medium" showNumber />
-              <span className={styles.reviewCount}>({avaliacoes.length} avaliações)</span>
+              <span className={styles.reviewCount}>({totalAvaliacoes} avaliações)</span>
             </div>
 
             <div className={styles.pricing}>
@@ -362,6 +498,7 @@ export default function ProdutoPage() {
                 colors={product.cores_disponiveis}
                 selectedColor={selectedColor}
                 onSelectColor={setSelectedColor}
+                disabledColors={disabledColors}
               />
             )}
 
@@ -371,6 +508,8 @@ export default function ProdutoPage() {
                 sizes={product.tamanhos_disponiveis}
                 selectedSize={selectedSize}
                 onSelectSize={setSelectedSize}
+                stockBySize={estoquePorTamanhoParaSelecao}
+                soldBySize={product.vendidos_tamanhos || {}}
               />
             )}
 
@@ -380,10 +519,10 @@ export default function ProdutoPage() {
               <div className={styles.quantityControls}>
                 <button onClick={() => setQuantidade(Math.max(1, quantidade - 1))}>-</button>
                 <span>{quantidade}</span>
-                <button onClick={() => setQuantidade(Math.min(product.estoque, quantidade + 1))}>+</button>
+                <button onClick={() => setQuantidade(Math.min(estoqueExibicao, quantidade + 1))}>+</button>
               </div>
               <span className={styles.stock}>
-                {product.estoque} disponíveis
+                {estoqueExibicao} disponíveis
               </span>
             </div>
 
@@ -427,7 +566,7 @@ export default function ProdutoPage() {
             <div className={styles.averageRating}>
               <span className={styles.bigRating}>{product.media_avaliacoes?.toFixed(1) || '0.0'}</span>
               <RatingStars rating={product.media_avaliacoes || 0} size="large" />
-              <p>{avaliacoes.length} avaliações</p>
+              <p>{totalAvaliacoes} avaliações</p>
             </div>
           </div>
 
@@ -478,7 +617,7 @@ export default function ProdutoPage() {
           )}
 
           <div className={styles.commentsList}>
-            <h3>Comentários ({comentarios.length})</h3>
+            <h3>Comentários ({totalComentarios})</h3>
             {comentarios.map(comentario => (
               <div key={comentario.id} className={styles.comment}>
                 <div className={styles.commentHeader}>

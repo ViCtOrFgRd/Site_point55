@@ -1,6 +1,10 @@
+require('dotenv').config();
 const axios = require('axios');
 
-const BASE_URL = 'http://localhost:5000/api';
+const BASE_URL = process.env.API_URL || 'http://localhost:5000/api';
+const TEST_USER_EMAIL = process.env.TEST_USER_EMAIL || 'user@example.com';
+const TEST_USER_PASSWORD = process.env.TEST_USER_PASSWORD || 'password123';
+const TEST_USER_EMAIL_MISSING = process.env.TEST_USER_EMAIL_MISSING || null;
 
 // Cores para console
 const colors = {
@@ -54,18 +58,20 @@ async function executarTestes() {
   console.log(colors.yellow + '📧 Testes de Recuperação de Senha' + colors.reset);
   console.log('-'.repeat(60) + '\n');
 
+  const missingEmail = TEST_USER_EMAIL_MISSING || `missing_${Date.now()}@example.com`;
+
   await testar(
     '1.1 - Solicitar recuperação para email existente',
     'POST',
     '/auth/recuperar-senha',
-    { email: 'teste@gmail.com' }
+    { email: TEST_USER_EMAIL }
   );
 
   await testar(
     '1.2 - Solicitar recuperação para email inexistente',
     'POST',
     '/auth/recuperar-senha',
-    { email: 'naoexiste@gmail.com' }
+    { email: missingEmail }
   );
 
   await testar(
@@ -84,8 +90,8 @@ async function executarTestes() {
     'POST',
     '/auth/login',
     {
-      email: 'teste@gmail.com',
-      senha: '123456'
+      email: TEST_USER_EMAIL,
+      senha: TEST_USER_PASSWORD,
     }
   );
 
@@ -102,8 +108,8 @@ async function executarTestes() {
       '/auth/registro',
       {
         nome: 'Usuário Teste',
-        email: 'teste@gmail.com',
-        senha: '123456'
+        email: TEST_USER_EMAIL,
+        senha: TEST_USER_PASSWORD,
       }
     );
 
@@ -119,8 +125,8 @@ async function executarTestes() {
         'POST',
         '/auth/login',
         {
-          email: 'teste@gmail.com',
-          senha: '123456'
+          email: TEST_USER_EMAIL,
+          senha: TEST_USER_PASSWORD,
         }
       );
 

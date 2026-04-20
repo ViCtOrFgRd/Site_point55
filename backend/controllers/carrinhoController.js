@@ -1,5 +1,15 @@
 const { pool } = require('../config/database');
 const { aplicarPromocoes } = require('../utils/promocoes');
+const {
+  normalizeSizeKey,
+  normalizeColorKey,
+  hasVariantStockControl,
+  hasSizeStockControl,
+  hasColorStockControl,
+  getVariantStock,
+  getSizeStock,
+  getColorStock,
+} = require('../services/inventoryService');
 
 // GET /api/carrinho - Obter carrinho do usuário
 const obterCarrinho = async (req, res) => {
@@ -10,6 +20,11 @@ const obterCarrinho = async (req, res) => {
       `SELECT c.*, 
               p.nome as produto_nome,
               p.preco as produto_preco,
+              p.preco_pix as produto_preco_pix,
+              p.preco_credito as produto_preco_credito,
+              p.preco_debito as produto_preco_debito,
+              p.preco_boleto as produto_preco_boleto,
+              p.parcelas_maximas as produto_parcelas_maximas,
               p.preco_original as produto_preco_original,
               p.desconto_percentual as produto_desconto,
               p.imagens as produto_imagens,
@@ -55,6 +70,11 @@ const obterCarrinho = async (req, res) => {
           id: item.produto_id,
           nome: item.produto_nome,
           preco: produtoComPromocao?.preco ?? item.produto_preco,
+          preco_pix: item.produto_preco_pix,
+          preco_credito: item.produto_preco_credito,
+          preco_debito: item.produto_preco_debito,
+          preco_boleto: item.produto_preco_boleto,
+          parcelas_maximas: item.produto_parcelas_maximas,
           preco_original: produtoComPromocao?.preco_original ?? item.produto_preco_original,
           desconto_percentual: produtoComPromocao?.desconto_percentual ?? item.produto_desconto,
           promocao_aplicada: produtoComPromocao?.promocao_aplicada,
@@ -99,7 +119,7 @@ const adicionarAoCarrinho = async (req, res) => {
 
     // Verificar se produto existe e está ativo
     const produtoResult = await pool.query(
-      'SELECT id, estoque, ativo FROM produtos WHERE id = $1',
+      'SELECT id, estoque, ativo, tamanhos_disponiveis, cores_disponiveis, estoque_tamanhos, estoque_cores, estoque_variantes FROM produtos WHERE id = $1',
       [produto_id]
     );
 
@@ -111,9 +131,51 @@ const adicionarAoCarrinho = async (req, res) => {
     }
 
     const produto = produtoResult.rows[0];
+    const sizeKey = normalizeSizeKey(tamanho);
+    const colorKey = normalizeColorKey(cor);
+    const requerTamanho = Array.isArray(produto.tamanhos_disponiveis) && produto.tamanhos_disponiveis.length > 0;
+    const requerCor = Array.isArray(produto.cores_disponiveis) && produto.cores_disponiveis.length > 0;
+
+    if (requerTamanho && !sizeKey) {
+      return res.status(400).json({
+        success: false,
+        error: 'Selecione um tamanho para este produto',
+      });
+    }
+
+    if (requerCor && !colorKey) {
+      return res.status(400).json({
+        success: false,
+        error: 'Selecione uma cor para este produto',
+      });
+    }
 
     // Verificar estoque
-    if (produto.estoque < quantidade) {
+    if (hasVariantStockControl(produto) && sizeKey && colorKey) {
+      const disponivelPorVariante = getVariantStock(produto, sizeKey, colorKey);
+      if (disponivelPorVariante !== null && disponivelPorVariante < quantidade) {
+        return res.status(400).json({
+          success: false,
+          error: `Estoque insuficiente para ${sizeKey}/${colorKey}. Disponível: ${disponivelPorVariante}`,
+        });
+      }
+    } else if (hasSizeStockControl(produto) && sizeKey) {
+      const disponivelPorTamanho = getSizeStock(produto, sizeKey);
+      if (disponivelPorTamanho !== null && disponivelPorTamanho < quantidade) {
+        return res.status(400).json({
+          success: false,
+          error: `Estoque insuficiente para tamanho ${sizeKey}. Disponível: ${disponivelPorTamanho}`,
+        });
+      }
+    } else if (hasColorStockControl(produto) && colorKey) {
+      const disponivelPorCor = getColorStock(produto, colorKey);
+      if (disponivelPorCor !== null && disponivelPorCor < quantidade) {
+        return res.status(400).json({
+          success: false,
+          error: `Estoque insuficiente para cor ${colorKey}. Disponível: ${disponivelPorCor}`,
+        });
+      }
+    } else if (produto.estoque < quantidade) {
       return res.status(400).json({
         success: false,
         error: `Estoque insuficiente. Disponível: ${produto.estoque}`,
@@ -123,7 +185,9 @@ const adicionarAoCarrinho = async (req, res) => {
     // Verificar se já existe no carrinho
     const itemExistente = await pool.query(
       `SELECT id, quantidade FROM carrinho 
-       WHERE usuario_id = $1 AND produto_id = $2 AND tamanho = $3 AND cor = $4`,
+       WHERE usuario_id = $1 AND produto_id = $2
+         AND tamanho IS NOT DISTINCT FROM $3
+         AND cor IS NOT DISTINCT FROM $4`,
       [userId, produto_id, tamanho, cor]
     );
 
@@ -133,7 +197,31 @@ const adicionarAoCarrinho = async (req, res) => {
       // Atualizar quantidade
       const novaQuantidade = itemExistente.rows[0].quantidade + quantidade;
 
-      if (produto.estoque < novaQuantidade) {
+      if (hasVariantStockControl(produto) && sizeKey && colorKey) {
+        const disponivelPorVariante = getVariantStock(produto, sizeKey, colorKey);
+        if (disponivelPorVariante !== null && disponivelPorVariante < novaQuantidade) {
+          return res.status(400).json({
+            success: false,
+            error: `Estoque insuficiente para ${sizeKey}/${colorKey}. Disponível: ${disponivelPorVariante}`,
+          });
+        }
+      } else if (hasSizeStockControl(produto) && sizeKey) {
+        const disponivelPorTamanho = getSizeStock(produto, sizeKey);
+        if (disponivelPorTamanho !== null && disponivelPorTamanho < novaQuantidade) {
+          return res.status(400).json({
+            success: false,
+            error: `Estoque insuficiente para tamanho ${sizeKey}. Disponível: ${disponivelPorTamanho}`,
+          });
+        }
+      } else if (hasColorStockControl(produto) && colorKey) {
+        const disponivelPorCor = getColorStock(produto, colorKey);
+        if (disponivelPorCor !== null && disponivelPorCor < novaQuantidade) {
+          return res.status(400).json({
+            success: false,
+            error: `Estoque insuficiente para cor ${colorKey}. Disponível: ${disponivelPorCor}`,
+          });
+        }
+      } else if (produto.estoque < novaQuantidade) {
         return res.status(400).json({
           success: false,
           error: `Estoque insuficiente. Disponível: ${produto.estoque}`,
@@ -205,14 +293,47 @@ const atualizarItem = async (req, res) => {
 
     // Verificar estoque
     const produtoResult = await pool.query(
-      'SELECT estoque FROM produtos WHERE id = $1',
+      'SELECT estoque, estoque_tamanhos, estoque_cores, estoque_variantes, tamanhos_disponiveis, cores_disponiveis FROM produtos WHERE id = $1',
       [itemResult.rows[0].produto_id]
     );
 
-    if (produtoResult.rows[0].estoque < quantidade) {
+    const itemCarrinhoResult = await pool.query(
+      'SELECT tamanho, cor FROM carrinho WHERE id = $1 AND usuario_id = $2',
+      [parseInt(id), userId]
+    );
+
+    const produto = produtoResult.rows[0];
+    const sizeKey = normalizeSizeKey(itemCarrinhoResult.rows[0]?.tamanho);
+    const colorKey = normalizeColorKey(itemCarrinhoResult.rows[0]?.cor);
+
+    if (hasVariantStockControl(produto) && sizeKey && colorKey) {
+      const disponivelPorVariante = getVariantStock(produto, sizeKey, colorKey);
+      if (disponivelPorVariante !== null && disponivelPorVariante < quantidade) {
+        return res.status(400).json({
+          success: false,
+          error: `Estoque insuficiente para ${sizeKey}/${colorKey}. Disponível: ${disponivelPorVariante}`,
+        });
+      }
+    } else if (hasSizeStockControl(produto) && sizeKey) {
+      const disponivelPorTamanho = getSizeStock(produto, sizeKey);
+      if (disponivelPorTamanho !== null && disponivelPorTamanho < quantidade) {
+        return res.status(400).json({
+          success: false,
+          error: `Estoque insuficiente para tamanho ${sizeKey}. Disponível: ${disponivelPorTamanho}`,
+        });
+      }
+    } else if (hasColorStockControl(produto) && colorKey) {
+      const disponivelPorCor = getColorStock(produto, colorKey);
+      if (disponivelPorCor !== null && disponivelPorCor < quantidade) {
+        return res.status(400).json({
+          success: false,
+          error: `Estoque insuficiente para cor ${colorKey}. Disponível: ${disponivelPorCor}`,
+        });
+      }
+    } else if (produto.estoque < quantidade) {
       return res.status(400).json({
         success: false,
-        error: `Estoque insuficiente. Disponível: ${produtoResult.rows[0].estoque}`,
+        error: `Estoque insuficiente. Disponível: ${produto.estoque}`,
       });
     }
 
@@ -316,13 +437,25 @@ const sincronizarCarrinho = async (req, res) => {
 
       // Verificar produto e estoque
       const produtoResult = await pool.query(
-        'SELECT estoque, ativo FROM produtos WHERE id = $1',
+        'SELECT estoque, ativo, tamanhos_disponiveis, cores_disponiveis, estoque_tamanhos, estoque_cores, estoque_variantes FROM produtos WHERE id = $1',
         [produto_id]
       );
 
       if (produtoResult.rows.length > 0 && produtoResult.rows[0].ativo) {
-        const estoque = produtoResult.rows[0].estoque;
-        const quantidadeFinal = Math.min(quantidade, estoque);
+        const produto = produtoResult.rows[0];
+        const sizeKey = normalizeSizeKey(tamanho);
+        const colorKey = normalizeColorKey(cor);
+
+        let estoqueDisponivel = produto.estoque;
+        if (hasVariantStockControl(produto) && sizeKey && colorKey) {
+          estoqueDisponivel = getVariantStock(produto, sizeKey, colorKey) ?? 0;
+        } else if (hasSizeStockControl(produto) && sizeKey) {
+          estoqueDisponivel = getSizeStock(produto, sizeKey) ?? 0;
+        } else if (hasColorStockControl(produto) && colorKey) {
+          estoqueDisponivel = getColorStock(produto, colorKey) ?? 0;
+        }
+
+        const quantidadeFinal = Math.min(quantidade, estoqueDisponivel);
 
         if (quantidadeFinal > 0) {
           await pool.query(

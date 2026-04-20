@@ -1,5 +1,14 @@
 const { pool } = require('../config/database');
 const { aplicarPromocoes } = require('../utils/promocoes');
+const { notifyAdmins } = require('../services/notificationService');
+const {
+  normalizeSizeKey,
+  normalizeColorKey,
+  normalizeVariantKey,
+  parseSizeMap,
+  parseColorMap,
+  parseVariantStockMap,
+} = require('../services/inventoryService');
 
 // GET /api/produtos/admin - Listar produtos (admin, sem filtros de visibilidade)
 const listarProdutosAdmin = async (req, res) => {
@@ -347,6 +356,13 @@ const obterProduto = async (req, res) => {
   try {
     const { id } = req.params;
 
+    if (!/^\d+$/.test(String(id))) {
+      return res.status(400).json({
+        success: false,
+        error: 'ID do produto invalido',
+      });
+    }
+
     const result = await pool.query(
       `SELECT p.*,
               ARRAY_AGG(DISTINCT c.id) FILTER (WHERE c.id IS NOT NULL) as categoria_ids,
@@ -570,6 +586,10 @@ const criarProduto = async (req, res) => {
       imagens,
       cores_disponiveis,
       tamanhos_disponiveis,
+      estoque_variantes,
+      estoque_cores,
+      estoque_tamanhos,
+      tipo_produto_id,
       ativo = true,
     } = req.body;
 
@@ -627,6 +647,77 @@ const criarProduto = async (req, res) => {
     cores_disponiveis = Array.isArray(cores_disponiveis) ? cores_disponiveis : [];
     tamanhos_disponiveis = Array.isArray(tamanhos_disponiveis) ? tamanhos_disponiveis : [];
 
+    const tamanhosNormalizados = tamanhos_disponiveis
+      .map((tamanho) => normalizeSizeKey(tamanho))
+      .filter(Boolean);
+    const coresNormalizadas = cores_disponiveis
+      .map((cor) => normalizeColorKey(cor))
+      .filter(Boolean);
+
+    const estoqueMapBruto = parseSizeMap(estoque_tamanhos);
+    const estoqueMapFiltrado = Object.entries(estoqueMapBruto).reduce((acc, [size, qty]) => {
+      if (tamanhosNormalizados.length === 0 || tamanhosNormalizados.includes(size)) {
+        acc[size] = qty;
+      }
+      return acc;
+    }, {});
+
+    const estoqueCoresMapBruto = parseColorMap(estoque_cores);
+    const estoqueCoresMapFiltrado = Object.entries(estoqueCoresMapBruto).reduce((acc, [color, qty]) => {
+      if (coresNormalizadas.length === 0 || coresNormalizadas.includes(color)) {
+        acc[color] = qty;
+      }
+      return acc;
+    }, {});
+
+    const estoqueVariantesMapBruto = parseVariantStockMap(estoque_variantes);
+    const estoqueVariantesFiltrado = Object.entries(estoqueVariantesMapBruto).reduce((acc, [key, qty]) => {
+      const [sizeKey = '', colorKey = ''] = String(key).split('|');
+      const sizeValida = tamanhosNormalizados.length === 0 || tamanhosNormalizados.includes(sizeKey);
+      const corValida = coresNormalizadas.length === 0 || coresNormalizadas.includes(colorKey);
+      if (sizeValida && corValida) {
+        acc[normalizeVariantKey(sizeKey, colorKey)] = qty;
+      }
+      return acc;
+    }, {});
+
+    let estoqueTamanhosSincronizado = estoqueMapFiltrado;
+    let estoqueCoresSincronizado = estoqueCoresMapFiltrado;
+    let estoqueVariantesSincronizado = estoqueVariantesFiltrado;
+
+    if (tamanhosNormalizados.length > 0 && coresNormalizadas.length > 0) {
+      estoqueTamanhosSincronizado = {};
+      estoqueCoresSincronizado = {};
+      estoqueVariantesSincronizado = tamanhosNormalizados.reduce((acc, sizeKey) => {
+        coresNormalizadas.forEach((colorKey) => {
+          const variantKey = normalizeVariantKey(sizeKey, colorKey);
+          acc[variantKey] = Number(estoqueVariantesFiltrado[variantKey] || 0);
+        });
+        return acc;
+      }, {});
+      estoque = Object.values(estoqueVariantesSincronizado).reduce((acc, qty) => acc + qty, 0);
+    } else if (tamanhosNormalizados.length > 0) {
+      estoqueTamanhosSincronizado = tamanhosNormalizados.reduce((acc, sizeKey) => {
+        acc[sizeKey] = Number(estoqueMapFiltrado[sizeKey] || 0);
+        return acc;
+      }, {});
+      estoqueCoresSincronizado = {};
+      estoqueVariantesSincronizado = {};
+      estoque = Object.values(estoqueTamanhosSincronizado).reduce((acc, qty) => acc + qty, 0);
+    } else if (coresNormalizadas.length > 0) {
+      estoqueCoresSincronizado = coresNormalizadas.reduce((acc, colorKey) => {
+        acc[colorKey] = Number(estoqueCoresMapFiltrado[colorKey] || 0);
+        return acc;
+      }, {});
+      estoqueTamanhosSincronizado = {};
+      estoqueVariantesSincronizado = {};
+      estoque = Object.values(estoqueCoresSincronizado).reduce((acc, qty) => acc + qty, 0);
+    }
+
+    // Validar e converter tipo_produto_id
+    tipo_produto_id = tipo_produto_id ? parseInt(String(tipo_produto_id).trim()) : null;
+    if (tipo_produto_id !== null && isNaN(tipo_produto_id)) tipo_produto_id = null;
+
     // Criar produto mantendo categoria_id para compatibilidade
     const primeiraCategoria = parseInt(categoriasParaAdicionar[0]);
     
@@ -634,8 +725,8 @@ const criarProduto = async (req, res) => {
       `INSERT INTO produtos 
        (nome, descricao, preco, preco_pix, preco_debito, preco_credito, preco_boleto,
         preco_original, parcelas_maximas, desconto_percentual, categoria_id, estoque,
-        imagens, cores_disponiveis, tamanhos_disponiveis, ativo)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        imagens, cores_disponiveis, tamanhos_disponiveis, estoque_cores, estoque_tamanhos, estoque_variantes, vendidos_tamanhos, tipo_produto_id, ativo)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
        RETURNING *`,
       [
         nome,
@@ -653,6 +744,11 @@ const criarProduto = async (req, res) => {
         imagens,
         cores_disponiveis,
         tamanhos_disponiveis,
+        JSON.stringify(estoqueCoresSincronizado),
+        JSON.stringify(estoqueTamanhosSincronizado),
+        JSON.stringify(estoqueVariantesSincronizado),
+        JSON.stringify({}),
+        tipo_produto_id,
         ativo,
       ]
     );
@@ -728,6 +824,11 @@ const atualizarProduto = async (req, res) => {
       'imagens',
       'cores_disponiveis',
       'tamanhos_disponiveis',
+      'estoque_cores',
+      'estoque_tamanhos',
+      'estoque_variantes',
+      'vendidos_tamanhos',
+      'tipo_produto_id',
       'ativo',
     ];
 
@@ -748,10 +849,10 @@ const atualizarProduto = async (req, res) => {
       }
 
       // Conversão especial para campos numéricos
-      if (['preco', 'preco_pix', 'preco_debito', 'preco_credito', 'preco_boleto', 'preco_original', 'parcelas_maximas', 'desconto_percentual', 'estoque', 'categoria_id'].includes(campo)) {
+      if (['preco', 'preco_pix', 'preco_debito', 'preco_credito', 'preco_boleto', 'preco_original', 'parcelas_maximas', 'desconto_percentual', 'estoque', 'categoria_id', 'tipo_produto_id'].includes(campo)) {
         if (valor === '' || valor === null) {
-          // Para preco_original, permitir NULL
-          if (campo === 'preco_original') {
+          // Para preco_original e tipo_produto_id, permitir NULL
+          if (campo === 'preco_original' || campo === 'tipo_produto_id') {
             valor = null;
           } else if (campo === 'parcelas_maximas') {
             valor = 3;
@@ -806,6 +907,18 @@ const atualizarProduto = async (req, res) => {
           }
         }
       }
+
+      if (campo === 'estoque_tamanhos' || campo === 'vendidos_tamanhos') {
+        valor = parseSizeMap(valor);
+      }
+
+      if (campo === 'estoque_cores') {
+        valor = parseColorMap(valor);
+      }
+
+      if (campo === 'estoque_variantes') {
+        valor = parseVariantStockMap(valor);
+      }
       
       updates.push(`${campo} = $${paramCount}`);
       valores.push(valor);
@@ -827,8 +940,8 @@ const atualizarProduto = async (req, res) => {
       RETURNING *
     `;
 
-    console.log('🔧 Query:', query);
-    console.log('📊 Valores:', valores);
+    console.info('🔧 Query:', query);
+    console.info('📊 Valores:', valores);
 
     const result = await pool.query(query, valores);
 
@@ -849,6 +962,87 @@ const atualizarProduto = async (req, res) => {
           [id, parseInt(catId)]
         );
       }
+    }
+
+    const produtoAtualizado = result.rows[0];
+    const estoqueTamanhosMap = parseSizeMap(produtoAtualizado.estoque_tamanhos);
+    const estoqueCoresMap = parseColorMap(produtoAtualizado.estoque_cores);
+    const estoqueVariantesMap = parseVariantStockMap(produtoAtualizado.estoque_variantes);
+    const tamanhosDisponiveis = Array.isArray(produtoAtualizado.tamanhos_disponiveis)
+      ? produtoAtualizado.tamanhos_disponiveis.map((size) => normalizeSizeKey(size)).filter(Boolean)
+      : [];
+    const coresDisponiveis = Array.isArray(produtoAtualizado.cores_disponiveis)
+      ? produtoAtualizado.cores_disponiveis.map((cor) => normalizeColorKey(cor)).filter(Boolean)
+      : [];
+
+    let estoqueSincronizado = produtoAtualizado.estoque;
+    let estoqueTamanhosSincronizado = estoqueTamanhosMap;
+    let estoqueCoresSincronizado = estoqueCoresMap;
+    let estoqueVariantesSincronizado = estoqueVariantesMap;
+
+    if (Object.keys(estoqueTamanhosMap).length > 0 || tamanhosDisponiveis.length > 0 || Object.keys(estoqueCoresMap).length > 0 || coresDisponiveis.length > 0 || Object.keys(estoqueVariantesMap).length > 0) {
+      if (tamanhosDisponiveis.length > 0 && coresDisponiveis.length > 0) {
+        estoqueTamanhosSincronizado = {};
+        estoqueCoresSincronizado = {};
+        estoqueVariantesSincronizado = tamanhosDisponiveis.reduce((acc, sizeKey) => {
+          coresDisponiveis.forEach((colorKey) => {
+            const variantKey = normalizeVariantKey(sizeKey, colorKey);
+            acc[variantKey] = Number(estoqueVariantesMap[variantKey] || 0);
+          });
+          return acc;
+        }, {});
+        estoqueSincronizado = Object.values(estoqueVariantesSincronizado).reduce((acc, qty) => acc + qty, 0);
+      } else if (tamanhosDisponiveis.length > 0) {
+        estoqueTamanhosSincronizado = tamanhosDisponiveis.reduce((acc, sizeKey) => {
+          acc[sizeKey] = Number(estoqueTamanhosMap[sizeKey] || 0);
+          return acc;
+        }, {});
+        estoqueCoresSincronizado = {};
+        estoqueVariantesSincronizado = {};
+        estoqueSincronizado = Object.values(estoqueTamanhosSincronizado).reduce((acc, qty) => acc + qty, 0);
+      } else if (coresDisponiveis.length > 0) {
+        estoqueCoresSincronizado = coresDisponiveis.reduce((acc, colorKey) => {
+          acc[colorKey] = Number(estoqueCoresMap[colorKey] || 0);
+          return acc;
+        }, {});
+        estoqueTamanhosSincronizado = {};
+        estoqueVariantesSincronizado = {};
+        estoqueSincronizado = Object.values(estoqueCoresSincronizado).reduce((acc, qty) => acc + qty, 0);
+      } else {
+        estoqueTamanhosSincronizado = Object.entries(estoqueTamanhosMap).reduce((acc, [size, qty]) => {
+          acc[size] = qty;
+          return acc;
+        }, {});
+        estoqueCoresSincronizado = Object.entries(estoqueCoresMap).reduce((acc, [color, qty]) => {
+          acc[color] = qty;
+          return acc;
+        }, {});
+        estoqueVariantesSincronizado = Object.entries(estoqueVariantesMap).reduce((acc, [key, qty]) => {
+          acc[key] = qty;
+          return acc;
+        }, {});
+        if (Object.keys(estoqueVariantesSincronizado).length > 0) {
+          estoqueSincronizado = Object.values(estoqueVariantesSincronizado).reduce((acc, qty) => acc + qty, 0);
+        } else if (Object.keys(estoqueTamanhosSincronizado).length > 0) {
+          estoqueSincronizado = Object.values(estoqueTamanhosSincronizado).reduce((acc, qty) => acc + qty, 0);
+        } else if (Object.keys(estoqueCoresSincronizado).length > 0) {
+          estoqueSincronizado = Object.values(estoqueCoresSincronizado).reduce((acc, qty) => acc + qty, 0);
+        }
+      }
+
+      const syncResult = await pool.query(
+        `UPDATE produtos
+         SET estoque = $1,
+             estoque_tamanhos = $2::jsonb,
+             estoque_cores = $3::jsonb,
+           estoque_variantes = $4::jsonb,
+             data_atualizacao = NOW()
+         WHERE id = $5
+         RETURNING *`,
+        [estoqueSincronizado, JSON.stringify(estoqueTamanhosSincronizado), JSON.stringify(estoqueCoresSincronizado), JSON.stringify(estoqueVariantesSincronizado), id]
+      );
+
+      result.rows[0] = syncResult.rows[0];
     }
 
     res.json({
@@ -881,25 +1075,87 @@ const atualizarEstoque = async (req, res) => {
       });
     }
 
-    const result = await pool.query(
-      `UPDATE produtos
-       SET estoque = $1, data_atualizacao = NOW()
-       WHERE id = $2
-       RETURNING id, nome, estoque`,
-      [novoEstoque, id]
+    // Buscar estado anterior do produto
+    const produtoAnterior = await pool.query(
+      'SELECT id, nome, estoque, ativo FROM produtos WHERE id = $1',
+      [id]
     );
 
-    if (result.rows.length === 0) {
+    if (produtoAnterior.rows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'Produto não encontrado',
       });
     }
 
+    const produtoAntes = produtoAnterior.rows[0];
+    const estoqueAntes = produtoAntes.estoque;
+    const estaAtivoAntes = produtoAntes.ativo;
+    const nomeProduto = produtoAntes.nome;
+
+    // Atualizar estoque
+    const result = await pool.query(
+      `UPDATE produtos
+       SET estoque = $1, data_atualizacao = NOW()
+       WHERE id = $2
+       RETURNING id, nome, estoque, ativo`,
+      [novoEstoque, id]
+    );
+
+    const produtoAtualizado = result.rows[0];
+
+    // Lógica de inativação/reativação automática
+    if (novoEstoque === 0 && estaAtivoAntes) {
+      // Estoque zerou → inativar
+      await pool.query(
+        'UPDATE produtos SET ativo = false WHERE id = $1',
+        [id]
+      );
+      
+      produtoAtualizado.ativo = false;
+
+      // Notificar administradores
+      notifyAdmins({
+        tipoEvento: 'estoque_zerado_manual',
+        titulo: '⚠️ Produto inativado (atualização manual)',
+        mensagem: `O produto "${nomeProduto}" teve seu estoque atualizado para 0 e foi inativado automaticamente.`,
+        payload: {
+          produto_id: id,
+          produto_nome: nomeProduto,
+          estoque_anterior: estoqueAntes,
+          estoque_atual: 0,
+          tipo_atualizacao: 'manual'
+        }
+      }).catch(err => console.error('Erro ao notificar admins:', err));
+
+    } else if (novoEstoque > 0 && !estaAtivoAntes && estoqueAntes === 0) {
+      // Tinha estoque 0 e estava inativo → reativar
+      await pool.query(
+        'UPDATE produtos SET ativo = true WHERE id = $1',
+        [id]
+      );
+      
+      produtoAtualizado.ativo = true;
+
+      // Notificar administradores
+      notifyAdmins({
+        tipoEvento: 'estoque_restaurado_manual',
+        titulo: '✅ Produto reativado (atualização manual)',
+        mensagem: `O produto "${nomeProduto}" teve seu estoque atualizado para ${novoEstoque} unidade(s) e foi reativado automaticamente.`,
+        payload: {
+          produto_id: id,
+          produto_nome: nomeProduto,
+          estoque_anterior: estoqueAntes,
+          estoque_atual: novoEstoque,
+          tipo_atualizacao: 'manual'
+        }
+      }).catch(err => console.error('Erro ao notificar admins:', err));
+    }
+
     res.json({
       success: true,
       message: 'Estoque atualizado com sucesso',
-      data: result.rows[0],
+      data: produtoAtualizado,
     });
   } catch (error) {
     console.error('Erro ao atualizar estoque:', error);
@@ -917,7 +1173,7 @@ const deletarProduto = async (req, res) => {
 
     // Verificar se produto existe
     const produtoExiste = await pool.query(
-      'SELECT id FROM produtos WHERE id = $1',
+      'SELECT id, ativo FROM produtos WHERE id = $1',
       [id]
     );
 
@@ -928,17 +1184,45 @@ const deletarProduto = async (req, res) => {
       });
     }
 
-    // Soft delete - apenas desativar
+    const produto = produtoExiste.rows[0];
+
+    if (produto.ativo) {
+      // Soft delete - apenas desativar
+      await pool.query(
+        'UPDATE produtos SET ativo = false WHERE id = $1',
+        [id]
+      );
+
+      return res.json({
+        success: true,
+        message: 'Produto desativado com sucesso',
+        data: {
+          hardDeleted: false,
+        },
+      });
+    }
+
+    // Se já está inativo, permite exclusão definitiva
     await pool.query(
-      'UPDATE produtos SET ativo = false WHERE id = $1',
+      'DELETE FROM produtos WHERE id = $1',
       [id]
     );
 
     res.json({
       success: true,
-      message: 'Produto desativado com sucesso',
+      message: 'Produto excluído definitivamente com sucesso',
+      data: {
+        hardDeleted: true,
+      },
     });
   } catch (error) {
+    if (error.code === '23503') {
+      return res.status(409).json({
+        success: false,
+        error: 'Não é possível excluir definitivamente este produto porque existem registros vinculados. Mantenha-o inativo.',
+      });
+    }
+
     console.error('Erro ao deletar produto:', error);
     res.status(500).json({
       success: false,

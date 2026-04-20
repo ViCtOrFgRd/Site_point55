@@ -11,10 +11,10 @@ const listarBanners = async (req, res) => {
     if (ativos_apenas === 'true') {
       conditions.push('ativo = true');
       
-      // Filtrar por período de vigência se houver data_inicio e data_fim
+      // Filtrar por período de vigência por data (dia inteiro)
       conditions.push(`(
-        (data_inicio IS NULL OR data_inicio <= NOW()) AND
-        (data_fim IS NULL OR data_fim >= NOW())
+        (data_inicio IS NULL OR data_inicio::date <= CURRENT_DATE) AND
+        (data_fim IS NULL OR data_fim::date >= CURRENT_DATE)
       )`);
     }
     

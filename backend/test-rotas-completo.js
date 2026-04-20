@@ -6,10 +6,16 @@
  * Para executar: node test-rotas-completo.js
  */
 
+require('dotenv').config();
 const axios = require('axios');
 
 // Configuração
-const API_URL = 'http://localhost:5000/api';
+const API_URL = process.env.API_URL || 'http://localhost:5000/api';
+const TEST_USER_EMAIL = process.env.TEST_USER_EMAIL || 'user@example.com';
+const TEST_USER_PASSWORD = process.env.TEST_USER_PASSWORD || 'password123';
+const TEST_USER_NEW_PASSWORD = process.env.TEST_USER_NEW_PASSWORD || 'newpassword123';
+const TEST_ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@example.com';
+const TEST_ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'password123';
 let adminToken = '';
 let userToken = '';
 let testUserId = null;
@@ -91,7 +97,7 @@ async function testAuthRoutes() {
     const registro = await axios.post(`${API_URL}/auth/registro`, {
       nome: 'Usuário Teste',
       email: uniqueEmail,
-      senha: 'senha123',
+      senha: TEST_USER_PASSWORD,
       telefone: '11999999999',
     });
     userToken = registro.data.data.token;
@@ -104,8 +110,8 @@ async function testAuthRoutes() {
   try {
     // 2. POST /api/auth/login - Login usuário
     const loginUser = await axios.post(`${API_URL}/auth/login`, {
-      email: 'teste@point55.com',
-      senha: 'senha123',
+      email: TEST_USER_EMAIL,
+      senha: TEST_USER_PASSWORD,
     });
     logSuccess('/api/auth/login', 'POST', `Login usuário - Token gerado`);
   } catch (error) {
@@ -115,8 +121,8 @@ async function testAuthRoutes() {
   try {
     // 3. POST /api/auth/login - Login admin
     const loginAdmin = await axios.post(`${API_URL}/auth/login`, {
-      email: 'admin@point55.com',
-      senha: 'admin123',
+      email: TEST_ADMIN_EMAIL,
+      senha: TEST_ADMIN_PASSWORD,
     });
     adminToken = loginAdmin.data.data.token;
     logSuccess('/api/auth/login (admin)', 'POST', `Login admin - Token gerado`);
@@ -150,7 +156,7 @@ async function testAuthRoutes() {
     // 6. PUT /api/auth/senha - Alterar senha
     const updateSenha = await axios.put(
       `${API_URL}/auth/senha`,
-      { senhaAtual: 'senha123', novaSenha: 'novasenha123' },
+      { senhaAtual: TEST_USER_PASSWORD, novaSenha: TEST_USER_NEW_PASSWORD },
       { headers: { Authorization: `Bearer ${userToken}` } }
     );
     logSuccess('/api/auth/senha', 'PUT', `Senha alterada`);

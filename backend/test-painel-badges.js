@@ -11,9 +11,12 @@
  * 7. Deletar badge
  */
 
+require('dotenv').config();
 const axios = require('axios');
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = process.env.API_URL || 'http://localhost:5000/api';
+const TEST_ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@example.com';
+const TEST_ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'password123';
 let adminToken = '';
 let badgeIdCriado = 0;
 let produtoTesteId = 1; // Assumindo que existe produto ID 1
@@ -54,8 +57,8 @@ async function testarPainelBadges() {
     // 1. LOGIN COMO ADMIN
     logSection('1. AUTENTICAÇÃO');
     const loginResponse = await axios.post(`${API_URL}/auth/login`, {
-      email: 'admin@point55.com',
-      senha: 'admin123',
+      email: TEST_ADMIN_EMAIL,
+      senha: TEST_ADMIN_PASSWORD,
     });
 
     if (loginResponse.data.success && loginResponse.data.data && loginResponse.data.data.token) {

@@ -22,7 +22,11 @@ CREATE INDEX IF NOT EXISTS idx_produto_categorias_produto_id ON produto_categori
 CREATE INDEX IF NOT EXISTS idx_produto_categorias_categoria_id ON produto_categorias(categoria_id);
 
 -- Passo 4: View auxiliar para compatibilidade com código antigo
-CREATE OR REPLACE VIEW produtos_com_categorias AS
+-- IMPORTANTE: DROP + CREATE evita erro quando a estrutura da tabela produtos muda
+-- (CREATE OR REPLACE VIEW não permite alterar estrutura/ordem de colunas de forma ampla)
+DROP VIEW IF EXISTS produtos_com_categorias;
+
+CREATE VIEW produtos_com_categorias AS
 SELECT 
     p.*,
     ARRAY_AGG(DISTINCT c.id) as categoria_ids,

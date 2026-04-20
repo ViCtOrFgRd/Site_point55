@@ -9,10 +9,10 @@ echo ==========================================
 REM Obter variáveis de banco de dados do arquivo .env
 REM Se não existir, usar valores padrão
 set DB_USER=postgres
-set DB_PASSWORD=
+set DB_PASSWORD=140119
 set DB_HOST=localhost
 set DB_PORT=5432
-set DB_NAME=loja_vendas
+set DB_NAME=point55
 
 echo.
 echo Conectando ao banco de dados...
@@ -22,18 +22,34 @@ echo User: %DB_USER%
 echo.
 
 REM Executar migração de múltiplas categorias
-echo [1/2] Criando tabela produto_categorias...
-psql -h %DB_HOST% -U %DB_USER% -d %DB_NAME% -f "migracao-multiplas-categorias.sql"
+echo [1/4] Criando tabela produto_categorias...
+psql -v ON_ERROR_STOP=1 -h %DB_HOST% -U %DB_USER% -d %DB_NAME% -f "migracao-multiplas-categorias.sql"
 if %errorlevel% neq 0 (
     echo ERRO ao criar tabela produto_categorias!
     pause
     exit /b 1
 )
 
-echo [2/2] Migrando dados de categorias...
-psql -h %DB_HOST% -U %DB_USER% -d %DB_NAME% -f "migrar-dados-categorias.sql"
+echo [2/4] Migrando dados de categorias...
+psql -v ON_ERROR_STOP=1 -h %DB_HOST% -U %DB_USER% -d %DB_NAME% -f "migrar-dados-categorias.sql"
 if %errorlevel% neq 0 (
     echo ERRO ao migrar dados!
+    pause
+    exit /b 1
+)
+
+echo [3/4] Adicionando coluna estoque_cores...
+psql -v ON_ERROR_STOP=1 -h %DB_HOST% -U %DB_USER% -d %DB_NAME% -f "add-produtos-estoque-cores.sql"
+if %errorlevel% neq 0 (
+    echo ERRO ao adicionar coluna estoque_cores!
+    pause
+    exit /b 1
+)
+
+echo [4/4] Adicionando coluna estoque_variantes...
+psql -v ON_ERROR_STOP=1 -h %DB_HOST% -U %DB_USER% -d %DB_NAME% -f "add-produtos-estoque-variantes.sql"
+if %errorlevel% neq 0 (
+    echo ERRO ao adicionar coluna estoque_variantes!
     pause
     exit /b 1
 )

@@ -1,13 +1,19 @@
-# Ocultação de Produtos com Estoque Zero
+# Sistema de Gerenciamento de Estoque Zero
 
-## Resumo das Alterações
+## Resumo das Funcionalidades
 
-Implementado sistema para ocultar automaticamente produtos com estoque igual a 0 no site.
+Sistema completo para gerenciar produtos com estoque zerado, incluindo:
+- ✅ Ocultação automática de produtos sem estoque
+- ✅ Inativação automática quando estoque zera
+- ✅ Notificações para administradores
+- ✅ Reativação automática quando estoque é restaurado
 
 ## Status Atual
 
-✅ **912 produtos visíveis** (com estoque > 0)
-✅ **0 produtos ocultos** (com estoque = 0)
+✅ **Produtos ocultados automaticamente** quando estoque = 0
+✅ **Produtos inativados automaticamente** quando estoque chega a 0
+✅ **Admins notificados** quando produtos ficam sem estoque
+✅ **Produtos reativados automaticamente** quando estoque é restaurado
 
 ## Modificações Realizadas
 
@@ -28,17 +34,86 @@ Adicionado filtro `p.estoque > 0` em todas as consultas de listagem:
 - **`listarDestaques`** (linha 225)
   - Filtra produtos em destaque (mais vendidos)
 
-### 2. Comportamento
+### 2. Controller de Pedidos (`backend/controllers/pedidoController.js`)
+
+**Nova funcionalidade:** Inativação automática e notificações quando estoque zera ou é restaurado.
+
+#### Quando um pedido é confirmado (estoque reduzido):
+- Sistema verifica se o estoque ficou em 0
+- Se sim:
+  - Produto é **inativado automaticamente** (`ativo = false`)
+  - **Todos os administradores são notificados** via sistema de notificações
+  - Notificação inclui: nome do produto, estoque anterior e atual
+
+#### Quando um pedido é cancelado (estoque restaurado):
+- Sistema verifica se o produto estava inativo com estoque 0
+- Se agora tem estoque > 0:
+  - Produto é **reativado automaticamente** (`ativo = true`)
+  - **Administradores são notificados** sobre a reativação
+  - Notificação inclui: nome do produto e quantidade restaurada
+
+**Arquivo:** `backend/controllers/pedidoController.js`
+- Linha ~280: Lógica de inativação ao vender
+- Linha ~900: Lógica de reativação ao cancelar
+
+### 3. Comportamento
 
 #### Produtos são ocultados quando:
 - Estoque = 0
-- Independente de estarem ativos (ativo = true)
+- Independente do status ativo (filtro `p.estoque > 0` nas queries públicas)
+
+#### Produtos são inativados automaticamente quando:
+- Estoque chega a 0 após confirmação de pedido
+- Campo `ativo` é alterado para `false`
+
+#### Produtos são reativados automaticamente quando:
+- Estavam inativos com estoque 0
+- Estoque é restaurado (após cancelamento de pedido)
+- Campo `ativo` é alterado para `true`
 
 #### Produtos são exibidos quando:
 - Estoque > 0 
 - AND ativo = true
+- AND preco > 0
 
-### 3. Testes Realizados
+### 4. Sistema de Notificações para Administradores
+
+#### Notificação de Estoque Zerado:
+```json
+{
+  "tipoEvento": "estoque_zerado",
+  "titulo": "⚠️ Produto sem estoque",
+  "mensagem": "O produto \"[Nome]\" ficou com estoque zerado e foi inativado automaticamente.",
+  "payload": {
+    "produto_id": 123,
+    "produto_nome": "Nome do Produto",
+    "estoque_anterior": 5,
+    "estoque_atual": 0
+  }
+}
+```
+
+#### Notificação de Estoque Restaurado:
+```json
+{
+  "tipoEvento": "estoque_restaurado",
+  "titulo": "✅ Produto reativado",
+  "mensagem": "O produto \"[Nome]\" teve seu estoque restaurado para X unidade(s) e foi reativado automaticamente.",
+  "payload": {
+    "produto_id": 123,
+    "produto_nome": "Nome do Produto",
+    "estoque_anterior": 0,
+    "estoque_atual": 5
+  }
+}
+```
+
+**Entrega das notificações:**
+- Via Socket.io (tempo real) - canal `admin`
+- Persistidas no banco de dados (tabela `notificacoes`)
+- Visíveis no painel administrativo
+
+### 5. Testes Realizados
 
 ✅ Produto com estoque 0 não aparece na listagem geral
 ✅ Produto com estoque 0 não aparece nas promoções (mesmo com desconto)
@@ -80,11 +155,14 @@ node verificar-status-produtos.js
 
 ## Próximos Passos Sugeridos
 
-1. Implementar alerta quando produto fica com estoque baixo (< 5)
-2. Criar notificação automática quando estoque chega a 0
-3. Adicionar campo "notify_when_available" para clientes interessados
-4. Dashboard admin para visualizar produtos com estoque crítico
+1. ✅ ~~Implementar alerta quando produto fica com estoque baixo (< 5)~~ - **IMPLEMENTADO**
+2. ✅ ~~Criar notificação automática quando estoque chega a 0~~ - **IMPLEMENTADO**
+3. ⬜ Adicionar campo "notify_when_available" para clientes interessados
+4. ⬜ Dashboard admin para visualizar produtos com estoque crítico
+5. ⬜ Relatório de produtos que ficaram sem estoque (histórico)
+6. ⬜ Alerta proativo quando estoque está baixo (antes de zerar)
 
-## Data da Implementação
+## Histórico de Implementações
 
-3 de fevereiro de 2026
+- **3 de fevereiro de 2026**: Sistema de ocultação de produtos com estoque zero
+- **12 de fevereiro de 2026**: Inativação automática e notificações para administradores

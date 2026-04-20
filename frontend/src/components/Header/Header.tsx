@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element, @typescript-eslint/no-unused-vars */
 'use client';
 
 import Link from 'next/link';
@@ -6,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { FiShoppingCart, FiUser, FiMenu, FiX, FiSettings, FiLogOut, FiPackage } from 'react-icons/fi';
 import { useAuth } from '@/contexts/AuthContext';
 import SearchBar from '@/components/SearchBar/SearchBar';
+import NotificationsBell from '@/components/NotificationsBell/NotificationsBell';
 import styles from './Header.module.scss';
 
 export default function Header() {
@@ -21,11 +23,6 @@ export default function Header() {
 
   return (
     <>
-      {/* Banner de Promoção no Topo */}
-      <div className={styles.topBanner}>
-        <p>5% OFF COM O CUPOM: <strong>PRIMEIRACOMPRA</strong></p>
-      </div>
-
       {/* Header Principal */}
       <header className={styles.header}>
         <div className={styles.container}>
@@ -52,14 +49,21 @@ export default function Header() {
 
           {/* Ações */}
           <div className={styles.actions}>
+            {user && <NotificationsBell />}
             {user && user.is_admin && (
               <Link href="/admin" className={styles.iconButton} title="Painel Admin">
                 <FiSettings size={22} />
               </Link>
             )}
-            <Link href="/perfil" className={styles.iconButton} title="Perfil">
+            <button
+              type="button"
+              onClick={() => router.push('/perfil')}
+              className={styles.iconButton}
+              title="Perfil"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
+            >
               <FiUser size={22} />
-            </Link>
+            </button>
             <Link href="/pedidos" className={styles.iconButton} title="Meus pedidos">
               <FiPackage size={22} />
             </Link>

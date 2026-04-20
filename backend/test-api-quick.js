@@ -1,3 +1,4 @@
+require('dotenv').config();
 const http = require('http');
 
 const BASE = {
@@ -5,8 +6,8 @@ const BASE = {
   port: 5000,
 };
 
-const USUARIO_EMAIL = 'victorfiigueiredo@gmail.com';
-const USUARIO_SENHA = 'victor123';
+const USUARIO_EMAIL = process.env.TEST_USER_EMAIL || 'user@example.com';
+const USUARIO_SENHA = process.env.TEST_USER_PASSWORD || 'password123';
 
 const requestJson = (method, path, body, token) =>
   new Promise((resolve, reject) => {

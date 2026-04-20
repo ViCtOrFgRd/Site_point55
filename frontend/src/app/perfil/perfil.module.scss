@@ -261,6 +261,25 @@
   color: #999 !important;
 }
 
+.cpfActions {
+  display: flex;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+
+  button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.cpfConfirmationBox {
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid #e0e0e0;
+  border-radius: var(--radius-base);
+  background: #fafafa;
+}
+
 .passwordForm {
   max-width: clamp(320px, 50vw, 520px);
 
@@ -426,6 +445,22 @@
     color: #666;
     margin-bottom: var(--space-3);
     font-size: var(--text-small);
+  }
+}
+
+.authAuxiliary {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-1);
+}
+
+.forgotPasswordLink {
+  font-size: var(--text-small);
+  color: #000;
+  text-decoration: underline;
+
+  &:hover {
+    color: #333;
   }
 }
 

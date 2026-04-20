@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect, CSSProperties } from 'react';
@@ -22,42 +24,12 @@ interface HeroSliderProps {
   interval?: number;
 }
 
-const defaultSlides: Slide[] = [
-  {
-    id: 1,
-    title: 'MEGA BAZAR',
-    subtitle: 'Até 70% OFF em peças selecionadas',
-    buttonText: 'Ver Ofertas',
-    buttonLink: '/promocoes',
-    image: '/logan/logan2.jpeg',
-    backgroundColor: '#0C1C3A',
-  },
-  {
-    id: 2,
-    title: 'NOVA COLEÇÃO',
-    subtitle: 'Primavera/Verão 2026',
-    buttonText: 'Conferir',
-    buttonLink: '/produtos',
-    image: '/logan/logan2.jpeg',
-    backgroundColor: '#0C1C3A',
-  },
-  {
-    id: 3,
-    title: 'FRETE GRÁTIS',
-    subtitle: 'Em compras acima de R$ 200',
-    buttonText: 'Aproveitar',
-    buttonLink: '/produtos',
-    image: '/logan/logan2.jpeg',
-    backgroundColor: '#1a2a4a',
-  },
-];
-
 export default function HeroSlider({ 
   slides: customSlides,
   autoPlay = true, 
   interval = 5000 
 }: HeroSliderProps) {
-  const [slides, setSlides] = useState<Slide[]>(customSlides || defaultSlides);
+  const [slides, setSlides] = useState<Slide[]>(customSlides || []);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [loading, setLoading] = useState(!customSlides);
@@ -73,10 +45,11 @@ export default function HeroSlider({
     try {
       setLoading(true);
       const response = await bannerService.getAll(true); // Apenas banners ativos
+      const bannersData: any[] = Array.isArray(response.data) ? response.data : [];
       
-      if (response.success && response.data && response.data.length > 0) {
+      if (response.success && bannersData.length > 0) {
         // Converter formato do banco para formato do componente
-        const bannersFormatados = response.data.map((banner: any) => ({
+        const bannersFormatados = bannersData.map((banner: any) => ({
           id: banner.id,
           title: banner.titulo,
           subtitle: banner.subtitulo || '',
@@ -88,13 +61,11 @@ export default function HeroSlider({
         
         setSlides(bannersFormatados);
       } else {
-        // Se não houver banners, usar os padrão
-        setSlides(defaultSlides);
+        setSlides([]);
       }
     } catch (error) {
       console.error('Erro ao carregar banners:', error);
-      // Em caso de erro, usar banners padrão
-      setSlides(defaultSlides);
+      setSlides([]);
     } finally {
       setLoading(false);
     }

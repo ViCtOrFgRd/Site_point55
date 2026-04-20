@@ -1,3 +1,5 @@
+/* eslint-disable @next/next/no-img-element, react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -10,6 +12,7 @@ import { orderService, returnService } from '@/services/api';
 import { Devolucao } from '@/types';
 import { FiPackage, FiTruck, FiCheck, FiMapPin, FiCreditCard, FiCopy, FiX, FiRefreshCcw } from 'react-icons/fi';
 import { toNumber, formatPrice } from '@/utils/formatPrice';
+import { confirmAction, promptText } from '@/utils/alerts';
 import styles from './pedido-detalhes.module.scss';
 
 interface Pedido {
@@ -21,6 +24,13 @@ interface Pedido {
   desconto: number;
   total: number;
   forma_pagamento: string;
+  entrega_tipo?: string;
+  retirada_prazo_vencimento?: string | null;
+  retirada_confirmada_em?: string | null;
+  retirada_confirmado_por_nome?: string | null;
+  retirada_observacao?: string | null;
+  pagamento_na_retirada?: boolean;
+  retirada_codigo?: string | null;
   codigo_rastreio?: string;
   data_pedido: string;
   data_atualizacao: string;
@@ -32,7 +42,24 @@ interface Pedido {
   bairro?: string;
   cidade?: string;
   estado?: string;
+  asaas_invoice_url?: string | null;
+  asaas_boleto_url?: string | null;
+  asaas_pix_qr_code?: string | null;
+  asaas_pix_payload?: string | null;
+  asaas_payment_status?: string | null;
+  asaas_billing_type?: string | null;
 }
+
+const isPedidoRetiradaLocal = (pedido: Pedido) => {
+  const entregaTipo = String(pedido.entrega_tipo || '').toLowerCase().trim();
+  const status = String(pedido.status || '').toLowerCase().trim();
+
+  return (
+    ['retirada_local', 'retirada no local', 'retirada-no-local', 'retirada', 'retirar_no_local'].includes(entregaTipo) ||
+    ['pronto_para_retirada', 'aguardando_pagamento_retirada', 'pendente_pagamento_retirada', 'retirado'].includes(status) ||
+    Boolean(pedido.retirada_codigo)
+  );
+};
 
 export default function PedidoDetalhesPage() {
   const params = useParams();
@@ -73,8 +100,9 @@ export default function PedidoDetalhesPage() {
       if (!id) return;
       const response = await orderService.getById(parseInt(id));
       if (response.success && response.data) {
-        setPedido(response.data);
-        carregarDevolucoes(response.data.id);
+        const pedidoData: any = response.data;
+        setPedido(pedidoData);
+        carregarDevolucoes(pedidoData.id);
       }
     } catch (error: any) {
       toast.error(error.message || 'Erro ao carregar pedido');
@@ -89,7 +117,7 @@ export default function PedidoDetalhesPage() {
     try {
       const response = await returnService.getAll({ pedido_id: pedidoId });
       if (response.success) {
-        setDevolucoes(response.data || []);
+        setDevolucoes(Array.isArray(response.data) ? response.data : []);
       }
     } catch (error) {
       console.error('Erro ao carregar devolucoes:', error);
@@ -193,9 +221,18 @@ export default function PedidoDetalhesPage() {
   };
 
   const handleRecorrer = async (devolucaoId: number) => {
-    const justificativa = prompt('Informe a justificativa para recorrer (minimo 10 caracteres):');
-    if (!justificativa || justificativa.trim().length < 10) {
-      toast.warning('Justificativa invalida');
+    const justificativa = await promptText(
+      'Recorrer da devolução',
+      'Informe a justificativa (mínimo 10 caracteres)',
+      {
+        placeholder: 'Descreva os motivos da recorrência',
+        confirmText: 'Enviar recorrência',
+        minLength: 10,
+        emptyMessage: 'Informe a justificativa',
+        minLengthMessage: 'A justificativa deve ter no mínimo 10 caracteres',
+      }
+    );
+    if (!justificativa) {
       return;
     }
 
@@ -217,10 +254,31 @@ export default function PedidoDetalhesPage() {
     }
   };
 
+  const copiarPix = () => {
+    if (pedido?.asaas_pix_payload) {
+      navigator.clipboard.writeText(pedido.asaas_pix_payload);
+      toast.success('Código PIX copiado!');
+    }
+  };
+
+  const getPixImageSrc = (value?: string | null) => {
+    if (!value) return null;
+    if (value.startsWith('data:image')) return value;
+    if (/^[A-Za-z0-9+/=]+$/.test(value)) {
+      return `data:image/png;base64,${value}`;
+    }
+    return value;
+  };
+
   const handleCancelarPedido = async () => {
     if (!pedido) return;
-    
-    if (!confirm('Tem certeza que deseja cancelar este pedido?')) {
+
+    const confirmed = await confirmAction(
+      'Cancelar pedido',
+      'Tem certeza que deseja cancelar este pedido?',
+      'Cancelar pedido'
+    );
+    if (!confirmed) {
       return;
     }
 
@@ -236,6 +294,10 @@ export default function PedidoDetalhesPage() {
   const getStatusColor = (status: string) => {
     const colorMap: { [key: string]: string } = {
       pendente: '#FFA726',
+      pendente_pagamento_retirada: '#FFA726',
+      aguardando_pagamento_retirada: '#FFA726',
+      pronto_para_retirada: '#7E57C2',
+      retirado: '#66BB6A',
       pago: '#42A5F5',
       processando: '#AB47BC',
       enviado: '#29B6F6',
@@ -250,6 +312,10 @@ export default function PedidoDetalhesPage() {
   const getStatusText = (status: string) => {
     const statusMap: Record<string, string> = {
       pendente: 'Pendente',
+      pendente_pagamento_retirada: 'Aguardando pagamento',
+      aguardando_pagamento_retirada: 'Aguardando pagamento',
+      pronto_para_retirada: 'Pronto para retirada',
+      retirado: 'Retirado',
       pago: 'Pago',
       processando: 'Processando',
       enviado: 'Enviado',
@@ -277,6 +343,7 @@ export default function PedidoDetalhesPage() {
       pix: 'PIX',
       cartao: 'Cartão de Crédito',
       boleto: 'Boleto Bancário',
+      local: 'Pagamento na retirada',
     };
     return formasMap[forma] || forma;
   };
@@ -294,8 +361,13 @@ export default function PedidoDetalhesPage() {
   }
 
   const enderecoDisponivel = Boolean(pedido.rua || pedido.cep);
+  const isRetiradaLocal = isPedidoRetiradaLocal(pedido);
+  const shouldShowPayment = ['pix', 'boleto', 'cartao'].includes(pedido.forma_pagamento);
+  const pixQr = shouldShowPayment ? getPixImageSrc(pedido.asaas_pix_qr_code) : null;
+  const boletoUrl = shouldShowPayment ? (pedido.asaas_boleto_url || pedido.asaas_invoice_url) : null;
+  const cartaoUrl = shouldShowPayment ? pedido.asaas_invoice_url : null;
 
-  const podeCandelar = pedido.status === 'pendente' || pedido.status === 'processando';
+  const podeCandelar = ['pendente', 'processando', 'pago', 'pronto_para_retirada', 'pendente_pagamento_retirada', 'aguardando_pagamento_retirada'].includes(pedido.status);
   const podeSolicitar = ['devolucao', 'entregue'].includes(pedido.status);
   const statusEnviado = ['enviado', 'devolucao', 'devolvido', 'entregue'].includes(pedido.status);
   const statusEntregue = ['devolucao', 'devolvido', 'entregue'].includes(pedido.status);
@@ -324,6 +396,11 @@ export default function PedidoDetalhesPage() {
         <div className={styles.header}>
           <div>
             <h1>Pedido #{pedido.id}</h1>
+            {isRetiradaLocal && (
+              <p>
+                Código de retirada: {pedido.retirada_codigo || 'disponível após confirmação do pagamento'}
+              </p>
+            )}
             <p>Realizado em {formatarData(pedido.data_pedido)}</p>
           </div>
           <div
@@ -339,6 +416,7 @@ export default function PedidoDetalhesPage() {
           <div className={styles.trackingCard}>
             <h2>Status do Pedido</h2>
             <div className={styles.timeline}>
+              {/* Etapa 1: Pedido Confirmado */}
               <div className={`${styles.timelineItem} ${styles.completed}`}>
                 <div className={styles.timelineIcon}>
                   <FiCheck />
@@ -349,37 +427,75 @@ export default function PedidoDetalhesPage() {
                 </div>
               </div>
 
+              {/* Etapa 2: Pedido em Preparação */}
               <div className={`${styles.timelineItem} ${pedido.status !== 'pendente' ? styles.completed : ''}`}>
                 <div className={styles.timelineIcon}>
                   <FiPackage />
                 </div>
                 <div className={styles.timelineContent}>
-                  <h4>Pedido Processando</h4>
-                  {pedido.status !== 'pendente' && <p>Pedido em preparação</p>}
+                  <h4>Pedido em Preparação</h4>
+                  {pedido.status !== 'pendente' && <p>Preparando seu pedido</p>}
                 </div>
               </div>
 
-              <div className={`${styles.timelineItem} ${statusEnviado ? styles.completed : ''}`}>
-                <div className={styles.timelineIcon}>
-                  <FiTruck />
-                </div>
-                <div className={styles.timelineContent}>
-                  <h4>Pedido Enviado</h4>
-                  {statusEnviado && (
-                    <p>{formatarData(pedido.data_atualizacao)}</p>
-                  )}
-                </div>
-              </div>
+              {isRetiradaLocal ? (
+                <>
+                  {/* Etapa 3 (Retirada): Pedido Preparado */}
+                  <div className={`${styles.timelineItem} ${['pronto_para_retirada', 'retirado'].includes(pedido.status) ? styles.completed : ''}`}>
+                    <div className={styles.timelineIcon}>
+                      <FiCheck />
+                    </div>
+                    <div className={styles.timelineContent}>
+                      <h4>Pedido Preparado</h4>
+                      {['pronto_para_retirada', 'retirado'].includes(pedido.status) && (
+                        <p>Seu pedido está pronto para retirada</p>
+                      )}
+                    </div>
+                  </div>
 
-              <div className={`${styles.timelineItem} ${statusEntregue ? styles.completed : ''}`}>
-                <div className={styles.timelineIcon}>
-                  <FiCheck />
-                </div>
-                <div className={styles.timelineContent}>
-                  <h4>{etapaFinalTitulo}</h4>
-                  {statusEntregue && <p>{etapaFinalMensagem}</p>}
-                </div>
-              </div>
+                  {/* Etapa 4 (Retirada): Pedido Retirado */}
+                  <div className={`${styles.timelineItem} ${pedido.status === 'retirado' ? styles.completed : ''}`}>
+                    <div className={styles.timelineIcon}>
+                      <FiCheck />
+                    </div>
+                    <div className={styles.timelineContent}>
+                      <h4>Pedido Retirado</h4>
+                      {pedido.status === 'retirado' && (
+                        <>
+                          <p>Retirado por: {pedido.retirada_confirmado_por_nome}</p>
+                          <p>{formatarData(pedido.retirada_confirmada_em || '')}</p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Etapa 3 (Entrega): Pedido Enviado */}
+                  <div className={`${styles.timelineItem} ${statusEnviado ? styles.completed : ''}`}>
+                    <div className={styles.timelineIcon}>
+                      <FiTruck />
+                    </div>
+                    <div className={styles.timelineContent}>
+                      <h4>Pedido Enviado</h4>
+                      {statusEnviado && (
+                        <p>{formatarData(pedido.data_atualizacao)}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Etapa 4 (Entrega): Pedido Entregue */}
+                  <div className={`${styles.timelineItem} ${statusEntregue ? styles.completed : ''}`}>
+                    <div className={styles.timelineIcon}>
+                      <FiCheck />
+                    </div>
+                    <div className={styles.timelineContent}>
+                      <h4>{etapaFinalTitulo}</h4>
+                      {statusEntregue && <p>{etapaFinalMensagem}</p>}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {pedido.codigo_rastreio && (
@@ -419,13 +535,15 @@ export default function PedidoDetalhesPage() {
                     <Link href={`/produtos/${item.produto_id}`}>
                       <h4>{item.produto_nome}</h4>
                     </Link>
-                    {item.tamanho && <p>Tamanho: {item.tamanho}</p>}
+                    {item.tamanho && <p>Tamanho: <strong>{item.tamanho}</strong></p>}
                     {item.cor && (
                       <p>
-                        Cor:{' '}
+                        Cor: <strong>{item.cor}</strong>
                         <span
                           className={styles.colorDot}
                           style={{ background: item.cor }}
+                          title={`Cor: ${item.cor}`}
+                          aria-label={`Cor: ${item.cor}`}
                         />
                       </p>
                     )}
@@ -441,7 +559,7 @@ export default function PedidoDetalhesPage() {
           </div>
 
           {/* Endereço de Entrega */}
-          {enderecoDisponivel && (
+          {enderecoDisponivel && !isRetiradaLocal && (
             <div className={styles.addressCard}>
               <h2><FiMapPin /> Endereço de Entrega</h2>
               <div className={styles.address}>
@@ -450,6 +568,48 @@ export default function PedidoDetalhesPage() {
                 <p>{pedido.bairro}</p>
                 <p>{pedido.cidade} - {pedido.estado}</p>
                 <p>CEP: {pedido.cep}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Retirada no Local */}
+          {isRetiradaLocal && (
+            <div className={styles.retiradaCard}>
+              <h2><FiMapPin /> Retirada no Local</h2>
+              
+              {/* Código de Retirada em destaque */}
+              {pedido.retirada_codigo && (
+                <div className={styles.codigoRetirada}>
+                  <p className={styles.labelCodigo}>Código de Retirada</p>
+                  <div className={styles.codigoBox}>
+                    <span className={styles.codigo}>{pedido.retirada_codigo}</span>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(pedido.retirada_codigo || '');
+                        toast.success('Código copiado para a área de transferência!');
+                      }}
+                      className={styles.copiarButton}
+                    >
+                      <FiCopy /> Copiar
+                    </button>
+                  </div>
+                  <small>Apresente este código no local para confirmar sua retirada</small>
+                </div>
+              )}
+
+              <div className={styles.address}>
+                <p><strong>Local:</strong> Shopping Jequitibas</p>
+                <p><strong>Endereco:</strong> Av. Jequitibas, 1234</p>
+                <p><strong>Horario:</strong> Segunda a sabado, 10h as 17h</p>
+                {pedido.retirada_prazo_vencimento && (
+                  <p><strong>Prazo para retirada:</strong> {new Date(pedido.retirada_prazo_vencimento).toLocaleDateString('pt-BR')}</p>
+                )}
+                {pedido.retirada_confirmada_em && (
+                  <>
+                    <p><strong>Retirado em:</strong> {formatarData(pedido.retirada_confirmada_em)}</p>
+                    <p><strong>Retirado por:</strong> {pedido.retirada_confirmado_por_nome}</p>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -484,6 +644,44 @@ export default function PedidoDetalhesPage() {
                 <strong>{getFormaPagamento(pedido.forma_pagamento)}</strong>
               </span>
             </div>
+
+            {shouldShowPayment && (
+              <div className={styles.paymentBox}>
+                <h3>Pagamento</h3>
+
+                {pedido.forma_pagamento === 'pix' && (
+                  <div className={styles.pixBox}>
+                    {pixQr && (
+                      <img
+                        className={styles.pixQr}
+                        src={pixQr}
+                        alt="QR Code PIX"
+                      />
+                    )}
+                    {pedido.asaas_pix_payload && (
+                      <button className={styles.copyButton} onClick={copiarPix}>
+                        <FiCopy /> Copiar codigo PIX
+                      </button>
+                    )}
+                    {!pixQr && !pedido.asaas_pix_payload && (
+                      <p>QR Code indisponivel no momento.</p>
+                    )}
+                  </div>
+                )}
+
+                {pedido.forma_pagamento === 'boleto' && boletoUrl && (
+                  <a className={styles.paymentLink} href={boletoUrl} target="_blank" rel="noreferrer">
+                    Abrir boleto
+                  </a>
+                )}
+
+                {pedido.forma_pagamento === 'cartao' && cartaoUrl && (
+                  <a className={styles.paymentLink} href={cartaoUrl} target="_blank" rel="noreferrer">
+                    Pagar com cartao
+                  </a>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -542,6 +740,11 @@ export default function PedidoDetalhesPage() {
                   <h3>Itens para devolver/trocar</h3>
                   {pedido.itens?.map((item: any) => {
                     const isSelected = Boolean(selectedItems[item.id]);
+                    const variacoesItem = [
+                      item.tamanho ? `Tam: ${item.tamanho}` : null,
+                      item.cor ? `Cor: ${item.cor}` : null,
+                    ].filter(Boolean).join(' | ');
+
                     return (
                       <div key={item.id} className={styles.itemRow}>
                         <label className={styles.itemLabel}>
@@ -550,7 +753,7 @@ export default function PedidoDetalhesPage() {
                             checked={isSelected}
                             onChange={() => handleToggleItem(item.id, item.quantidade)}
                           />
-                          <span>{item.produto_nome}</span>
+                          <span>{item.produto_nome}{variacoesItem ? ` (${variacoesItem})` : ''}</span>
                           <span className={styles.itemQtd}>Qtd: {item.quantidade}</span>
                         </label>
                         {isSelected && (

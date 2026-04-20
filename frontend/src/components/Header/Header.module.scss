@@ -38,6 +38,10 @@
     flex-wrap: wrap;
     row-gap: var(--space-1);
   }
+
+  @media (max-width: 480px) {
+    padding: 0.75rem var(--container-padding);
+  }
 }
 
 .logo {
@@ -136,6 +140,10 @@
     gap: 0.4rem;
     margin-left: auto;
   }
+
+  @media (max-width: 480px) {
+    gap: 0.5rem;
+  }
 }
 
 .iconButton {
@@ -143,8 +151,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: clamp(36px, 4vw, 44px);
-  height: clamp(36px, 4vw, 44px);
+  width: clamp(44px, 4vw, 48px);
+  height: clamp(44px, 4vw, 48px);
   border-radius: 50%;
   background: transparent;
   transition: background 0.2s;
@@ -172,6 +180,10 @@
   display: none;
   background: transparent;
   padding: 0.5rem;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
 
   @media (max-width: 1024px) {
     display: flex;
@@ -196,6 +208,9 @@
 
     a {
       padding: 0.75rem 0.9rem;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
       font-weight: 500;
       color: #000;
       border-radius: 8px;

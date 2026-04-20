@@ -10,7 +10,6 @@ const {
   listarComentarios,
 } = require('../controllers/avaliacaoController');
 const { authenticate } = require('../middlewares/authenticate');
-const { authenticateOptional } = require('../middlewares/authenticate');
 
 // Rotas públicas (visualização)
 router.get('/produtos/:id/avaliacoes', listarAvaliacoes);
@@ -21,6 +20,6 @@ router.post('/produtos/:id/avaliacoes', authenticate, criarAvaliacao);
 router.post('/produtos/:id/comentarios', authenticate, adicionarComentario);
 router.put('/avaliacoes/:id', authenticate, atualizarAvaliacao);
 router.delete('/avaliacoes/:id', authenticate, deletarAvaliacao);
-router.post('/comentarios/:id/util', authenticateOptional, marcarUtil);
+router.post('/comentarios/:id/util', authenticate, marcarUtil);
 
 module.exports = router;

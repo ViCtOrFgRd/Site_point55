@@ -2,6 +2,8 @@ const axios = require('axios');
 require('dotenv').config();
 
 const API_URL = process.env.API_URL || 'http://localhost:5000/api';
+const TEST_ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@example.com';
+const TEST_ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'password123';
 
 // Cores para output
 const colors = {
@@ -38,8 +40,8 @@ async function fazerLogin() {
   try {
     logInfo('Fazendo login como admin...');
     const response = await axios.post(`${API_URL}/auth/login`, {
-      email: 'admin@point55.com',
-      senha: 'admin123',
+      email: TEST_ADMIN_EMAIL,
+      senha: TEST_ADMIN_PASSWORD,
     });
     
     tokens.admin = response.data.data.token;

@@ -20,18 +20,22 @@ const { authenticate } = require('../middlewares/authenticate');
 const { isAdmin } = require('../middlewares/authorize');
 const upload = require('../middlewares/upload');
 
+const validarIdNumerico = (req, res, next) => {
+  if (!/^\d+$/.test(String(req.params.id))) {
+    return res.status(404).json({
+      success: false,
+      error: 'Rota não encontrada',
+    });
+  }
+
+  return next();
+};
+
 // Rotas públicas
 router.get('/', listarProdutos);
 router.get('/promocoes', listarPromocoes);
 router.get('/destaques', listarDestaques);
 router.get('/admin', authenticate, isAdmin, listarProdutosAdmin);
-router.get('/:id', obterProduto);
-
-// Rotas protegidas (admin)
-router.post('/', authenticate, isAdmin, criarProduto);
-router.put('/:id', authenticate, isAdmin, atualizarProduto);
-router.patch('/:id/estoque', authenticate, isAdmin, atualizarEstoque);
-router.delete('/:id', authenticate, isAdmin, deletarProduto);
 
 // Rota de upload de imagem
 router.post('/upload-imagem', authenticate, isAdmin, upload.single('imagem'), (req, res) => {
@@ -66,9 +70,17 @@ router.post('/upload-imagem', authenticate, isAdmin, upload.single('imagem'), (r
   }
 });
 
+router.get('/:id', validarIdNumerico, obterProduto);
+
+// Rotas protegidas (admin)
+router.post('/', authenticate, isAdmin, criarProduto);
+router.put('/:id', authenticate, isAdmin, validarIdNumerico, atualizarProduto);
+router.patch('/:id/estoque', authenticate, isAdmin, validarIdNumerico, atualizarEstoque);
+router.delete('/:id', authenticate, isAdmin, validarIdNumerico, deletarProduto);
+
 // Rotas de badges do produto
-router.get('/:id/badges', listarBadgesDoProduto);
-router.post('/:id/badges', authenticate, isAdmin, adicionarBadgeAoProduto);
-router.delete('/:id/badges/:badgeId', authenticate, isAdmin, removerBadgeDoProduto);
+router.get('/:id/badges', validarIdNumerico, listarBadgesDoProduto);
+router.post('/:id/badges', authenticate, isAdmin, validarIdNumerico, adicionarBadgeAoProduto);
+router.delete('/:id/badges/:badgeId', authenticate, isAdmin, validarIdNumerico, removerBadgeDoProduto);
 
 module.exports = router;

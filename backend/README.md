@@ -145,6 +145,10 @@ GET /api/produtos?categoria=1&busca=camisa&promocao=true&precoMin=50&precoMax=20
 
 Consulte o arquivo [API-TESTES.md](./API-TESTES.md) para exemplos de requisições.
 
+## 💾 Backup e Restore do Banco
+
+Consulte [BACKUP-BANCO.md](./BACKUP-BANCO.md) para configuração de backup automático, backup manual e restauração.
+
 ### Exemplo com PowerShell
 ```powershell
 # Listar categorias

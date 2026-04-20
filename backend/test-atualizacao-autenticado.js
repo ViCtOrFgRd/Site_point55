@@ -1,4 +1,10 @@
+require('dotenv').config();
 const axios = require('axios');
+
+const PRIMARY_ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@example.com';
+const PRIMARY_ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'password123';
+const FALLBACK_ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL_ALT || 'admin2@example.com';
+const FALLBACK_ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD_ALT || 'password123';
 
 // Criar instância da API
 const api = axios.create({
@@ -13,8 +19,8 @@ async function testarAtualizacao() {
     // Passo 1: Fazer login com admin
     console.log('1️⃣ Fazendo login como admin...');
     const loginResp = await api.post('/auth/login', {
-      email: 'admin@example.com',
-      senha: 'admin123'
+      email: PRIMARY_ADMIN_EMAIL,
+      senha: PRIMARY_ADMIN_PASSWORD,
     });
 
     if (!loginResp.data.success) {
@@ -23,8 +29,8 @@ async function testarAtualizacao() {
       
       // Tentar com outro admin
       const loginResp2 = await api.post('/auth/login', {
-        email: 'contato@ponto55.com.br',
-        senha: '12345678'
+        email: FALLBACK_ADMIN_EMAIL,
+        senha: FALLBACK_ADMIN_PASSWORD,
       });
       
       if (!loginResp2.data.success) {

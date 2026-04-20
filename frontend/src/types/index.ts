@@ -20,6 +20,10 @@ export interface Product {
   imagem_url?: string;
   cores_disponiveis?: string[];
   tamanhos_disponiveis?: string[];
+  estoque_cores?: Record<string, number>;
+  estoque_tamanhos?: Record<string, number>;
+  estoque_variantes?: Record<string, number>;
+  vendidos_tamanhos?: Record<string, number>;
   ativo: boolean;
   vendas_total: number;
   data_criacao: string;
@@ -93,6 +97,8 @@ export interface User {
   email: string;
   telefone?: string;
   cpf?: string;
+  cpf_valido?: boolean;
+  cpf_pode_editar?: boolean;
   data_nascimento?: string;
   data_cadastro: string;
   ativo: boolean;
@@ -102,13 +108,33 @@ export interface User {
 export interface Pedido {
   id: number;
   usuario_id: number;
-  status: 'pendente' | 'pago' | 'processando' | 'enviado' | 'devolucao' | 'devolvido' | 'entregue' | 'cancelado';
+  status:
+    | 'pendente'
+    | 'pago'
+    | 'processando'
+    | 'enviado'
+    | 'devolucao'
+    | 'devolvido'
+    | 'entregue'
+    | 'cancelado'
+    | 'pendente_pagamento_retirada'
+    | 'aguardando_pagamento_retirada'
+    | 'pronto_para_retirada'
+    | 'retirado';
   subtotal: number;
   desconto: number;
   frete: number;
   total: number;
-  forma_pagamento: 'cartao' | 'pix' | 'boleto';
+  forma_pagamento: 'cartao' | 'pix' | 'boleto' | 'local';
+  entrega_tipo?: 'entrega' | 'retirada_local';
+  retirada_codigo?: string | null;
+  retirada_prazo_vencimento?: string | null;
+  pagamento_na_retirada?: boolean;
   codigo_rastreio?: string;
+  superfrete_pedido_id?: string;
+  superfrete_etiqueta_id?: string;
+  superfrete_status?: string;
+  superfrete_etiqueta_url?: string;
   data_pedido: string;
   data_atualizacao: string;
   itens?: ItemPedido[];
@@ -166,4 +192,16 @@ export interface ItemPedido {
   tamanho?: string;
   cor?: string;
   produto?: Product;
+}
+
+export interface Notificacao {
+  id: number;
+  recipient_type: 'user' | 'admin' | 'all_users';
+  recipient_id: number | null;
+  tipo_evento: string;
+  titulo: string;
+  mensagem: string;
+  payload?: Record<string, unknown>;
+  lida_em?: string | null;
+  criada_em: string;
 }

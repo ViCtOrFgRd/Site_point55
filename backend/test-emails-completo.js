@@ -1,6 +1,9 @@
 require('dotenv').config();
 const nodemailer = require('nodemailer');
 
+const testRecipient = process.env.TEST_RECIPIENT_EMAIL || 'user@example.com';
+const testRecipientName = process.env.TEST_RECIPIENT_NAME || 'Usuario Teste';
+
 async function testarRecuperacaoSenha() {
   console.log('\n🔐 Teste de Recuperação de Senha');
   console.log('============================================================\n');
@@ -20,8 +23,8 @@ async function testarRecuperacaoSenha() {
 
     // Simular token de recuperação
     const token = 'abc123def456ghi789jkl012mno345pqr678stu901vwx234yz567';
-    const email = 'victorfiigueiredo@gmail.com';
-    const nome = 'Victor Figueiredo';
+    const email = testRecipient;
+    const nome = testRecipientName;
 
     // Conteúdo do email de recuperação
     const mailOptions = {
@@ -203,7 +206,7 @@ async function testarRecuperacaoSenha() {
             <div class="footer">
               <p><strong>Point55 - E-commerce de Roupas</strong></p>
               <p>WhatsApp: (11) 99338-5579</p>
-              <p>Email: contato@point55.com.br</p>
+              <p>Email: atendimento.sacpoint@gmail.com</p>
               <p style="margin-top: 15px; font-size: 12px;">
                 Este é um email automático. Se você não solicitou a recuperação de senha, 
                 entre em contato conosco imediatamente.
@@ -244,8 +247,8 @@ async function testarEmailPromocao() {
     await transporter.verify();
     console.log('✅ Servidor de email conectado\n');
 
-    const email = 'victorfiigueiredo@gmail.com';
-    const nome = 'Victor Figueiredo';
+    const email = testRecipient;
+    const nome = testRecipientName;
 
     // Produtos em promoção (exemplo)
     const produtos = [
@@ -518,7 +521,7 @@ async function testarEmailPromocao() {
             <div class="footer">
               <p><strong>Point55 - E-commerce de Roupas</strong></p>
               <p>📱 WhatsApp: (11) 99338-5579</p>
-              <p>📧 Email: contato@point55.com.br</p>
+              <p>📧 Email: atendimento.sacpoint@gmail.com</p>
               <p style="margin-top: 15px; font-size: 12px;">
                 Você está recebendo este email porque se cadastrou em nosso site.
                 <br><a href="#" style="color: #3b82f6;">Cancelar inscrição</a>
@@ -552,7 +555,7 @@ async function executarTestes() {
   
   console.log('\n============================================================');
   console.log('🎉 Testes de email concluídos!');
-  console.log('📬 Verifique sua caixa de entrada: victorfiigueiredo@gmail.com');
+  console.log(`📬 Verifique sua caixa de entrada: ${testRecipient}`);
   console.log('============================================================\n');
 }
 

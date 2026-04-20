@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,6 +9,7 @@ import { couponService } from '@/services/api';
 import Link from 'next/link';
 import { ArrowLeft, Plus, Edit, Trash2, Tag, Percent, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
+import { confirmAction } from '@/utils/alerts';
 import styles from './cupons.module.scss';
 
 interface Cupom {
@@ -43,6 +46,18 @@ export default function AdminCuponsPage() {
     ativo: true,
   });
 
+  const displayZeroAsEmpty = (value: number) => (value === 0 ? '' : value);
+
+  const parseNumberOrFallback = (value: string, fallback = 0) => {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+
+  const parseIntOrFallback = (value: string, fallback = 0) => {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+
   useEffect(() => {
     if (!authLoading && (!user || !user.is_admin)) {
       router.push('/perfil');
@@ -64,11 +79,11 @@ export default function AdminCuponsPage() {
           : { ativo: filtroStatus === 'active' };
       const response = await couponService.getAll(params);
       if (response.success) {
-        setCupons(response.data || []);
+        setCupons(Array.isArray(response.data) ? response.data : []);
       }
     } catch (error) {
       console.error('Erro ao carregar cupons:', error);
-      showError('Erro ao carregar cupons');
+      toast.error('Erro ao carregar cupons');
     } finally {
       setLoading(false);
     }
@@ -79,17 +94,17 @@ export default function AdminCuponsPage() {
     
     // Validações
     if (!formData.codigo.trim()) {
-      showError('Código do cupom é obrigatório');
+      toast.error('Código do cupom é obrigatório');
       return;
     }
     
     if (formData.valor_desconto === undefined || formData.valor_desconto === null || formData.valor_desconto <= 0) {
-      showError('Valor de desconto deve ser maior que zero');
+      toast.error('Valor de desconto deve ser maior que zero');
       return;
     }
     
     if (!['percentual', 'fixo'].includes(formData.tipo_desconto)) {
-      showError('Tipo de desconto inválido');
+      toast.error('Tipo de desconto inválido');
       return;
     }
     
@@ -141,7 +156,12 @@ export default function AdminCuponsPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir este cupom?')) {
+    const confirmed = await confirmAction(
+      'Excluir cupom',
+      'Tem certeza que deseja excluir este cupom?',
+      'Excluir'
+    );
+    if (!confirmed) {
       return;
     }
 
@@ -288,7 +308,7 @@ export default function AdminCuponsPage() {
                   <td>{formatarValor(cupom.valor_desconto, cupom.tipo_desconto)}</td>
                   <td>
                     {cupom.valor_minimo && cupom.valor_minimo > 0
-                      ? `R$ ${parseFloat(cupom.valor_minimo).toFixed(2)}`
+                      ? `R$ ${Number(cupom.valor_minimo).toFixed(2)}`
                       : 'Sem mínimo'}
                   </td>
                   <td>
@@ -403,7 +423,7 @@ export default function AdminCuponsPage() {
                     min="0"
                     value={formData.valor_desconto}
                     onChange={(e) =>
-                      setFormData({ ...formData, valor_desconto: parseFloat(e.target.value) })
+                      setFormData({ ...formData, valor_desconto: parseNumberOrFallback(e.target.value) })
                     }
                     required
                     placeholder={formData.tipo_desconto === 'percentual' ? '10' : '50.00'}
@@ -418,9 +438,9 @@ export default function AdminCuponsPage() {
                     type="number"
                     step="0.01"
                     min="0"
-                    value={formData.valor_minimo}
+                    value={displayZeroAsEmpty(formData.valor_minimo)}
                     onChange={(e) =>
-                      setFormData({ ...formData, valor_minimo: parseFloat(e.target.value) || 0 })
+                      setFormData({ ...formData, valor_minimo: parseNumberOrFallback(e.target.value) })
                     }
                     placeholder="0.00"
                   />
@@ -441,9 +461,9 @@ export default function AdminCuponsPage() {
                 <input
                   type="number"
                   min="0"
-                  value={formData.usos_maximos}
+                  value={displayZeroAsEmpty(formData.usos_maximos)}
                   onChange={(e) =>
-                    setFormData({ ...formData, usos_maximos: parseInt(e.target.value) || 0 })
+                    setFormData({ ...formData, usos_maximos: parseIntOrFallback(e.target.value) })
                   }
                   placeholder="0 = Ilimitado"
                 />

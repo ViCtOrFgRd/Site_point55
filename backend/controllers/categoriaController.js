@@ -1,5 +1,14 @@
 const { pool } = require('../config/database');
 
+const gerarSlug = (valor) => String(valor || '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .replace(/[^a-z0-9\s-]/g, '')
+  .trim()
+  .replace(/\s+/g, '-')
+  .replace(/-+/g, '-');
+
 // GET /api/categorias/admin - Listar todas as categorias (admin)
 const listarCategoriasAdmin = async (req, res) => {
   try {
@@ -157,10 +166,13 @@ const listarProdutosPorCategoria = async (req, res) => {
 // POST /api/categorias - Criar nova categoria (admin)
 const criarCategoria = async (req, res) => {
   try {
-    const { nome, slug, imagem, ordem, ativa = true } = req.body;
+    const { nome, slug, slogan, imagem, ordem, ativa = true } = req.body;
+    const nomeLimpo = String(nome || '').trim();
+    const slugRecebido = String(slug || slogan || '').trim();
+    const slugFinal = slugRecebido || gerarSlug(nomeLimpo);
 
     // Validação básica
-    if (!nome || !slug) {
+    if (!nomeLimpo || !slugFinal) {
       return res.status(400).json({
         success: false,
         error: 'Nome e slug são obrigatórios',
@@ -170,7 +182,7 @@ const criarCategoria = async (req, res) => {
     // Verificar se slug já existe
     const slugExiste = await pool.query(
       'SELECT id FROM categorias WHERE slug = $1',
-      [slug]
+      [slugFinal]
     );
 
     if (slugExiste.rows.length > 0) {
@@ -184,7 +196,7 @@ const criarCategoria = async (req, res) => {
       `INSERT INTO categorias (nome, slug, imagem, ordem, ativa)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [nome, slug, imagem, ordem || 0, ativa]
+      [nomeLimpo, slugFinal, imagem, ordem || 0, ativa]
     );
 
     res.status(201).json({

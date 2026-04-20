@@ -1,7 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect } from 'react';
 import { X, Loader } from 'lucide-react';
+import { IMaskInput } from 'react-imask';
 import { useNotification } from '@/hooks/useNotification';
 import styles from './AddressForm.module.scss';
 
@@ -40,19 +43,16 @@ export default function AddressForm({ address, onSubmit, onCancel, isEdit = fals
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const RUA_MAX = 255;
+  const NUMERO_MAX = 10;
+  const COMPLEMENTO_MAX = 100;
+  const BAIRRO_MAX = 100;
+  const CIDADE_MAX = 100;
+
   const handleCepChange = (value: string) => {
-    // Remove tudo que não é número
-    const apenasNumeros = value.replace(/\D/g, '');
-    
-    // Limita a 8 dígitos
-    const cepLimitado = apenasNumeros.slice(0, 8);
-    
-    // Formata como 00000-000
-    let cepFormatado = cepLimitado;
-    if (cepLimitado.length > 5) {
-      cepFormatado = `${cepLimitado.slice(0, 5)}-${cepLimitado.slice(5)}`;
-    }
-    
+    const cepFormatado = String(value);
+    const apenasNumeros = cepFormatado.replace(/\D/g, '').slice(0, 8);
+
     setFormData(prev => ({ ...prev, cep: cepFormatado }));
     
     // Busca automática quando completar 8 dígitos
@@ -148,14 +148,15 @@ export default function AddressForm({ address, onSubmit, onCancel, isEdit = fals
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.row}>
             <div className={styles.field}>
-              <label>CEP *</label>
+              <label>CEP (8 dígitos) *</label>
               <div className={styles.cepInput}>
-                <input
-                  type="text"
+                <IMaskInput
+                  mask="00000-000"
                   value={formData.cep}
-                  onChange={(e) => handleCepChange(e.target.value)}
+                  onAccept={(value) => handleCepChange(String(value))}
                   placeholder="00000-000"
                   maxLength={9}
+                  inputMode="numeric"
                   className={errors.cep ? styles.error : ''}
                 />
                 {buscandoCep && <Loader className={styles.spinner} />}
@@ -166,12 +167,13 @@ export default function AddressForm({ address, onSubmit, onCancel, isEdit = fals
           </div>
 
           <div className={styles.field}>
-            <label>Rua *</label>
+            <label>Rua (máx. 255 caracteres) *</label>
             <input
               type="text"
               value={formData.rua}
               onChange={(e) => setFormData({ ...formData, rua: e.target.value })}
               placeholder="Nome da rua"
+              maxLength={RUA_MAX}
               className={errors.rua ? styles.error : ''}
             />
             {errors.rua && <span className={styles.errorText}>{errors.rua}</span>}
@@ -179,35 +181,38 @@ export default function AddressForm({ address, onSubmit, onCancel, isEdit = fals
 
           <div className={styles.row}>
             <div className={styles.field}>
-              <label>Número *</label>
+              <label>Número (máx. 10 caracteres) *</label>
               <input
                 type="text"
                 value={formData.numero}
                 onChange={(e) => setFormData({ ...formData, numero: e.target.value })}
                 placeholder="123"
+                maxLength={NUMERO_MAX}
                 className={errors.numero ? styles.error : ''}
               />
               {errors.numero && <span className={styles.errorText}>{errors.numero}</span>}
             </div>
 
             <div className={styles.field}>
-              <label>Complemento</label>
+              <label>Complemento (máx. 100 caracteres)</label>
               <input
                 type="text"
                 value={formData.complemento}
                 onChange={(e) => setFormData({ ...formData, complemento: e.target.value })}
                 placeholder="Apto, Bloco, etc"
+                maxLength={COMPLEMENTO_MAX}
               />
             </div>
           </div>
 
           <div className={styles.field}>
-            <label>Bairro *</label>
+            <label>Bairro (máx. 100 caracteres) *</label>
             <input
               type="text"
               value={formData.bairro}
               onChange={(e) => setFormData({ ...formData, bairro: e.target.value })}
               placeholder="Nome do bairro"
+              maxLength={BAIRRO_MAX}
               className={errors.bairro ? styles.error : ''}
             />
             {errors.bairro && <span className={styles.errorText}>{errors.bairro}</span>}
@@ -215,25 +220,28 @@ export default function AddressForm({ address, onSubmit, onCancel, isEdit = fals
 
           <div className={styles.row}>
             <div className={styles.field}>
-              <label>Cidade *</label>
+              <label>Cidade (máx. 100 caracteres) *</label>
               <input
                 type="text"
                 value={formData.cidade}
                 onChange={(e) => setFormData({ ...formData, cidade: e.target.value })}
                 placeholder="Nome da cidade"
+                maxLength={CIDADE_MAX}
                 className={errors.cidade ? styles.error : ''}
               />
               {errors.cidade && <span className={styles.errorText}>{errors.cidade}</span>}
             </div>
 
             <div className={styles.field}>
-              <label>Estado *</label>
+              <label>Estado (UF com 2 letras) *</label>
               <input
                 type="text"
                 value={formData.estado}
                 onChange={(e) => setFormData({ ...formData, estado: e.target.value.toUpperCase() })}
                 placeholder="SP"
                 maxLength={2}
+                pattern="[A-Za-z]{2}"
+                title="Informe a UF com 2 letras, exemplo: SP"
                 className={errors.estado ? styles.error : ''}
               />
               {errors.estado && <span className={styles.errorText}>{errors.estado}</span>}

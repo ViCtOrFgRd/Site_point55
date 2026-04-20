@@ -449,8 +449,8 @@ FRONTEND_URL=http://localhost:3000
 BACKEND_URL=http://localhost:5000
 
 # Credenciais de Teste
-TEST_ADMIN_EMAIL=admin@point55.com
-TEST_ADMIN_PASSWORD=Admin123!
+TEST_ADMIN_EMAIL=victorfiigueiredo@gmail.com
+TEST_ADMIN_PASSWORD=victor123
 TEST_USER_EMAIL=teste@example.com
 TEST_USER_PASSWORD=Teste123!
 ```

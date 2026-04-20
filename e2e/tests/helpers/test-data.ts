@@ -8,8 +8,8 @@ export const testData = {
       senha: 'Teste123!',
     },
     admin: {
-      email: process.env.TEST_ADMIN_EMAIL || 'admin@point55.com',
-      senha: process.env.TEST_ADMIN_PASSWORD || 'Admin123!',
+      email: process.env.TEST_ADMIN_EMAIL || 'victorfiigueiredo@gmail.com',
+      senha: process.env.TEST_ADMIN_PASSWORD || 'victor123',
     },
     invalid: {
       email: 'email-invalido',

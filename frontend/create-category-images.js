@@ -1,14 +1,15 @@
-const fs = require('fs');
-const path = require('path');
+async function main() {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
 
-// Criar diretório se não existir
-const dir = path.join(__dirname, 'public', 'images', 'categories');
-if (!fs.existsSync(dir)) {
-  fs.mkdirSync(dir, { recursive: true });
-}
+  // Criar diretório se não existir
+  const dir = path.join(__dirname, 'public', 'images', 'categories');
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
 
-// Configurações das categorias
-const categories = [
+  // Configurações das categorias
+  const categories = [
   {
     slug: 'roupas-femininas',
     nome: 'Roupas Femininas',
@@ -59,8 +60,8 @@ const categories = [
   },
 ];
 
-// Criar SVG para cada categoria
-categories.forEach((category) => {
+  // Criar SVG para cada categoria
+  categories.forEach((category) => {
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -84,12 +85,13 @@ categories.forEach((category) => {
   </text>
 </svg>`;
 
-  const filename = path.join(dir, `${category.slug}.svg`);
-  fs.writeFileSync(filename, svg, 'utf8');
-  console.log(`✅ Criada: ${filename}`);
-});
+    const filename = path.join(dir, `${category.slug}.svg`);
+    fs.writeFileSync(filename, svg, 'utf8');
+    console.log(`✅ Criada: ${filename}`);
+  });
 
-console.log('✅ Todas as imagens de categorias foram criadas como SVG!');
+  console.log('✅ Todas as imagens de categorias foram criadas como SVG!');
+}
 
 // Função auxiliar para ajustar brilho da cor
 function adjustColorBrightness(color, percent) {
@@ -100,3 +102,8 @@ function adjustColorBrightness(color, percent) {
   const B = Math.max(0, Math.min(255, (num & 0x0000FF) + amt));
   return '#' + [R, G, B].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
 }
+
+main().catch((error) => {
+  console.error('❌ Erro ao criar imagens de categorias:', error);
+  process.exit(1);
+});

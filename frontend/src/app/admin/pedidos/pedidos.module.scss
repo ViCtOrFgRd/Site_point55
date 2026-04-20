@@ -4,7 +4,7 @@
   background: #f5f5f5;
 
   .container {
-    max-width: 1400px;
+    max-width: min(1880px, 96vw);
     margin: 0 auto;
     padding: 0 1rem;
   }
@@ -89,6 +89,38 @@
 
   .filters {
     margin-bottom: 2rem;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+
+    button {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 1rem;
+      font-weight: 500;
+
+      &.btnEdit {
+        background: #ffc107;
+        color: #212529;
+
+        &:hover {
+          background: #e0a800;
+        }
+      }
+
+      &.btnPrimary {
+        background: #007bff;
+        color: white;
+
+        &:hover {
+          background: #0056b3;
+        }
+      }
+    }
 
     .filterSelect {
       padding: 0.75rem 1rem;
@@ -108,24 +140,35 @@
   .tableContainer {
     background: white;
     border-radius: 8px;
-    overflow-x: auto;
+    overflow: hidden;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .tableHint {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin: -0.5rem 0 0.75rem;
   }
 
   .table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 800px;
+    table-layout: fixed;
 
     thead {
       background: #f8f9fa;
 
       th {
-        padding: 1rem;
+        padding: 0.85rem 0.75rem;
         text-align: left;
         font-weight: 600;
         color: #495057;
         border-bottom: 2px solid #dee2e6;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        vertical-align: top;
+        font-size: 0.88rem;
       }
     }
 
@@ -139,8 +182,12 @@
         }
 
         td {
-          padding: 1rem;
-          vertical-align: middle;
+          padding: 0.85rem 0.75rem;
+          vertical-align: top;
+          white-space: normal;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+          font-size: 0.88rem;
         }
       }
     }
@@ -187,17 +234,30 @@
 
     .textMuted {
       color: #6c757d;
-      font-size: 0.9rem;
+      font-size: 0.82rem;
+      line-height: 1.35;
+    }
+
+    .itemsSummary {
+      min-width: 0;
+      max-width: none;
+      white-space: pre-line;
+      line-height: 1.35;
+      font-size: 0.8rem;
+      color: #343a40;
     }
 
     .paymentMethod {
       font-weight: 500;
       color: #495057;
-      font-size: 0.9rem;
+      font-size: 0.82rem;
       padding: 0.25rem 0.5rem;
       background: #e9ecef;
       border-radius: 4px;
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      max-width: 100%;
+      white-space: normal;
     }
 
     .statusSelect {
@@ -205,8 +265,10 @@
       border: 1px solid #dee2e6;
       border-radius: 6px;
       background: #fff;
-      font-size: 0.85rem;
-      min-width: 140px;
+      font-size: 0.82rem;
+      min-width: 0;
+      width: 100%;
+      max-width: 100%;
 
       &:focus {
         outline: none;
@@ -215,20 +277,22 @@
     }
 
     .actions {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
+      display: grid;
+      gap: 0.4rem;
+      min-width: 0;
 
       button,
       a {
-        padding: 0.4rem 0.75rem;
+        padding: 0.45rem 0.65rem;
         border: none;
         border-radius: 4px;
         cursor: pointer;
         transition: all 0.2s;
         text-decoration: none;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         font-weight: 500;
+        width: 100%;
+        text-align: center;
 
         &.btnView {
           background: #17a2b8;
@@ -260,6 +324,33 @@
     }
   }
 
+  @media (max-width: 1600px) {
+    .table {
+      thead th,
+      tbody td {
+        padding: 0.75rem;
+        font-size: 0.9rem;
+      }
+    }
+  }
+
+  @media (max-width: 1280px) {
+    .container {
+      max-width: 100%;
+      padding: 0 0.75rem;
+    }
+
+    .table {
+      .actions {
+        button,
+        a {
+          padding: 0.35rem 0.65rem;
+          font-size: 0.8rem;
+        }
+      }
+    }
+  }
+
   .empty {
     padding: 3rem;
     text-align: center;
@@ -267,8 +358,199 @@
   }
 
   @media (max-width: 768px) {
+    .tableHint {
+      margin-top: 0;
+      font-size: 0.8rem;
+    }
+
+    .table {
+      thead th,
+      tbody td {
+        padding: 0.65rem 0.5rem;
+        font-size: 0.78rem;
+      }
+    }
+
     .stats {
       grid-template-columns: 1fr;
+    }
+  }
+
+  // Modal styles
+  .modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+  }
+
+  .modal {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    max-width: 500px;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #dee2e6;
+
+    h2 {
+      margin: 0;
+      font-size: 1.3rem;
+      color: #2c3e50;
+    }
+
+    .closeButton {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #6c757d;
+      transition: color 0.2s;
+
+      &:hover {
+        color: #2c3e50;
+      }
+    }
+  }
+
+  .modalBody {
+    padding: 1.5rem;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  .pedidoResumo {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+
+    p {
+      margin: 0.5rem 0;
+      font-size: 0.95rem;
+      color: #495057;
+
+      strong {
+        color: #2c3e50;
+      }
+    }
+  }
+
+  .formGroup {
+    margin-bottom: 1.5rem;
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: #2c3e50;
+      font-size: 0.95rem;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-family: inherit;
+      transition: border-color 0.2s;
+
+      &:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+      }
+
+      &:disabled {
+        background: #f8f9fa;
+        cursor: not-allowed;
+      }
+    }
+
+    input[type="text"] {
+      letter-spacing: 0.1em;
+      font-weight: 600;
+    }
+
+    small {
+      display: block;
+      margin-top: 0.35rem;
+      color: #6c757d;
+      font-size: 0.85rem;
+    }
+  }
+
+  .errorAlert {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 1.5rem;
+    border: 1px solid #f5c6cb;
+
+    strong {
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+  }
+
+  .modalFooter {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    padding: 1.5rem;
+    border-top: 1px solid #dee2e6;
+
+    button {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.95rem;
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      &.btnPrimary {
+        background: #007bff;
+        color: white;
+
+        &:hover:not(:disabled) {
+          background: #0056b3;
+        }
+      }
+
+      &.btnSecondary {
+        background: #6c757d;
+        color: white;
+
+        &:hover:not(:disabled) {
+          background: #5a6268;
+        }
+      }
     }
   }
 }

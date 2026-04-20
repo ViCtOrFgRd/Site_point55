@@ -1,11 +1,14 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 import { useRouter } from 'next/navigation';
 import { userService } from '@/services/api';
 import Link from 'next/link';
-import { FiArrowLeft, FiUsers, FiShield, FiSearch } from 'react-icons/fi';
+import { FiArrowLeft, FiUsers, FiShield, FiSearch, FiTrash2 } from 'react-icons/fi';
+import { confirmAction } from '@/utils/alerts';
 import styles from './usuarios.module.scss';
 
 interface Usuario {
@@ -18,6 +21,7 @@ interface Usuario {
 
 export default function AdminUsuariosPage() {
   const { user, loading: authLoading } = useAuth();
+  const toast = useToast();
   const router = useRouter();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +44,7 @@ export default function AdminUsuariosPage() {
     try {
       const response = await userService.getAll();
       if (response.success) {
-        setUsuarios(response.data || []);
+        setUsuarios(Array.isArray(response.data) ? response.data : []);
       }
     } catch (error) {
       console.error('Erro ao carregar usuários:', error);
@@ -50,18 +54,45 @@ export default function AdminUsuariosPage() {
   };
 
   const handleToggleAdmin = async (userId: number, currentStatus: boolean) => {
-    if (!confirm(`Tem certeza que deseja ${currentStatus ? 'remover' : 'conceder'} privilégios de admin?`)) {
+    const confirmed = await confirmAction(
+      currentStatus ? 'Remover privilégios de admin' : 'Conceder privilégios de admin',
+      `Tem certeza que deseja ${currentStatus ? 'remover' : 'conceder'} privilégios de admin?`,
+      'Confirmar'
+    );
+    if (!confirmed) {
       return;
     }
 
     try {
       const response = await userService.toggleAdmin(userId);
       if (response.success) {
-        alert('Permissões atualizadas com sucesso!');
+        toast.success('Permissões atualizadas com sucesso!');
         carregarUsuarios();
       }
     } catch (error: any) {
-      alert(error.message || 'Erro ao atualizar permissões');
+      toast.error(error.message || 'Erro ao atualizar permissões');
+    }
+  };
+
+  const handleDeleteUser = async (usuario: Usuario) => {
+    const confirmed = await confirmAction(
+      'Excluir usuário',
+      `Tem certeza que deseja excluir o usuário ${usuario.nome}? Esta ação não pode ser desfeita.`,
+      'Excluir'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const response = await userService.delete(usuario.id);
+      if (response.success) {
+        toast.success('Usuário excluído com sucesso!');
+        carregarUsuarios();
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao excluir usuário');
     }
   };
 
@@ -180,6 +211,17 @@ export default function AdminUsuariosPage() {
                         <FiShield />
                         {usuario.is_admin ? 'Remover Admin' : 'Tornar Admin'}
                       </button>
+
+                      {!usuario.is_admin && usuario.id !== user.id && (
+                        <button
+                          onClick={() => handleDeleteUser(usuario)}
+                          className={styles.btnDeleteUser}
+                          title="Excluir usuário"
+                        >
+                          <FiTrash2 />
+                          Excluir
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

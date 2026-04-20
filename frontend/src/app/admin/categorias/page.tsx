@@ -1,3 +1,5 @@
+/* eslint-disable @next/next/no-img-element */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,6 +9,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { categoryService } from '@/services/api';
 import Link from 'next/link';
 import { FiArrowLeft, FiPlus, FiEdit, FiTrash2, FiTag, FiImage } from 'react-icons/fi';
+import { confirmAction } from '@/utils/alerts';
 import styles from './categorias.module.scss';
 
 interface Categoria {
@@ -52,7 +55,7 @@ export default function AdminCategoriasPage() {
     try {
       const response = await categoryService.getAllAdmin();
       if (response.success) {
-        setCategorias(response.data || []);
+        setCategorias(Array.isArray(response.data) ? response.data : []);
       }
     } catch (error) {
       console.error('Erro ao carregar categorias:', error);
@@ -66,7 +69,7 @@ export default function AdminCategoriasPage() {
 
     try {
       setUploading(true);
-      const submitData = { ...formData };
+      const submitData: any = { ...formData };
 
       // Se houver imagem, não fazer upload aqui
       // O upload é feito separadamente via handleUploadImagem
@@ -166,7 +169,12 @@ export default function AdminCategoriasPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir esta categoria?')) {
+    const confirmed = await confirmAction(
+      'Excluir categoria',
+      'Tem certeza que deseja excluir esta categoria?',
+      'Excluir'
+    );
+    if (!confirmed) {
       return;
     }
 

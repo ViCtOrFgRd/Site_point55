@@ -1,4 +1,5 @@
 const { pool } = require('../config/database');
+const { notifyAllUsersPromotion } = require('../services/notificationService');
 
 // GET /api/promocoes - Listar promoções ativas
 const listarPromocoes = async (req, res) => {
@@ -174,6 +175,25 @@ const criarPromocao = async (req, res) => {
       message: 'Promoção criada com sucesso',
       data: result.rows[0],
     });
+
+    try {
+      const promocao = result.rows[0];
+      if (promocao.ativa) {
+        await notifyAllUsersPromotion({
+          tipoEvento: 'promocao_publicada',
+          titulo: 'Nova promocao',
+          mensagem: promocao.descricao || `Promocao ${promocao.nome} disponivel agora.`,
+          payload: {
+            promocao_id: promocao.id,
+            nome: promocao.nome,
+            data_inicio: promocao.data_inicio,
+            data_fim: promocao.data_fim,
+          },
+        });
+      }
+    } catch (notifyError) {
+      console.error('Erro ao notificar promocao:', notifyError);
+    }
   } catch (error) {
     console.error('Erro ao criar promoção:', error);
     res.status(500).json({
@@ -305,6 +325,25 @@ const togglePromocao = async (req, res) => {
       message: `Promoção ${result.rows[0].ativa ? 'ativada' : 'desativada'} com sucesso`,
       data: result.rows[0],
     });
+
+    try {
+      const promocao = result.rows[0];
+      if (promocao.ativa) {
+        await notifyAllUsersPromotion({
+          tipoEvento: 'promocao_publicada',
+          titulo: 'Promocao ativada',
+          mensagem: promocao.descricao || `Promocao ${promocao.nome} esta ativa.`,
+          payload: {
+            promocao_id: promocao.id,
+            nome: promocao.nome,
+            data_inicio: promocao.data_inicio,
+            data_fim: promocao.data_fim,
+          },
+        });
+      }
+    } catch (notifyError) {
+      console.error('Erro ao notificar promocao:', notifyError);
+    }
   } catch (error) {
     console.error('Erro ao ativar/desativar promoção:', error);
     res.status(500).json({

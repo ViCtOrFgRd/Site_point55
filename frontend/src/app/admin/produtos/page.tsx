@@ -1,3 +1,5 @@
+/* eslint-disable @next/next/no-img-element */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,6 +10,7 @@ import { Product } from '@/types';
 import Link from 'next/link';
 import { Plus, Edit, Trash2, Eye, Package, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
+import { confirmAction } from '@/utils/alerts';
 import styles from './produtos.module.scss';
 
 export default function AdminProdutosPage() {
@@ -18,6 +21,7 @@ export default function AdminProdutosPage() {
   const [busca, setBusca] = useState('');
   const [categoriaFiltro, setCategoriaFiltro] = useState('');
   const [categorias, setCategorias] = useState<any[]>([]);
+  const [mostrarInativos, setMostrarInativos] = useState(false);
 
   useEffect(() => {
     if (!authLoading && (!user || !user.is_admin)) {
@@ -40,11 +44,11 @@ export default function AdminProdutosPage() {
       ]);
 
       if (produtosRes.success) {
-        setProducts(produtosRes.data || []);
+        setProducts(Array.isArray(produtosRes.data) ? produtosRes.data : []);
       }
 
       if (categoriasRes.success) {
-        setCategorias(categoriasRes.data || []);
+        setCategorias(Array.isArray(categoriasRes.data) ? categoriasRes.data : []);
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -55,15 +59,33 @@ export default function AdminProdutosPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir este produto?')) {
+    const confirmed = await confirmAction(
+      'Excluir produto',
+      'Tem certeza que deseja excluir este produto?',
+      'Excluir'
+    );
+    if (!confirmed) {
       return;
     }
 
     try {
       const response = await productService.delete(id);
       if (response.success) {
-        toast.success('✨ Produto excluído com sucesso!');
-        carregarDados();
+        toast.success(response.message || 'Operação realizada com sucesso!');
+
+        const hardDeleted = Boolean((response.data as { hardDeleted?: boolean } | undefined)?.hardDeleted);
+
+        setProducts((prev) => {
+          if (hardDeleted) {
+            return prev.filter((produto) => produto.id !== id);
+          }
+
+          return prev.map((produto) => (produto.id === id ? { ...produto, ativo: false } : produto));
+        });
+
+        if (!hardDeleted) {
+          carregarDados();
+        }
       }
     } catch (error: any) {
       toast.error(error.message || 'Erro ao excluir produto');
@@ -76,7 +98,8 @@ export default function AdminProdutosPage() {
     const matchCategoria = !categoriaFiltro
       || (Array.isArray(p.categoria_ids) && p.categoria_ids.includes(categoriaId))
       || p.categoria_id?.toString() === categoriaFiltro;
-    return matchBusca && matchCategoria;
+    const matchAtivo = mostrarInativos ? true : p.ativo;
+    return matchBusca && matchCategoria && matchAtivo;
   });
 
   if (authLoading || loading) {
@@ -126,6 +149,14 @@ export default function AdminProdutosPage() {
               </option>
             ))}
           </select>
+          <label className={styles.filterToggle}>
+            <input
+              type="checkbox"
+              checked={mostrarInativos}
+              onChange={(e) => setMostrarInativos(e.target.checked)}
+            />
+            Mostrar inativos
+          </label>
         </div>
 
         <div className={styles.stats}>
@@ -133,7 +164,7 @@ export default function AdminProdutosPage() {
             <Package size={24} />
             <div>
               <p>Total de Produtos</p>
-              <h3>{products.length}</h3>
+              <h3>{mostrarInativos ? products.length : products.filter((p) => p.ativo).length}</h3>
             </div>
           </div>
           <div className={styles.statCard}>
@@ -178,7 +209,7 @@ export default function AdminProdutosPage() {
                     </div>
                   </td>
                   <td>{Array.isArray(produto.categoria_nomes) ? produto.categoria_nomes[0] : produto.categoria_nome || '-'}</td>
-                  <td>R$ {typeof produto.preco === 'number' ? produto.preco.toFixed(2) : parseFloat(produto.preco || 0).toFixed(2)}</td>
+                  <td>R$ {Number(produto.preco || 0).toFixed(2)}</td>
                   <td>{produto.parcelas_maximas ? `${produto.parcelas_maximas}x` : '3x'}</td>
                   <td>
                     <span

@@ -1,9 +1,23 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { IMaskInput } from 'react-imask';
 import { useAuth } from '@/contexts/AuthContext';
+import {
+  NOME_MAX,
+  EMAIL_MAX,
+  CPF_MAX,
+  TELEFONE_MAX,
+  SENHA_MIN,
+  SENHA_MAX,
+  CPF_PATTERN,
+  TELEFONE_PATTERN,
+  registrationFormSchema,
+  getValidationMessage,
+} from '@/utils/registroValidation';
 import styles from './registro.module.scss';
 
 export default function RegistroPage() {
@@ -15,23 +29,33 @@ export default function RegistroPage() {
     password: '',
     confirmPassword: '',
     cpf: '',
-    telefone: ''
+    telefone: '',
+    data_nascimento: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const dispatchPhoneMask = (appended: string, dynamicMasked: any) => {
+    const nextDigits = `${dynamicMasked.value}${appended}`.replace(/\D/g, '');
+    return dynamicMasked.compiledMasks[nextDigits.length > 10 ? 1 : 0];
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    // Validações básicas
-    if (formData.password !== formData.confirmPassword) {
-      setError('As senhas não coincidem');
-      return;
-    }
+    const parsed = registrationFormSchema.safeParse({
+      nome: formData.nome,
+      email: formData.email,
+      senha: formData.password,
+      confirmPassword: formData.confirmPassword,
+      cpf: formData.cpf,
+      telefone: formData.telefone,
+      data_nascimento: formData.data_nascimento,
+    });
 
-    if (formData.password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres');
+    if (!parsed.success) {
+      setError(getValidationMessage(parsed.error));
       return;
     }
 
@@ -40,11 +64,12 @@ export default function RegistroPage() {
     try {
       // Usar o método register do AuthContext
       await register({
-        nome: formData.nome,
-        email: formData.email,
-        senha: formData.password,
-        cpf: formData.cpf,
-        telefone: formData.telefone
+        nome: parsed.data.nome,
+        email: parsed.data.email,
+        senha: parsed.data.senha,
+        cpf: parsed.data.cpf,
+        telefone: parsed.data.telefone,
+        data_nascimento: parsed.data.data_nascimento
       });
 
       // Redirecionar para página inicial
@@ -76,7 +101,7 @@ export default function RegistroPage() {
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.formGroup}>
-            <label htmlFor="nome">Nome completo</label>
+            <label htmlFor="nome">Nome completo (máx. 255 caracteres)</label>
             <input
               type="text"
               id="nome"
@@ -86,11 +111,12 @@ export default function RegistroPage() {
               required
               placeholder="Seu nome completo"
               disabled={loading}
+              maxLength={NOME_MAX}
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label htmlFor="email">E-mail</label>
+            <label htmlFor="email">E-mail (máx. 255 caracteres)</label>
             <input
               type="email"
               id="email"
@@ -100,41 +126,60 @@ export default function RegistroPage() {
               required
               placeholder="seu@email.com"
               disabled={loading}
+              maxLength={EMAIL_MAX}
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label htmlFor="cpf">CPF</label>
-            <input
-              type="text"
+            <label htmlFor="cpf">CPF (11 números)</label>
+            <IMaskInput
               id="cpf"
               name="cpf"
+              mask="000.000.000-00"
               value={formData.cpf}
-              onChange={handleChange}
-              required
+              onAccept={(value) => setFormData((prev) => ({ ...prev, cpf: String(value) }))}
               placeholder="000.000.000-00"
               disabled={loading}
-              maxLength={14}
+              required
+              maxLength={CPF_MAX}
+              pattern={CPF_PATTERN}
+              title="Use apenas números, pontos, hífen e espaços"
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label htmlFor="telefone">Telefone</label>
-            <input
-              type="tel"
+            <label htmlFor="telefone">Telefone (10 a 11 números)</label>
+            <IMaskInput
               id="telefone"
               name="telefone"
+              mask={['(00) 0000-0000', '(00) 00000-0000']}
+              dispatch={dispatchPhoneMask}
               value={formData.telefone}
-              onChange={handleChange}
-              required
+              onAccept={(value) => setFormData((prev) => ({ ...prev, telefone: String(value) }))}
               placeholder="(00) 00000-0000"
               disabled={loading}
-              maxLength={15}
+              required
+              maxLength={TELEFONE_MAX}
+              pattern={TELEFONE_PATTERN}
+              title="Use apenas números, +, (), hífen e espaços"
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label htmlFor="password">Senha</label>
+            <label htmlFor="data_nascimento">Data de nascimento (obrigatória)</label>
+            <input
+              type="date"
+              id="data_nascimento"
+              name="data_nascimento"
+              value={formData.data_nascimento}
+              onChange={handleChange}
+              required
+              disabled={loading}
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label htmlFor="password">Senha (mín. 6 e máx. 255 caracteres)</label>
             <input
               type="password"
               id="password"
@@ -144,12 +189,13 @@ export default function RegistroPage() {
               required
               placeholder="Mínimo 6 caracteres"
               disabled={loading}
-              minLength={6}
+              minLength={SENHA_MIN}
+              maxLength={SENHA_MAX}
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label htmlFor="confirmPassword">Confirmar senha</label>
+            <label htmlFor="confirmPassword">Confirmar senha (mín. 6 e máx. 255 caracteres)</label>
             <input
               type="password"
               id="confirmPassword"
@@ -159,6 +205,8 @@ export default function RegistroPage() {
               required
               placeholder="Digite a senha novamente"
               disabled={loading}
+              minLength={SENHA_MIN}
+              maxLength={SENHA_MAX}
             />
           </div>
 

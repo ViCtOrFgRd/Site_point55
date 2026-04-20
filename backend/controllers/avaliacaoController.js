@@ -1,4 +1,5 @@
 const { pool } = require('../config/database');
+const { notifyAdmins } = require('../services/notificationService');
 
 // POST /api/produtos/:id/avaliacoes - Criar avaliação
 const criarAvaliacao = async (req, res) => {
@@ -78,6 +79,29 @@ const criarAvaliacao = async (req, res) => {
       message: 'Avaliação criada com sucesso',
       data: result.rows[0],
     });
+
+    try {
+      const usuarioResult = await pool.query(
+        'SELECT nome FROM usuarios WHERE id = $1',
+        [userId]
+      );
+      const nomeUsuario = usuarioResult.rows[0]?.nome || `ID ${userId}`;
+
+      await notifyAdmins({
+        tipoEvento: 'avaliacao_nova',
+        titulo: 'Nova avaliacao',
+        mensagem: `Produto #${produtoId} recebeu nova avaliacao de ${nomeUsuario}.`,
+        payload: {
+          produto_id: Number.parseInt(produtoId, 10),
+          usuario_id: userId,
+          usuario_nome: nomeUsuario,
+          avaliacao_id: result.rows[0].id,
+          nota,
+        },
+      });
+    } catch (notifyError) {
+      console.error('Erro ao notificar admins:', notifyError);
+    }
   } catch (error) {
     console.error('Erro ao criar avaliação:', error);
     res.status(500).json({

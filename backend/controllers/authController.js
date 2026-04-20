@@ -2,7 +2,20 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { pool } = require('../config/database');
-const { enviarEmailRecuperacaoSenha, enviarEmailBoasVindas } = require('../services/emailService');
+const {
+  enviarEmailRecuperacaoSenha,
+  enviarEmailBoasVindas,
+  enviarEmailCodigoConfirmacaoCpf,
+} = require('../services/emailService');
+const {
+  ensureCpfUpdateTable,
+  gerarCodigoCpf,
+  hashCodigoCpf,
+  salvarCpfConfirmacao,
+  obterCpfConfirmacao,
+  incrementarTentativasCpf,
+  removerCpfConfirmacao,
+} = require('../services/cpfUpdateService');
 
 // Gerar token JWT
 const gerarToken = (usuario) => {
@@ -37,6 +50,32 @@ const isCpfValido = (cpfDigits) => {
 
   return digito1 === parseInt(cpfDigits[9], 10) && digito2 === parseInt(cpfDigits[10], 10);
 };
+
+const hashRecoveryToken = (token) =>
+  crypto.createHash('sha256').update(token).digest('hex');
+
+const normalizeCpf = (cpf) => (typeof cpf === 'string' ? cpf.replace(/\D/g, '') : '');
+
+const formatCpf = (cpf) => {
+  const digits = normalizeCpf(cpf).slice(0, 11);
+  if (!digits) return '';
+  return digits
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+};
+
+const isCpfEditavel = (cpf) => {
+  const cpfNormalizado = normalizeCpf(cpf);
+  if (!cpfNormalizado) return true;
+  return !isCpfValido(cpfNormalizado);
+};
+
+const serializeUsuario = (usuario) => ({
+  ...usuario,
+  cpf_valido: Boolean(usuario.cpf) && isCpfValido(normalizeCpf(usuario.cpf)),
+  cpf_pode_editar: isCpfEditavel(usuario.cpf),
+});
 
 // POST /api/auth/registro - Registrar novo usuário
 const registrar = async (req, res) => {
@@ -216,6 +255,8 @@ const login = async (req, res) => {
           nome: usuario.nome,
           email: usuario.email,
           telefone: usuario.telefone,
+          cpf: usuario.cpf,
+          data_nascimento: usuario.data_nascimento,
           is_admin: usuario.is_admin,
         },
         token,
@@ -234,6 +275,7 @@ const login = async (req, res) => {
 const obterPerfil = async (req, res) => {
   try {
     const userId = req.usuario.id;
+    await ensureCpfUpdateTable(pool);
 
     const result = await pool.query(
       `SELECT id, nome, email, telefone, cpf, data_nascimento, data_cadastro, is_admin
@@ -258,7 +300,7 @@ const obterPerfil = async (req, res) => {
     res.json({
       success: true,
       data: {
-        ...result.rows[0],
+        ...serializeUsuario(result.rows[0]),
         enderecos: enderecosResult.rows,
       },
     });
@@ -276,6 +318,24 @@ const atualizarPerfil = async (req, res) => {
   try {
     const userId = req.usuario.id;
     const { nome, telefone, data_nascimento } = req.body;
+    const telefoneSanitizado = typeof telefone === 'string' ? telefone.trim() : telefone;
+
+    if (telefoneSanitizado !== undefined) {
+      const telefoneNormalizado = String(telefoneSanitizado).replace(/\D/g, '');
+      if (telefoneNormalizado.length < 10 || telefoneNormalizado.length > 11) {
+        return res.status(400).json({
+          success: false,
+          error: 'Telefone inválido',
+        });
+      }
+    }
+
+    if (data_nascimento && Number.isNaN(Date.parse(data_nascimento))) {
+      return res.status(400).json({
+        success: false,
+        error: 'Data de nascimento inválida',
+      });
+    }
 
     const result = await pool.query(
       `UPDATE usuarios
@@ -283,8 +343,8 @@ const atualizarPerfil = async (req, res) => {
            telefone = COALESCE($2, telefone),
            data_nascimento = COALESCE($3, data_nascimento)
        WHERE id = $4 AND ativo = true
-       RETURNING id, nome, email, telefone, cpf, data_nascimento, is_admin`,
-      [nome, telefone, data_nascimento, userId]
+       RETURNING id, nome, email, telefone, cpf, data_nascimento, data_cadastro, ativo, is_admin`,
+      [nome, telefoneSanitizado, data_nascimento, userId]
     );
 
     if (result.rows.length === 0) {
@@ -297,13 +357,196 @@ const atualizarPerfil = async (req, res) => {
     res.json({
       success: true,
       message: 'Perfil atualizado com sucesso',
-      data: result.rows[0],
+      data: serializeUsuario(result.rows[0]),
     });
   } catch (error) {
     console.error('Erro ao atualizar perfil:', error);
     res.status(500).json({
       success: false,
       error: 'Erro ao atualizar perfil',
+    });
+  }
+};
+
+const solicitarCodigoAlteracaoCpf = async (req, res) => {
+  try {
+    const userId = req.usuario.id;
+    const cpfNormalizado = normalizeCpf(req.body?.cpf);
+    await ensureCpfUpdateTable(pool);
+
+    if (!cpfNormalizado || cpfNormalizado.length !== 11 || !isCpfValido(cpfNormalizado)) {
+      return res.status(400).json({
+        success: false,
+        error: 'CPF inválido',
+      });
+    }
+
+    const usuarioResult = await pool.query(
+      'SELECT id, nome, email, cpf FROM usuarios WHERE id = $1 AND ativo = true',
+      [userId]
+    );
+
+    if (usuarioResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Usuário não encontrado',
+      });
+    }
+
+    const usuario = usuarioResult.rows[0];
+
+    if (!isCpfEditavel(usuario.cpf)) {
+      return res.status(400).json({
+        success: false,
+        error: 'O CPF atual já está válido e não pode ser alterado por este fluxo',
+      });
+    }
+
+    const cpfExiste = await pool.query(
+      'SELECT id FROM usuarios WHERE cpf = $1 AND id <> $2 LIMIT 1',
+      [cpfNormalizado, userId]
+    );
+
+    if (cpfExiste.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'CPF já cadastrado',
+      });
+    }
+
+    const codigo = gerarCodigoCpf();
+    const expiraEm = new Date(Date.now() + 5 * 60 * 1000);
+
+    await salvarCpfConfirmacao(pool, userId, cpfNormalizado, codigo, expiraEm);
+    await enviarEmailCodigoConfirmacaoCpf(usuario.email, {
+      nome: usuario.nome,
+      codigo,
+      cpf_formatado: formatCpf(cpfNormalizado),
+      expira_em: expiraEm,
+    });
+
+    res.json({
+      success: true,
+      message: 'Código de confirmação enviado para o seu email',
+      data: {
+        cpf: cpfNormalizado,
+        expira_em: expiraEm.toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error('Erro ao solicitar código de alteração de CPF:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao solicitar código de confirmação',
+    });
+  }
+};
+
+const confirmarAlteracaoCpf = async (req, res) => {
+  try {
+    const userId = req.usuario.id;
+    const cpfNormalizado = normalizeCpf(req.body?.cpf);
+    const codigo = String(req.body?.codigo || '').trim();
+    await ensureCpfUpdateTable(pool);
+
+    if (!cpfNormalizado || !codigo) {
+      return res.status(400).json({
+        success: false,
+        error: 'CPF e código são obrigatórios',
+      });
+    }
+
+    const usuarioResult = await pool.query(
+      'SELECT id, cpf FROM usuarios WHERE id = $1 AND ativo = true',
+      [userId]
+    );
+
+    if (usuarioResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Usuário não encontrado',
+      });
+    }
+
+    const usuario = usuarioResult.rows[0];
+    if (!isCpfEditavel(usuario.cpf)) {
+      return res.status(400).json({
+        success: false,
+        error: 'O CPF atual já está válido e não pode ser alterado por este fluxo',
+      });
+    }
+
+    const confirmacao = await obterCpfConfirmacao(pool, userId);
+    if (!confirmacao) {
+      return res.status(400).json({
+        success: false,
+        error: 'Nenhuma solicitação de alteração de CPF encontrada',
+      });
+    }
+
+    if (confirmacao.cpf_pendente !== cpfNormalizado) {
+      return res.status(400).json({
+        success: false,
+        error: 'O CPF informado não corresponde ao CPF pendente de confirmação',
+      });
+    }
+
+    if (new Date(confirmacao.expira_em).getTime() < Date.now()) {
+      await removerCpfConfirmacao(pool, userId);
+      return res.status(400).json({
+        success: false,
+        error: 'Código expirado. Solicite um novo código',
+      });
+    }
+
+    if (confirmacao.tentativas >= 5) {
+      await removerCpfConfirmacao(pool, userId);
+      return res.status(400).json({
+        success: false,
+        error: 'Limite de tentativas excedido. Solicite um novo código',
+      });
+    }
+
+    if (hashCodigoCpf(codigo) !== confirmacao.codigo_hash) {
+      await incrementarTentativasCpf(pool, userId);
+      return res.status(400).json({
+        success: false,
+        error: 'Código inválido',
+      });
+    }
+
+    const cpfExiste = await pool.query(
+      'SELECT id FROM usuarios WHERE cpf = $1 AND id <> $2 LIMIT 1',
+      [cpfNormalizado, userId]
+    );
+
+    if (cpfExiste.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'CPF já cadastrado',
+      });
+    }
+
+    const updateResult = await pool.query(
+      `UPDATE usuarios
+       SET cpf = $1
+       WHERE id = $2 AND ativo = true
+       RETURNING id, nome, email, telefone, cpf, data_nascimento, data_cadastro, is_admin`,
+      [cpfNormalizado, userId]
+    );
+
+    await removerCpfConfirmacao(pool, userId);
+
+    res.json({
+      success: true,
+      message: 'CPF atualizado com sucesso',
+      data: serializeUsuario(updateResult.rows[0]),
+    });
+  } catch (error) {
+    console.error('Erro ao confirmar alteração de CPF:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao confirmar alteração de CPF',
     });
   }
 };
@@ -398,6 +641,7 @@ const solicitarRecuperacaoSenha = async (req, res) => {
 
     // Gerar token de recuperação
     const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = hashRecoveryToken(token);
     const expiracao = new Date(Date.now() + 3600000); // 1 hora
 
     // Salvar token no banco
@@ -406,7 +650,7 @@ const solicitarRecuperacaoSenha = async (req, res) => {
        VALUES ($1, $2, $3)
        ON CONFLICT (usuario_id) 
        DO UPDATE SET token = $2, expira_em = $3, criado_em = NOW()`,
-      [usuario.id, token, expiracao]
+      [usuario.id, tokenHash, expiracao]
     );
 
     // Enviar email
@@ -443,10 +687,11 @@ const redefinirSenha = async (req, res) => {
     }
 
     // Verificar token
+    const tokenHash = hashRecoveryToken(token);
     const result = await pool.query(
       `SELECT usuario_id FROM tokens_recuperacao_senha
        WHERE token = $1 AND expira_em > NOW() AND usado = false`,
-      [token]
+      [tokenHash]
     );
 
     if (result.rows.length === 0) {
@@ -471,7 +716,7 @@ const redefinirSenha = async (req, res) => {
     // Marcar token como usado
     await pool.query(
       'UPDATE tokens_recuperacao_senha SET usado = true WHERE token = $1',
-      [token]
+      [tokenHash]
     );
 
     res.json({
@@ -492,6 +737,8 @@ module.exports = {
   login,
   obterPerfil,
   atualizarPerfil,
+  solicitarCodigoAlteracaoCpf,
+  confirmarAlteracaoCpf,
   alterarSenha,
   solicitarRecuperacaoSenha,
   redefinirSenha,

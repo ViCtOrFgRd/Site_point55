@@ -1,7 +1,10 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { returnService } from '@/services/api';
@@ -14,11 +17,15 @@ const IMAGE_BASE_URL = API_URL.replace('/api', '');
 
 export default function AdminDevolucoesPage() {
   const { user, loading: authLoading } = useAuth();
+  const toast = useToast();
   const router = useRouter();
   const [devolucoes, setDevolucoes] = useState<Devolucao[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState('');
   const [statusDrafts, setStatusDrafts] = useState<Record<number, string>>({});
+  const [decisaoDrafts, setDecisaoDrafts] = useState<Record<number, string>>({});
+  const [instrucoesDrafts, setInstrucoesDrafts] = useState<Record<number, string>>({});
+  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
 
   const statusOptions = [
     { value: 'solicitado', label: 'Solicitado' },
@@ -26,6 +33,7 @@ export default function AdminDevolucoesPage() {
     { value: 'aprovado', label: 'Aprovado' },
     { value: 'recusado', label: 'Recusado' },
     { value: 'recorre', label: 'Recorreu' },
+    { value: 'concluido', label: 'Concluido' },
   ];
 
   useEffect(() => {
@@ -42,10 +50,21 @@ export default function AdminDevolucoesPage() {
 
   useEffect(() => {
     const drafts: Record<number, string> = {};
+    const decisao: Record<number, string> = {};
+    const instrucoes: Record<number, string> = {};
+    const expanded: Record<number, boolean> = {};
     devolucoes.forEach((devolucao) => {
       drafts[devolucao.id] = devolucao.status;
+      decisao[devolucao.id] = devolucao.admin_decisao || '';
+      instrucoes[devolucao.id] = devolucao.admin_instrucoes || '';
+      if (devolucao.justificativa_recorrencia || devolucao.observacoes || devolucao.admin_instrucoes) {
+        expanded[devolucao.id] = true;
+      }
     });
     setStatusDrafts(drafts);
+    setDecisaoDrafts(decisao);
+    setInstrucoesDrafts(instrucoes);
+    setExpandedRows(expanded);
   }, [devolucoes]);
 
   const carregarDevolucoes = async () => {
@@ -54,7 +73,7 @@ export default function AdminDevolucoesPage() {
       const params = filtroStatus ? { status: filtroStatus } : {};
       const response = await returnService.getAll(params);
       if (response.success) {
-        setDevolucoes(response.data || []);
+        setDevolucoes((Array.isArray(response.data) ? response.data : []) as Devolucao[]);
       }
     } catch (error) {
       console.error('Erro ao carregar devolucoes:', error);
@@ -66,8 +85,8 @@ export default function AdminDevolucoesPage() {
   const handleAtualizarStatus = async (devolucaoId: number, novoStatus: string) => {
     if (!novoStatus) return;
 
-    const adminDecisao = prompt('Resumo da decisao (opcional):') || '';
-    const adminInstrucoes = prompt('Instrucoes para o cliente (opcional):') || '';
+    const adminDecisao = decisaoDrafts[devolucaoId] || '';
+    const adminInstrucoes = instrucoesDrafts[devolucaoId] || '';
 
     try {
       const response = await returnService.updateStatus(
@@ -77,11 +96,11 @@ export default function AdminDevolucoesPage() {
         adminInstrucoes
       );
       if (response.success) {
-        alert('Status atualizado com sucesso!');
+        toast.success('Status atualizado com sucesso!');
         carregarDevolucoes();
       }
     } catch (error: any) {
-      alert(error.message || 'Erro ao atualizar status');
+      toast.error(error.message || 'Erro ao atualizar status');
     }
   };
 
@@ -89,6 +108,27 @@ export default function AdminDevolucoesPage() {
     setStatusDrafts((prev) => ({
       ...prev,
       [devolucaoId]: value,
+    }));
+  };
+
+  const handleDecisaoChange = (devolucaoId: number, value: string) => {
+    setDecisaoDrafts((prev) => ({
+      ...prev,
+      [devolucaoId]: value,
+    }));
+  };
+
+  const handleInstrucoesChange = (devolucaoId: number, value: string) => {
+    setInstrucoesDrafts((prev) => ({
+      ...prev,
+      [devolucaoId]: value,
+    }));
+  };
+
+  const toggleExpanded = (devolucaoId: number) => {
+    setExpandedRows((prev) => ({
+      ...prev,
+      [devolucaoId]: !prev[devolucaoId],
     }));
   };
 
@@ -164,6 +204,7 @@ export default function AdminDevolucoesPage() {
             <option value="aprovado">Aprovado</option>
             <option value="recusado">Recusado</option>
             <option value="recorre">Recorreu</option>
+            <option value="concluido">Concluido</option>
           </select>
         </div>
 
@@ -175,8 +216,8 @@ export default function AdminDevolucoesPage() {
                 <th>Cliente</th>
                 <th>Pedido</th>
                 <th>Tipo</th>
-                <th>Motivo</th>
-                <th>Justificativa</th>
+                <th>Detalhes</th>
+                <th>Resposta Admin</th>
                 <th>Itens</th>
                 <th>Anexos</th>
                 <th>Status</th>
@@ -186,7 +227,8 @@ export default function AdminDevolucoesPage() {
             </thead>
             <tbody>
               {devolucoes.map((devolucao) => (
-                <tr key={devolucao.id}>
+                <Fragment key={devolucao.id}>
+                  <tr>
                   <td>#{devolucao.id}</td>
                   <td>{devolucao.usuario_nome || 'N/A'}</td>
                   <td>
@@ -195,8 +237,33 @@ export default function AdminDevolucoesPage() {
                     </Link>
                   </td>
                   <td>{devolucao.tipo}</td>
-                  <td className={styles.longText}>{devolucao.motivo}</td>
-                  <td className={styles.longText}>{devolucao.justificativa}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className={styles.detailsButton}
+                      onClick={() => toggleExpanded(devolucao.id)}
+                    >
+                      {expandedRows[devolucao.id] ? 'Ocultar' : 'Ver'} detalhes
+                    </button>
+                  </td>
+                  <td>
+                    <div className={styles.adminResponse}>
+                      <textarea
+                        className={styles.textArea}
+                        rows={2}
+                        placeholder="Resumo da decisao"
+                        value={decisaoDrafts[devolucao.id] || ''}
+                        onChange={(event) => handleDecisaoChange(devolucao.id, event.target.value)}
+                      />
+                      <textarea
+                        className={styles.textArea}
+                        rows={2}
+                        placeholder="Instrucoes para o cliente"
+                        value={instrucoesDrafts[devolucao.id] || ''}
+                        onChange={(event) => handleInstrucoesChange(devolucao.id, event.target.value)}
+                      />
+                    </div>
+                  </td>
                   <td>
                     {devolucao.itens && devolucao.itens.length > 0 ? (
                       <div className={styles.detailsList}>
@@ -261,7 +328,38 @@ export default function AdminDevolucoesPage() {
                       </button>
                     </div>
                   </td>
-                </tr>
+                  </tr>
+                  {expandedRows[devolucao.id] && (
+                    <tr className={styles.expandedRow}>
+                      <td colSpan={11}>
+                        <div className={styles.detailsPanel}>
+                          <div className={styles.detailsGrid}>
+                            <div>
+                              <div className={styles.detailsLabel}>Motivo</div>
+                              <div className={styles.detailsValue}>{devolucao.motivo}</div>
+                            </div>
+                            <div>
+                              <div className={styles.detailsLabel}>Justificativa</div>
+                              <div className={styles.detailsValue}>{devolucao.justificativa}</div>
+                            </div>
+                            {devolucao.observacoes && (
+                              <div>
+                                <div className={styles.detailsLabel}>Observacoes</div>
+                                <div className={styles.detailsValue}>{devolucao.observacoes}</div>
+                              </div>
+                            )}
+                            {devolucao.justificativa_recorrencia && (
+                              <div>
+                                <div className={styles.detailsLabel}>Recorrencia</div>
+                                <div className={styles.detailsValue}>{devolucao.justificativa_recorrencia}</div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
             </tbody>
           </table>

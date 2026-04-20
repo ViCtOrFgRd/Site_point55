@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -28,7 +29,7 @@ export default function DevolucoesPage() {
     try {
       const response = await returnService.getAll();
       if (response.success) {
-        setDevolucoes(response.data || []);
+        setDevolucoes(Array.isArray(response.data) ? response.data : []);
       }
     } catch (error) {
       console.error('Erro ao carregar devolucoes:', error);
@@ -40,6 +41,7 @@ export default function DevolucoesPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'aprovado':
+      case 'concluido':
         return <FiCheckCircle />;
       case 'recusado':
         return <FiX />;

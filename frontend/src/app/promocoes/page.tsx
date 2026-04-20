@@ -1,22 +1,28 @@
+/* eslint-disable @next/next/no-img-element, react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ProductGrid from '@/components/ProductGrid/ProductGrid';
 import Breadcrumbs from '@/components/Breadcrumbs/Breadcrumbs';
 import CountdownTimer from '@/components/CountdownTimer/CountdownTimer';
 import { Product } from '@/types';
 import { productService, bannerService } from '@/services/api';
-import { FiTrendingUp, FiZap } from 'react-icons/fi';
+import { FiZap } from 'react-icons/fi';
 import styles from './promocoes.module.scss';
 
-export default function PromocoesPage() {
+function PromocoesContent() {
   const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoriaSelecionada, setCategoriaSelecionada] = useState<string>('');
   const [banner, setBanner] = useState<any>(null);
   const [loadingBanner, setLoadingBanner] = useState(true);
+
+  const desativarBannerAtual = () => {
+    setBanner(null);
+  };
 
   useEffect(() => {
     // Obter categoria dos parâmetros de URL
@@ -29,10 +35,28 @@ export default function PromocoesPage() {
   const carregarBanner = async () => {
     try {
       const response = await bannerService.getAll(true);
-      if (response.success && response.data && response.data.length > 0) {
+      const bannersData: any[] = Array.isArray(response.data) ? response.data : [];
+      if (response.success && bannersData.length > 0) {
         // Pegar o primeiro banner ativo
-        setBanner(response.data[0]);
+        const primeiroBanner = bannersData[0];
+        const expirado = primeiroBanner?.data_fim
+          ? (() => {
+              const fim = new Date(primeiroBanner.data_fim);
+              fim.setHours(23, 59, 59, 999);
+              return fim.getTime() < Date.now();
+            })()
+          : false;
+
+        if (expirado) {
+          desativarBannerAtual();
+          return;
+        }
+
+        setBanner(primeiroBanner);
+        return;
       }
+
+      setBanner(null);
     } catch (error) {
       console.error('Erro ao carregar banner:', error);
     } finally {
@@ -59,7 +83,7 @@ export default function PromocoesPage() {
 
       const response = await productService.getPromocoes(params);
       if (response.success && response.data) {
-        setProducts(response.data);
+        setProducts(Array.isArray(response.data) ? response.data : []);
       } else {
         setProducts([]);
       }
@@ -98,8 +122,8 @@ export default function PromocoesPage() {
             </div>
             {banner.data_fim && (
               <div className={styles.countdown}>
-                <p>Promoção termina em:</p>
-                <CountdownTimer endDate={banner.data_fim} />
+                <p>Oferta termina em:</p>
+                <CountdownTimer endDate={banner.data_fim} onExpire={desativarBannerAtual} />
               </div>
             )}
             {banner.link_botao && banner.texto_botao && (
@@ -112,64 +136,28 @@ export default function PromocoesPage() {
           </div>
         )}
         
-        {/* Banner padrão caso não haja banner configurado */}
-        {!loadingBanner && !banner && (
-          <div className={styles.promoBanner}>
-            <div className={styles.bannerContent}>
-              <div className={styles.bannerIcon}>
-                <FiZap />
-              </div>
-              <div>
-                <h1>MEGA BAZAR</h1>
-                <p>Até 70% OFF em peças selecionadas</p>
-              </div>
-            </div>
-            <div className={styles.countdown}>
-              <p>Promoção termina em:</p>
-              <CountdownTimer endDate="2026-02-15T23:59:59" />
-            </div>
-          </div>
-        )}
-
-        {/* Destaques */}
-        <div className={styles.highlights}>
-          <div className={styles.highlightCard}>
-            <FiTrendingUp />
-            <h3>Mais Vendidos</h3>
-            <p>Os produtos que todo mundo quer</p>
-          </div>
-          <div className={styles.highlightCard}>
-            <FiZap />
-            <h3>Ofertas Relâmpago</h3>
-            <p>Descontos especiais por tempo limitado</p>
-          </div>
-          <div className={styles.highlightCard}>
-            <FiTrendingUp />
-            <h3>Últimas Unidades</h3>
-            <p>Aproveite enquanto há estoque</p>
-          </div>
-        </div>
-
         {/* Seção de Produtos */}
         <section className={styles.productsSection}>
           <div className={styles.sectionHeader}>
             <h2>
               {categoriaSelecionada 
-                ? `Promoções - ${categoriaSelecionada.charAt(0).toUpperCase() + categoriaSelecionada.slice(1)}`
-                : 'Produtos em Promoção'
+                ? `Ofertas - ${categoriaSelecionada.charAt(0).toUpperCase() + categoriaSelecionada.slice(1)}`
+                : 'Ofertas em Promoção'
               }
             </h2>
             <p>{products.length} produtos com desconto</p>
           </div>
           <ProductGrid products={products} loading={loading} />
         </section>
-
-        {/* Banner Informativo */}
-        <div className={styles.infoBanner}>
-          <h3>🎉 Cupom de Desconto</h3>
-          <p>Use o cupom <strong>PRIMEIRACOMPRA</strong> e ganhe mais 5% OFF</p>
-        </div>
       </div>
     </div>
+  );
+}
+
+export default function PromocoesPage() {
+  return (
+    <Suspense fallback={<div className={styles.page}><div className={styles.container}>Carregando promoções...</div></div>}>
+      <PromocoesContent />
+    </Suspense>
   );
 }

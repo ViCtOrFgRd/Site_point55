@@ -133,4 +133,68 @@ router.patch('/:id/admin', authenticate, isAdmin, async (req, res) => {
   }
 });
 
+/**
+ * DELETE /api/usuarios/:id
+ * Deletar usuário comum (apenas admin)
+ */
+router.delete('/:id', authenticate, isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = parseInt(id, 10);
+
+    if (Number.isNaN(userId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'ID de usuário inválido',
+      });
+    }
+
+    if (userId === req.usuario.id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Você não pode excluir sua própria conta',
+      });
+    }
+
+    const result = await pool.query(
+      'SELECT id, nome, email, is_admin FROM usuarios WHERE id = $1',
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Usuário não encontrado',
+      });
+    }
+
+    const usuario = result.rows[0];
+
+    if (usuario.is_admin) {
+      return res.status(403).json({
+        success: false,
+        error: 'Não é permitido excluir um usuário administrador',
+      });
+    }
+
+    await pool.query('DELETE FROM usuarios WHERE id = $1', [userId]);
+
+    return res.json({
+      success: true,
+      message: `Usuário ${usuario.nome} removido com sucesso`,
+      data: {
+        id: usuario.id,
+        nome: usuario.nome,
+        email: usuario.email,
+      },
+    });
+  } catch (error) {
+    console.error('Erro ao deletar usuário:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro ao deletar usuário',
+    });
+  }
+});
+
 module.exports = router;

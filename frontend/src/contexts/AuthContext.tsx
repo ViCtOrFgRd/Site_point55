@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -10,6 +11,7 @@ interface AuthContextType {
   login: (email: string, senha: string) => Promise<void>;
   logout: () => void;
   register: (data: any) => Promise<void>;
+  updateUser: (nextUser: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,8 +43,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const cachedUser = JSON.parse(userStr);
           setUser(cachedUser);
+
+          // Se o cache já possui campos essenciais, evita chamada extra
+          if (cachedUser?.cpf) {
+            setLoading(false);
+            return;
+          }
+
+          // Cache legado sem CPF: complementar dados via perfil
+          try {
+            const response = await authService.getProfile();
+            if (response.success && response.data) {
+              setUser(response.data as User);
+              localStorage.setItem('user', JSON.stringify(response.data));
+            }
+          } catch (profileError) {
+            console.error('Erro ao complementar perfil a partir do cache:', profileError);
+          }
+
           setLoading(false);
-          return; // Retornar imediatamente sem chamar API
+          return;
         } catch (e) {
           console.error('Erro ao parsear user do localStorage:', e);
         }
@@ -75,10 +95,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, senha: string) => {
     const response = await authService.login(email, senha);
     if (response.success && response.data) {
-      const { token, usuario } = response.data;
+      const authData: any = response.data;
+      const { token, usuario } = authData;
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(usuario));
-      setUser(usuario);
+
+      // Garante dados completos (ex.: CPF) já na primeira renderização pós-login
+      let usuarioCompleto = usuario;
+      if (!usuario?.cpf) {
+        try {
+          const profileResponse = await authService.getProfile();
+          if (profileResponse.success && profileResponse.data) {
+            usuarioCompleto = profileResponse.data;
+          }
+        } catch (profileError) {
+          console.error('Erro ao carregar perfil completo após login:', profileError);
+        }
+      }
+
+      localStorage.setItem('user', JSON.stringify(usuarioCompleto));
+      setUser(usuarioCompleto);
     } else {
       throw new Error(response.message || 'Erro ao fazer login');
     }
@@ -93,7 +128,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (data: any) => {
     const response = await authService.register(data);
     if (response.success && response.data) {
-      const { token, usuario } = response.data;
+      const authData: any = response.data;
+      const { token, usuario } = authData;
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(usuario));
       setUser(usuario);
@@ -102,8 +138,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateUser = (nextUser: User) => {
+    localStorage.setItem('user', JSON.stringify(nextUser));
+    setUser(nextUser);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, register }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, register, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

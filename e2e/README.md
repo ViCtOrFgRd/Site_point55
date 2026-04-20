@@ -165,8 +165,8 @@ API_URL=http://localhost:5000
 # Credenciais de teste
 TEST_USER_EMAIL=teste@example.com
 TEST_USER_PASSWORD=Teste123!
-TEST_ADMIN_EMAIL=admin@point55.com
-TEST_ADMIN_PASSWORD=Admin123!
+TEST_ADMIN_EMAIL=victorfiigueiredo@gmail.com
+TEST_ADMIN_PASSWORD=victor123
 
 # OpenAI API (para agente de IA)
 OPENAI_API_KEY=sua-chave-api-aqui
@@ -192,7 +192,7 @@ Execute o script SQL para criar usuários de teste:
 ```sql
 -- Usuário admin
 INSERT INTO usuarios (nome, email, cpf, telefone, senha, is_admin)
-VALUES ('Admin Teste', 'admin@point55.com', '00000000000', '11999999999', '$hashed_password', true);
+VALUES ('Victor Figueiredo', 'victorfiigueiredo@gmail.com', '00000000000', '11999999999', '$hashed_password', true);
 ```
 
 ## 🏃 Execução

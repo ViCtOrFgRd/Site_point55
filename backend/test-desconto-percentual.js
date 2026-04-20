@@ -7,6 +7,7 @@
  * "sintaxe de entrada é inválida para tipo integer: "33.64"" funciona corretamente.
  */
 
+require('dotenv').config();
 const http = require('http');
 const https = require('https');
 
@@ -18,8 +19,8 @@ let testsFailed = 0;
 
 // Credentials padrão para teste (criar esse usuário antes!)
 const TEST_USER = {
-  email: 'admin@test.com',
-  senha: 'Senha123!'
+  email: process.env.TEST_ADMIN_EMAIL || 'admin@example.com',
+  senha: process.env.TEST_ADMIN_PASSWORD || 'password123',
 };
 
 // ==================== AUTENTICAÇÃO ====================

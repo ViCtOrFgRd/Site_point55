@@ -1,7 +1,8 @@
 const { pool } = require('../config/database');
+const { notifyAdmins, notifyUser } = require('../services/notificationService');
 
 const STATUS_ABERTOS = ['solicitado', 'em_analise', 'aprovado', 'recorre'];
-const STATUS_ADMIN = ['em_analise', 'aprovado', 'recusado'];
+const STATUS_ADMIN = ['em_analise', 'aprovado', 'recusado', 'concluido'];
 const TIPOS = ['troca', 'devolucao'];
 
 const parseItems = (value) => {
@@ -172,6 +173,13 @@ const criarDevolucao = async (req, res) => {
 
     const devolucao = devolucaoResult.rows[0];
 
+    await client.query(
+      `UPDATE pedidos
+       SET status = 'devolucao', data_atualizacao = NOW()
+       WHERE id = $1`,
+      [pedidoId]
+    );
+
     const itensPedidoResult = await client.query(
       `SELECT id, produto_id, quantidade, tamanho, cor
        FROM itens_pedido
@@ -243,6 +251,28 @@ const criarDevolucao = async (req, res) => {
     }
 
     await client.query('COMMIT');
+
+    try {
+      const usuarioResult = await pool.query(
+        'SELECT nome FROM usuarios WHERE id = $1',
+        [userId]
+      );
+      const nomeUsuario = usuarioResult.rows[0]?.nome || `ID ${userId}`;
+
+      await notifyAdmins({
+        tipoEvento: 'devolucao_nova',
+        titulo: 'Nova devolucao',
+        mensagem: `Devolucao #${devolucao.id} criada por ${nomeUsuario} para o pedido #${pedidoId}.`,
+        payload: {
+          devolucao_id: devolucao.id,
+          pedido_id: pedidoId,
+          usuario_id: userId,
+          usuario_nome: nomeUsuario,
+        },
+      });
+    } catch (notifyError) {
+      console.error('Erro ao notificar admins:', notifyError);
+    }
 
     res.status(201).json({
       success: true,
@@ -466,11 +496,53 @@ const atualizarStatus = async (req, res) => {
       });
     }
 
+    const devolucaoAtualizada = result.rows[0];
+
+    if (devolucaoAtualizada.pedido_id) {
+      let novoStatusPedido = null;
+
+      if (status === 'concluido') {
+        novoStatusPedido = 'devolvido';
+      } else if (status === 'recusado') {
+        novoStatusPedido = 'entregue';
+      } else if (status === 'em_analise' || status === 'aprovado') {
+        novoStatusPedido = 'devolucao';
+      }
+
+      if (novoStatusPedido) {
+        await pool.query(
+          `UPDATE pedidos
+           SET status = $1, data_atualizacao = NOW()
+           WHERE id = $2`,
+          [novoStatusPedido, devolucaoAtualizada.pedido_id]
+        );
+      }
+    }
+
     res.json({
       success: true,
       message: 'Status atualizado com sucesso',
-      data: result.rows[0],
+      data: devolucaoAtualizada,
     });
+
+    try {
+      if (devolucaoAtualizada.usuario_id) {
+        await notifyUser(devolucaoAtualizada.usuario_id, {
+          tipoEvento: 'devolucao_status',
+          titulo: 'Status da devolucao atualizado',
+          mensagem: `Sua devolucao #${devolucaoAtualizada.id} agora esta em '${devolucaoAtualizada.status}'.`,
+          payload: {
+            devolucao_id: devolucaoAtualizada.id,
+            pedido_id: devolucaoAtualizada.pedido_id,
+            status: devolucaoAtualizada.status,
+            admin_decisao: devolucaoAtualizada.admin_decisao,
+            admin_instrucoes: devolucaoAtualizada.admin_instrucoes,
+          },
+        });
+      }
+    } catch (notifyError) {
+      console.error('Erro ao notificar usuario:', notifyError);
+    }
   } catch (error) {
     console.error('Erro ao atualizar status da devolucao:', error);
     res.status(500).json({
@@ -541,6 +613,27 @@ const recorrerDevolucao = async (req, res) => {
       message: 'Recorrencia enviada com sucesso',
       data: result.rows[0],
     });
+
+    try {
+      const usuarioResult = await pool.query(
+        'SELECT nome FROM usuarios WHERE id = $1',
+        [userId]
+      );
+      const nomeUsuario = usuarioResult.rows[0]?.nome || `ID ${userId}`;
+
+      await notifyAdmins({
+        tipoEvento: 'devolucao_recorre',
+        titulo: 'Recorrencia de devolucao',
+        mensagem: `Devolucao #${result.rows[0].id} recebeu recorrencia de ${nomeUsuario}.`,
+        payload: {
+          devolucao_id: result.rows[0].id,
+          usuario_id: userId,
+          usuario_nome: nomeUsuario,
+        },
+      });
+    } catch (notifyError) {
+      console.error('Erro ao notificar admins:', notifyError);
+    }
   } catch (error) {
     console.error('Erro ao recorrer devolucao:', error);
     res.status(500).json({

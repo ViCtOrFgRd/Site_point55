@@ -4,7 +4,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Product } from '@/types';
 import { toNumber, formatPrice } from '@/utils/formatPrice';
-import { getColorVariationStyle } from '@/utils/colorMapping';
+import { extractColorOptions, getColorVariationStyle } from '@/utils/colorMapping';
+import { sanitizeText } from '@/utils/textSanitizer';
 import CategoryBadges from '@/components/CategoryBadges/CategoryBadges';
 import styles from './ProductCard.module.scss';
 
@@ -23,18 +24,11 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   const parcelasMaximas = product.parcelas_maximas ? Number(product.parcelas_maximas) : 3;
   const parcelas = parcelasMaximas > 0 ? parcelasMaximas : 3;
-  const parcelamento = Math.floor(preco / parcelas);
+  const parcelamento = preco / parcelas;
   const precoComPix = product.preco_pix ? toNumber(product.preco_pix) : preco * 0.95;
-  const colorOptions = product.cores_disponiveis
-    ? Array.from(
-        new Map(
-          product.cores_disponiveis
-            .map((cor) => cor.trim())
-            .filter(Boolean)
-            .map((cor) => [cor.toLowerCase(), cor])
-        ).values()
-      )
-    : [];
+  const colorOptions = extractColorOptions(product.cores_disponiveis || []);
+  const nomeProduto = sanitizeText(product.nome);
+  const categorias = (product.categoria_nomes || []).map((categoria) => sanitizeText(categoria));
 
   return (
     <Link href={`/produtos/${product.id}`} className={styles.card}>
@@ -43,7 +37,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         {product.imagens && product.imagens.length > 0 ? (
           <Image
             src={product.imagens[0]}
-            alt={product.nome}
+            alt={nomeProduto}
             fill
             className={styles.image}
             sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
@@ -78,34 +72,52 @@ export default function ProductCard({ product }: ProductCardProps) {
       {/* Informações do Produto */}
       <div className={styles.info}>
         {/* Nome */}
-        <h3 className={styles.name}>{product.nome.toUpperCase()}</h3>
+        <div className={styles.nameBlock}>
+          <h3 className={styles.name}>{nomeProduto.toUpperCase()}</h3>
+        </div>
 
-        {/* Categorias */}
-        {product.categoria_nomes && product.categoria_nomes.length > 0 && (
-          <CategoryBadges categories={product.categoria_nomes} maxDisplay={3} size="small" />
-        )}
-
-        {/* Cores Disponíveis */}
-        {colorOptions.length > 0 && (
-          <div className={styles.colors}>
-            {colorOptions.slice(0, 5).map((cor, index) => (
-              <div
-                key={`${cor}-${index}`}
-                className={styles.colorDot}
-                style={getColorVariationStyle(cor)}
-                title={cor}
-              />
-            ))}
-            {colorOptions.length > 5 && (
-              <span className={styles.moreColors}>
-                +{colorOptions.length - 5}
-              </span>
+        {/* Perfume/Categoria */}
+        <div className={styles.perfumeBlock}>
+          <span className={styles.metaLabel}>Perfume</span>
+          <div className={styles.perfumeContent}>
+            {categorias.length > 0 ? (
+              <CategoryBadges categories={categorias} maxDisplay={2} size="small" />
+            ) : (
+              <span className={styles.metaValue}>Não informado</span>
             )}
           </div>
-        )}
+        </div>
+
+        {/* Cores Disponíveis */}
+        <div className={styles.colorsBlock}>
+          <span className={styles.metaLabel}>Cores</span>
+          <div className={styles.colors}>
+            {colorOptions.length > 0 ? (
+              <>
+                {colorOptions.slice(0, 5).map((cor, index) => (
+                  <div
+                    key={`${cor}-${index}`}
+                    className={styles.colorDot}
+                    style={getColorVariationStyle(cor)}
+                    title={cor}
+                  />
+                ))}
+                {colorOptions.length > 5 && (
+                  <span className={styles.moreColors}>
+                    +{colorOptions.length - 5}
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className={styles.metaValue}>Sem variações</span>
+            )}
+          </div>
+        </div>
 
         {/* Preços */}
-        <div className={styles.pricing}>
+        <div className={styles.pricingBlock}>
+          <span className={styles.metaLabel}>Valor</span>
+          <div className={styles.pricing}>
           {hasDiscount && (
             <span className={styles.originalPrice}>
               de R$ {formatPrice(precoOriginal)}
@@ -116,6 +128,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             <span className={styles.price}>
               R$ {formatPrice(preco)}
             </span>
+          </div>
           </div>
         </div>
 

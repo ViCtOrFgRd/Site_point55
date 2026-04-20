@@ -1,12 +1,15 @@
+/* eslint-disable @next/next/no-img-element, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useRouter } from 'next/navigation';
-import { productService, categoryService } from '@/services/api';
+import { productService, categoryService, tipoProdutoService } from '@/services/api';
 import Link from 'next/link';
 import { FiArrowLeft, FiSave } from 'react-icons/fi';
+import ColorInputWithSuggestions from '@/components/ColorInputWithSuggestions/ColorInputWithSuggestions';
 import styles from '../[id]/produto-form.module.scss';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
@@ -17,6 +20,7 @@ export default function NovoProdutoPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [categorias, setCategorias] = useState<any[]>([]);
+  const [tiposProduto, setTiposProduto] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -36,6 +40,10 @@ export default function NovoProdutoPage() {
     imagens: [] as string[],
     cores_disponiveis: [] as string[],
     tamanhos_disponiveis: [] as string[],
+    estoque_variantes: {} as Record<string, number>,
+    estoque_cores: {} as Record<string, number>,
+    estoque_tamanhos: {} as Record<string, number>,
+    tipo_produto_id: null as number | null,
     ativo: true,
   });
 
@@ -43,8 +51,41 @@ export default function NovoProdutoPage() {
 
   const [imagemInput, setImagemInput] = useState('');
   const [imagemTipo, setImagemTipo] = useState<'url' | 'upload'>('url');
-  const [corInput, setCorInput] = useState('');
   const [tamanhoInput, setTamanhoInput] = useState('');
+  const [percentualCorPredominante, setPercentualCorPredominante] = useState(68);
+  const estoqueCalculadoPorVariacoes = formData.tamanhos_disponiveis.length > 0 || formData.cores_disponiveis.length > 0;
+
+  const normalizeSize = (size: string) => size.trim().toUpperCase();
+  const normalizeColor = (color: string) => color.replace(/@\s*\d{1,3}\s*%?$/i, '').trim().toUpperCase();
+  const normalizeVariantKey = (size: string, color: string) => `${normalizeSize(size)}|${normalizeColor(color)}`;
+
+  const mapKeysByNormalizedValue = (items: string[], normalizer: (value: string) => string) =>
+    items.reduce((acc, item) => {
+      const key = normalizer(item);
+      if (key) acc[key] = item.trim();
+      return acc;
+    }, {} as Record<string, string>);
+
+  const somaEstoquePorTamanho = (mapa: Record<string, number>) =>
+    Object.values(mapa || {}).reduce((acc, qty) => acc + Number(qty || 0), 0);
+
+  const somaEstoquePorCor = (mapa: Record<string, number>) =>
+    Object.values(mapa || {}).reduce((acc, qty) => acc + Number(qty || 0), 0);
+
+  const somaEstoquePorVariacao = (mapa: Record<string, number>) =>
+    Object.values(mapa || {}).reduce((acc, qty) => acc + Number(qty || 0), 0);
+
+  const parseNumberOrFallback = (value: string, fallback = 0) => {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+
+  const parseIntOrFallback = (value: string, fallback = 0) => {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+
+  const displayZeroAsEmpty = (value: number) => (value === 0 ? '' : value);
 
   useEffect(() => {
     if (!authLoading && (!user || !user.is_admin)) {
@@ -55,6 +96,7 @@ export default function NovoProdutoPage() {
   useEffect(() => {
     if (user && user.is_admin) {
       carregarCategorias();
+      carregarTiposProduto();
     }
   }, [user]);
 
@@ -62,10 +104,21 @@ export default function NovoProdutoPage() {
     try {
       const response = await categoryService.getAllAdmin();
       if (response.success) {
-        setCategorias(response.data || []);
+        setCategorias(Array.isArray(response.data) ? response.data : []);
       }
     } catch (error) {
       console.error('Erro ao carregar categorias:', error);
+    }
+  };
+
+  const carregarTiposProduto = async () => {
+    try {
+      const response = await tipoProdutoService.getAll();
+      if (response.success) {
+        setTiposProduto(Array.isArray(response.data) ? response.data : []);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar tipos de produto:', error);
     }
   };
 
@@ -80,6 +133,43 @@ export default function NovoProdutoPage() {
     setLoading(true);
     try {
       const categoriaIds = formData.categoria_ids.map((id) => parseInt(id, 10)).filter((id) => !Number.isNaN(id));
+      const tamanhosNormalizados = formData.tamanhos_disponiveis.map(normalizeSize).filter(Boolean);
+      const coresNormalizadas = formData.cores_disponiveis.map(normalizeColor).filter(Boolean);
+
+      const estoqueTamanhosSanitizado = Object.entries(formData.estoque_tamanhos || {}).reduce((acc, [size, qty]) => {
+        const sizeKey = normalizeSize(size);
+        const qtyValue = Number.isFinite(Number(qty)) ? Math.max(0, Number(qty)) : 0;
+        if (sizeKey) acc[sizeKey] = qtyValue;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const totalEstoqueTamanhos = somaEstoquePorTamanho(estoqueTamanhosSanitizado);
+      const controlaPorTamanho = Object.keys(estoqueTamanhosSanitizado).length > 0;
+      const estoqueCoresSanitizado = Object.entries(formData.estoque_cores || {}).reduce((acc, [color, qty]) => {
+        const colorKey = normalizeColor(color);
+        const qtyValue = Number.isFinite(Number(qty)) ? Math.max(0, Number(qty)) : 0;
+        if (colorKey) acc[colorKey] = qtyValue;
+        return acc;
+      }, {} as Record<string, number>);
+      const estoqueVariantesSanitizado = Object.entries(formData.estoque_variantes || {}).reduce((acc, [variant, qty]) => {
+        const [sizeRaw = '', colorRaw = ''] = String(variant).split('|');
+        const sizeKey = normalizeSize(sizeRaw);
+        const colorKey = normalizeColor(colorRaw);
+        const qtyValue = Number.isFinite(Number(qty)) ? Math.max(0, Number(qty)) : 0;
+
+        if (!sizeKey || !colorKey) return acc;
+        if (tamanhosNormalizados.length > 0 && !tamanhosNormalizados.includes(sizeKey)) return acc;
+        if (coresNormalizadas.length > 0 && !coresNormalizadas.includes(colorKey)) return acc;
+
+        acc[normalizeVariantKey(sizeKey, colorKey)] = qtyValue;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const totalEstoqueCores = somaEstoquePorCor(estoqueCoresSanitizado);
+      const totalEstoqueVariacoes = somaEstoquePorVariacao(estoqueVariantesSanitizado);
+      const controlaPorVariacao = Object.keys(estoqueVariantesSanitizado).length > 0;
+      const controlaPorCor = !controlaPorVariacao && !controlaPorTamanho && Object.keys(estoqueCoresSanitizado).length > 0;
+
       const data = {
         ...formData,
         categoria_id: categoriaIds[0] || parseInt(formData.categoria_id, 10),
@@ -92,7 +182,16 @@ export default function NovoProdutoPage() {
         preco_original: parseFloat(formData.preco_original.toString()) || null,
         parcelas_maximas: parseInt(formData.parcelas_maximas.toString(), 10) || 3,
         desconto_percentual: parseFloat(formData.desconto_percentual.toString()) || 0,
-        estoque: parseInt(formData.estoque.toString()),
+        estoque: controlaPorVariacao
+          ? totalEstoqueVariacoes
+          : controlaPorTamanho
+          ? totalEstoqueTamanhos
+          : controlaPorCor
+            ? totalEstoqueCores
+            : parseInt(formData.estoque.toString()),
+        estoque_variantes: estoqueVariantesSanitizado,
+        estoque_tamanhos: estoqueTamanhosSanitizado,
+        estoque_cores: estoqueCoresSanitizado,
       };
 
       const response = await productService.create(data);
@@ -181,38 +280,119 @@ export default function NovoProdutoPage() {
     });
   };
 
-  const adicionarCor = () => {
-    if (corInput.trim() && !formData.cores_disponiveis.includes(corInput.trim())) {
+  const adicionarCor = (rawColor: string) => {
+    const baseColorLabel = rawColor.trim().toLowerCase().replace(/\\/g, '/');
+    const colorLabel = /[\\/]/.test(baseColorLabel)
+      ? `${baseColorLabel.replace(/@\s*\d{1,3}\s*%?$/i, '').trim()}@${percentualCorPredominante}`
+      : baseColorLabel;
+    const normalized = normalizeColor(colorLabel);
+    const normalizedExisting = new Set(formData.cores_disponiveis.map(normalizeColor));
+
+    if (normalized && !normalizedExisting.has(normalized)) {
       setFormData({
         ...formData,
-        cores_disponiveis: [...formData.cores_disponiveis, corInput.trim()],
+        cores_disponiveis: [...formData.cores_disponiveis, colorLabel],
+        estoque_cores: {
+          ...formData.estoque_cores,
+          [normalized]: Number(formData.estoque_cores[normalized] || 0),
+        },
       });
-      setCorInput('');
     }
   };
 
   const removerCor = (index: number) => {
+    const cor = formData.cores_disponiveis[index] || '';
+    const corKey = normalizeColor(cor);
+    const nextStockByColor = { ...formData.estoque_cores };
+    delete nextStockByColor[corKey];
+    const nextVariantStock = Object.entries(formData.estoque_variantes || {}).reduce((acc, [variant, qty]) => {
+      const [sizeRaw = '', colorRaw = ''] = String(variant).split('|');
+      if (normalizeColor(colorRaw) !== corKey) {
+        acc[variant] = qty;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
     setFormData({
       ...formData,
       cores_disponiveis: formData.cores_disponiveis.filter((_, i) => i !== index),
+      estoque_variantes: nextVariantStock,
+      estoque_cores: nextStockByColor,
     });
   };
 
   const adicionarTamanho = () => {
-    if (tamanhoInput.trim() && !formData.tamanhos_disponiveis.includes(tamanhoInput.trim())) {
+    const size = normalizeSize(tamanhoInput);
+    if (size && !formData.tamanhos_disponiveis.map(normalizeSize).includes(size)) {
       setFormData({
         ...formData,
-        tamanhos_disponiveis: [...formData.tamanhos_disponiveis, tamanhoInput.trim()],
+        tamanhos_disponiveis: [...formData.tamanhos_disponiveis, size],
+        estoque_tamanhos: {
+          ...formData.estoque_tamanhos,
+          [size]: Number(formData.estoque_tamanhos[size] || 0),
+        },
       });
       setTamanhoInput('');
     }
   };
 
   const removerTamanho = (index: number) => {
+    const size = normalizeSize(formData.tamanhos_disponiveis[index] || '');
+    const nextStockBySize = { ...formData.estoque_tamanhos };
+    delete nextStockBySize[size];
+    const nextVariantStock = Object.entries(formData.estoque_variantes || {}).reduce((acc, [variant, qty]) => {
+      const [sizeRaw = '', colorRaw = ''] = String(variant).split('|');
+      if (normalizeSize(sizeRaw) !== size) {
+        acc[variant] = qty;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
     setFormData({
       ...formData,
       tamanhos_disponiveis: formData.tamanhos_disponiveis.filter((_, i) => i !== index),
+      estoque_variantes: nextVariantStock,
+      estoque_tamanhos: nextStockBySize,
     });
+  };
+
+  const atualizarEstoquePorVariacao = (size: string, color: string, value: string) => {
+    const variantKey = normalizeVariantKey(size, color);
+    const quantidade = Number.parseInt(value, 10);
+
+    setFormData((prev) => ({
+      ...prev,
+      estoque_variantes: {
+        ...prev.estoque_variantes,
+        [variantKey]: Number.isFinite(quantidade) && quantidade > 0 ? quantidade : 0,
+      },
+    }));
+  };
+
+  const atualizarEstoquePorTamanho = (size: string, value: string) => {
+    const normalized = normalizeSize(size);
+    const quantidade = Number.parseInt(value, 10);
+
+    setFormData((prev) => ({
+      ...prev,
+      estoque_tamanhos: {
+        ...prev.estoque_tamanhos,
+        [normalized]: Number.isFinite(quantidade) && quantidade > 0 ? quantidade : 0,
+      },
+    }));
+  };
+
+  const atualizarEstoquePorCor = (color: string, value: string) => {
+    const normalized = normalizeColor(color);
+    const quantidade = Number.parseInt(value, 10);
+
+    setFormData((prev) => ({
+      ...prev,
+      estoque_cores: {
+        ...prev.estoque_cores,
+        [normalized]: Number.isFinite(quantidade) && quantidade > 0 ? quantidade : 0,
+      },
+    }));
   };
 
   const handleCreditoChange = (valor: number) => {
@@ -250,6 +430,55 @@ export default function NovoProdutoPage() {
       setFormData(prev => ({ ...prev, desconto_percentual: Math.round(desconto * 100) / 100 }));
     }
   }, [formData.preco, formData.preco_original]);
+
+  useEffect(() => {
+    const normalizedSizes = formData.tamanhos_disponiveis.map(normalizeSize).filter(Boolean);
+    const normalizedColorsMap = mapKeysByNormalizedValue(formData.cores_disponiveis, normalizeColor);
+    const normalizedColors = Object.keys(normalizedColorsMap);
+
+    const estoqueMapTamanhosFiltrado = normalizedSizes.reduce((acc, size) => {
+      acc[size] = Number(formData.estoque_tamanhos[size] || 0);
+      return acc;
+    }, {} as Record<string, number>);
+
+    const estoqueMapCoresFiltrado = normalizedColors.reduce((acc, colorKey) => {
+      acc[colorKey] = Number(formData.estoque_cores[colorKey] || 0);
+      return acc;
+    }, {} as Record<string, number>);
+
+    const estoqueMapVariacoesFiltrado = normalizedSizes.reduce((acc, sizeKey) => {
+      normalizedColors.forEach((colorKey) => {
+        const variantKey = normalizeVariantKey(sizeKey, colorKey);
+        acc[variantKey] = Number(formData.estoque_variantes[variantKey] || 0);
+      });
+      return acc;
+    }, {} as Record<string, number>);
+
+    const totalPorTamanho = somaEstoquePorTamanho(estoqueMapTamanhosFiltrado);
+    const totalPorCor = somaEstoquePorCor(estoqueMapCoresFiltrado);
+    const totalPorVariacao = somaEstoquePorVariacao(estoqueMapVariacoesFiltrado);
+    const totalCalculado = normalizedSizes.length > 0 && normalizedColors.length > 0
+      ? totalPorVariacao
+      : normalizedSizes.length > 0
+        ? totalPorTamanho
+        : normalizedColors.length > 0
+          ? totalPorCor
+          : formData.estoque;
+
+    const tamanhoMudou = JSON.stringify(estoqueMapTamanhosFiltrado) !== JSON.stringify(formData.estoque_tamanhos);
+    const corMudou = JSON.stringify(estoqueMapCoresFiltrado) !== JSON.stringify(formData.estoque_cores);
+    const variacaoMudou = JSON.stringify(estoqueMapVariacoesFiltrado) !== JSON.stringify(formData.estoque_variantes);
+
+    if (totalCalculado !== formData.estoque || tamanhoMudou || corMudou || variacaoMudou) {
+      setFormData((prev) => ({
+        ...prev,
+        estoque: totalCalculado,
+        estoque_tamanhos: estoqueMapTamanhosFiltrado,
+        estoque_cores: estoqueMapCoresFiltrado,
+        estoque_variantes: estoqueMapVariacoesFiltrado,
+      }));
+    }
+  }, [formData.tamanhos_disponiveis, formData.estoque_tamanhos, formData.cores_disponiveis, formData.estoque_cores, formData.estoque_variantes]);
 
   if (authLoading) {
     return (
@@ -324,6 +553,25 @@ export default function NovoProdutoPage() {
               </select>
               <small>Segure Ctrl (Windows) para selecionar mais de uma.</small>
             </div>
+
+            <div className={styles.formGroup}>
+              <label>Tipo de Produto (Configuração de Frete)</label>
+              <select
+                value={formData.tipo_produto_id || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  tipo_produto_id: e.target.value ? parseIntOrFallback(e.target.value, 0) : null
+                })}
+              >
+                <option value="">Usar configuração padrão (Fallback)</option>
+                {tiposProduto.map((tipo) => (
+                  <option key={tipo.id} value={tipo.id}>
+                    {tipo.nome} ({tipo.codigo})
+                  </option>
+                ))}
+              </select>
+              <small>Define como o produto será empacotado para cálculo de frete</small>
+            </div>
           </div>
 
           <div className={styles.formCard}>
@@ -337,8 +585,8 @@ export default function NovoProdutoPage() {
                   name="preco"
                   step="0.01"
                   min="0"
-                  value={formData.preco}
-                  onChange={(e) => setFormData({ ...formData, preco: parseFloat(e.target.value) })}
+                  value={displayZeroAsEmpty(formData.preco)}
+                  onChange={(e) => setFormData({ ...formData, preco: parseNumberOrFallback(e.target.value) })}
                   required
                   placeholder="0.00"
                 />
@@ -351,7 +599,7 @@ export default function NovoProdutoPage() {
                   step="0.01"
                   min="0"
                   value={formData.preco_original || ''}
-                  onChange={(e) => setFormData({ ...formData, preco_original: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => setFormData({ ...formData, preco_original: parseNumberOrFallback(e.target.value) })}
                   placeholder="0.00"
                 />
                 <small>Deixe em branco se não houver promoção</small>
@@ -391,7 +639,7 @@ export default function NovoProdutoPage() {
                   type="number"
                   min="1"
                   value={formData.parcelas_maximas}
-                  onChange={(e) => setFormData({ ...formData, parcelas_maximas: parseInt(e.target.value) || 1 })}
+                  onChange={(e) => setFormData({ ...formData, parcelas_maximas: parseIntOrFallback(e.target.value, 1) })}
                   placeholder="3"
                 />
               </div>
@@ -402,8 +650,8 @@ export default function NovoProdutoPage() {
                   type="number"
                   step="0.01"
                   min="0"
-                  value={formData.preco_pix}
-                  onChange={(e) => setFormData({ ...formData, preco_pix: parseFloat(e.target.value) })}
+                  value={displayZeroAsEmpty(formData.preco_pix)}
+                  onChange={(e) => setFormData({ ...formData, preco_pix: parseNumberOrFallback(e.target.value) })}
                   placeholder="0.00"
                 />
               </div>
@@ -414,8 +662,8 @@ export default function NovoProdutoPage() {
                   type="number"
                   step="0.01"
                   min="0"
-                  value={formData.preco_credito}
-                  onChange={(e) => handleCreditoChange(parseFloat(e.target.value))}
+                  value={displayZeroAsEmpty(formData.preco_credito)}
+                  onChange={(e) => handleCreditoChange(parseNumberOrFallback(e.target.value))}
                   placeholder="0.00"
                 />
               </div>
@@ -426,8 +674,8 @@ export default function NovoProdutoPage() {
                   type="number"
                   step="0.01"
                   min="0"
-                  value={formData.preco_debito}
-                  onChange={(e) => setFormData({ ...formData, preco_debito: parseFloat(e.target.value) })}
+                  value={displayZeroAsEmpty(formData.preco_debito)}
+                  onChange={(e) => setFormData({ ...formData, preco_debito: parseNumberOrFallback(e.target.value) })}
                   placeholder="0.00"
                   disabled={usarMesmoValorPagamentos}
                 />
@@ -439,8 +687,8 @@ export default function NovoProdutoPage() {
                   type="number"
                   step="0.01"
                   min="0"
-                  value={formData.preco_boleto}
-                  onChange={(e) => setFormData({ ...formData, preco_boleto: parseFloat(e.target.value) })}
+                  value={displayZeroAsEmpty(formData.preco_boleto)}
+                  onChange={(e) => setFormData({ ...formData, preco_boleto: parseNumberOrFallback(e.target.value) })}
                   placeholder="0.00"
                   disabled={usarMesmoValorPagamentos}
                 />
@@ -452,11 +700,18 @@ export default function NovoProdutoPage() {
               <input
                 type="number"
                 min="0"
-                value={formData.estoque}
-                onChange={(e) => setFormData({ ...formData, estoque: parseInt(e.target.value) })}
+                value={displayZeroAsEmpty(formData.estoque)}
+                onChange={(e) => setFormData({ ...formData, estoque: parseIntOrFallback(e.target.value) })}
                 required
                 placeholder="0"
+                disabled={estoqueCalculadoPorVariacoes}
+                readOnly={estoqueCalculadoPorVariacoes}
               />
+              {estoqueCalculadoPorVariacoes && (
+                <small>
+                  Estoque total calculado automaticamente por {formData.tamanhos_disponiveis.length > 0 && formData.cores_disponiveis.length > 0 ? 'variações (tamanho + cor)' : formData.tamanhos_disponiveis.length > 0 ? 'tamanhos' : 'cores'}.
+                </small>
+              )}
             </div>
           </div>
 
@@ -531,18 +786,25 @@ export default function NovoProdutoPage() {
             <h2>Variações</h2>
             
             <div className={styles.formGroup}>
-              <label>Cores Disponíveis</label>
-              <div className={styles.inputGroup}>
-                <input
-                  type="text"
-                  value={corInput}
-                  onChange={(e) => setCorInput(e.target.value)}
-                  placeholder="Ex: Preto, Branco, Azul"
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), adicionarCor())}
-                />
-                <button type="button" onClick={adicionarCor} className={styles.btnAdd}>
-                  Adicionar
-                </button>
+              <ColorInputWithSuggestions
+                label="Cores Disponíveis"
+                existingColors={formData.cores_disponiveis}
+                onAddColor={adicionarCor}
+              />
+
+              <div className={styles.formGroup}>
+                <label>porcentagem da primeira cor (para combinações com /)</label>
+                <select
+                  value={percentualCorPredominante}
+                  onChange={(e) => setPercentualCorPredominante(parseInt(e.target.value, 10) || 68)}
+                >
+                  {[50, 55, 60, 65, 68, 70, 75, 80, 85, 90].map((percentual) => (
+                    <option key={percentual} value={percentual}>
+                      {percentual}%
+                    </option>
+                  ))}
+                </select>
+                <small>exemplo: preto/laranja com 70% deixa preto predominante</small>
               </div>
 
               <div className={styles.tagsList}>
@@ -553,6 +815,27 @@ export default function NovoProdutoPage() {
                   </span>
                 ))}
               </div>
+
+              {formData.cores_disponiveis.length > 0 && formData.tamanhos_disponiveis.length === 0 && (
+                <div className={styles.sizeStockGrid}>
+                  {formData.cores_disponiveis.map((cor) => {
+                    const corKey = normalizeColor(cor);
+
+                    return (
+                      <div key={corKey} className={styles.sizeStockCard}>
+                        <strong>{cor}</strong>
+                        <label>Estoque disponível</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={displayZeroAsEmpty(Number(formData.estoque_cores[corKey] || 0))}
+                          onChange={(e) => atualizarEstoquePorCor(cor, e.target.value)}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div className={styles.formGroup}>
@@ -578,6 +861,53 @@ export default function NovoProdutoPage() {
                   </span>
                 ))}
               </div>
+
+              {formData.tamanhos_disponiveis.length > 0 && formData.cores_disponiveis.length === 0 && (
+                <div className={styles.sizeStockGrid}>
+                  {formData.tamanhos_disponiveis.map((size) => {
+                    const sizeKey = normalizeSize(size);
+
+                    return (
+                      <div key={sizeKey} className={styles.sizeStockCard}>
+                        <strong>{sizeKey}</strong>
+                        <label>Estoque disponível</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={displayZeroAsEmpty(Number(formData.estoque_tamanhos[sizeKey] || 0))}
+                          onChange={(e) => atualizarEstoquePorTamanho(sizeKey, e.target.value)}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {formData.tamanhos_disponiveis.length > 0 && formData.cores_disponiveis.length > 0 && (
+                <div className={styles.sizeStockGrid}>
+                  {formData.tamanhos_disponiveis.map((size) => {
+                    const sizeKey = normalizeSize(size);
+
+                    return formData.cores_disponiveis.map((color) => {
+                      const colorKey = normalizeColor(color);
+                      const variantKey = normalizeVariantKey(sizeKey, colorKey);
+
+                      return (
+                        <div key={variantKey} className={styles.sizeStockCard}>
+                          <strong>{sizeKey} / {color}</strong>
+                          <label>Estoque disponível</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={displayZeroAsEmpty(Number(formData.estoque_variantes[variantKey] || 0))}
+                            onChange={(e) => atualizarEstoquePorVariacao(sizeKey, colorKey, e.target.value)}
+                          />
+                        </div>
+                      );
+                    });
+                  })}
+                </div>
+              )}
             </div>
           </div>
 

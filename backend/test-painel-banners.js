@@ -1,6 +1,9 @@
+require('dotenv').config();
 const axios = require('axios');
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = process.env.API_URL || 'http://localhost:5000/api';
+const TEST_ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@example.com';
+const TEST_ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'password123';
 let token = '';
 
 // Cores para output
@@ -34,8 +37,8 @@ async function testarPainelBanners() {
     // 1. Login Admin
     log('1. Fazendo login como admin...', 'yellow');
     const loginResponse = await axios.post(`${API_URL}/auth/login`, {
-      email: 'admin@point55.com',
-      senha: 'admin123'
+      email: TEST_ADMIN_EMAIL,
+      senha: TEST_ADMIN_PASSWORD,
     });
 
     if (loginResponse.data && loginResponse.data.success) {

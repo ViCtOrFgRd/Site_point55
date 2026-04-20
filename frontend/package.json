@@ -7,7 +7,7 @@
     "dev:turbo": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint ."
   },
   "keywords": [
     "ecommerce",
@@ -24,14 +24,19 @@
     "react-bootstrap": "^2.10.10",
     "react-dom": "^19.2.4",
     "react-icons": "^5.5.0",
+    "react-imask": "^7.6.1",
     "sass": "^1.97.3",
+    "socket.io-client": "^4.8.1",
     "sonner": "^2.0.7",
-    "sweetalert2": "^11.26.18"
+    "sweetalert2": "^11.26.18",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^25.2.0",
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
+    "eslint": "^9.38.0",
+    "eslint-config-next": "^16.1.6",
     "typescript": "^5.9.3"
   }
 }

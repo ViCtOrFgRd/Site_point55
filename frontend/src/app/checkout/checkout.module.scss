@@ -133,9 +133,20 @@
   }
 }
 
+.addressActions {
+  display: flex;
+  gap: var(--space-1);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 .couponInput {
   display: flex;
   gap: var(--space-1);
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+  }
 
   input {
     flex: 1;
@@ -148,6 +159,10 @@
     &:focus {
       outline: none;
       border-color: #000;
+    }
+
+    @media (max-width: 480px) {
+      min-height: 44px;
     }
   }
 
@@ -163,6 +178,11 @@
 
     &:hover {
       background: #333;
+    }
+
+    @media (max-width: 480px) {
+      width: 100%;
+      min-height: 44px;
     }
   }
 }
@@ -248,8 +268,8 @@
   cursor: pointer;
 
   input[type="radio"] {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
   }
 
   &:has(input:checked) {
@@ -282,6 +302,72 @@
   border-top: 2px solid #e5e5e5;
   font-size: var(--text-large);
   font-weight: 700;
+}
+
+.installmentsBox {
+  margin-bottom: var(--space-2);
+  padding: 0.75rem;
+  border: 1px solid #e5e5e5;
+  border-radius: var(--radius-base);
+  background: #fafafa;
+}
+
+.installmentsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-1);
+
+  label {
+    font-size: var(--text-small);
+    font-weight: 600;
+    color: #333;
+  }
+
+  select {
+    padding: 0.45rem 0.6rem;
+    border: 1px solid #d1d5db;
+    border-radius: var(--radius-base);
+    font-size: var(--text-small);
+    background: #fff;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 768px) {
+  .section {
+    padding: var(--space-2);
+  }
+
+  .addressOption,
+  .paymentOption,
+  .shippingOption {
+    padding: 0.85rem;
+  }
+
+  .orderSummary {
+    position: static;
+  }
+}
+
+.installmentsValue {
+  margin: 0.5rem 0 0;
+  font-size: var(--text-small);
+  color: #111;
+  font-weight: 600;
+}
+
+.paymentPreview {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--text-small);
+  color: #444;
+  margin-bottom: var(--space-2);
+
+  strong {
+    color: #111;
+  }
 }
 
 .finalizeButton {

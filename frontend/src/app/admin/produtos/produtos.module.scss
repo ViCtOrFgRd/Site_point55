@@ -106,6 +106,23 @@
         border-color: #007bff;
       }
     }
+
+    .filterToggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      background: white;
+      font-size: 0.95rem;
+      color: #495057;
+
+      input {
+        width: 16px;
+        height: 16px;
+      }
+    }
   }
 
   .stats {

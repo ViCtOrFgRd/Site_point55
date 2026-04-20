@@ -1,7 +1,7 @@
-import axios, { AxiosResponse } from 'axios';
+import axios from 'axios';
 
 // Interface para padronizar respostas da API
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
@@ -9,6 +9,7 @@ export interface ApiResponse<T = any> {
   total?: number;
   pagina?: number;
   totalPaginas?: number;
+  nao_lidas?: number;
   token?: string;
   pagination?: {
     total: number;
@@ -49,7 +50,7 @@ api.interceptors.request.use(
 
 // Interceptor para tratamento de erros
 api.interceptors.response.use(
-  (response): any => {
+  (response) => {
     // Retorna os dados da API no padrão { success, data, message }
     return response.data || response;
   },
@@ -91,20 +92,20 @@ export const productService = {
   
   getById: (id: number): Promise<ApiResponse> => api.get(`/produtos/${id}`),
   
-  getByCategory: (categoryId: number, params?: any): Promise<ApiResponse> => 
+  getByCategory: (categoryId: number, params?: Record<string, unknown>): Promise<ApiResponse> => 
     api.get(`/categorias/${categoryId}/produtos`, { params }),
   
   // Produtos em promoção
-  getPromocoes: (params?: any): Promise<ApiResponse> => api.get('/produtos/promocoes', { params }),
+  getPromocoes: (params?: Record<string, unknown>): Promise<ApiResponse> => api.get('/produtos/promocoes', { params }),
   
   // Produtos em destaque (mais vendidos)
-  getDestaques: (params?: any): Promise<ApiResponse> => api.get('/produtos/destaques', { params }),
+  getDestaques: (params?: Record<string, unknown>): Promise<ApiResponse> => api.get('/produtos/destaques', { params }),
   
-  search: (query: string, params?: any): Promise<ApiResponse> => 
+  search: (query: string, params?: Record<string, unknown>): Promise<ApiResponse> => 
     api.get('/produtos', { params: { busca: query, ...params } }),
   
   // Admin: Criar produto
-  create: (data: any): Promise<ApiResponse> => api.post('/produtos', data),
+  create: (data: Record<string, unknown>): Promise<ApiResponse> => api.post('/produtos', data),
 
   // Admin: Listar produtos (completos)
   getAllAdmin: (params?: {
@@ -120,13 +121,13 @@ export const productService = {
   }): Promise<ApiResponse> => api.get('/produtos/admin', { params }),
   
   // Admin: Atualizar produto
-  update: (id: number, data: any): Promise<ApiResponse> => api.put(`/produtos/${id}`, data),
+  update: (id: number, data: Record<string, unknown>): Promise<ApiResponse> => api.put(`/produtos/${id}`, data),
   
   // Admin: Atualizar estoque
   updateStock: (id: number, quantidade: number): Promise<ApiResponse> => 
     api.patch(`/produtos/${id}/estoque`, { quantidade }),
   
-  // Admin: Deletar produto (soft delete)
+  // Admin: Deletar produto (desativa se ativo, remove se já inativo)
   delete: (id: number): Promise<ApiResponse> => api.delete(`/produtos/${id}`),
 };
 
@@ -137,8 +138,8 @@ export const categoryService = {
   getById: (id: number): Promise<ApiResponse> => api.get(`/categorias/${id}`),
   
   // Admin
-  create: (data: any): Promise<ApiResponse> => api.post('/categorias', data),
-  update: (id: number, data: any): Promise<ApiResponse> => api.put(`/categorias/${id}`, data),
+  create: (data: Record<string, unknown>): Promise<ApiResponse> => api.post('/categorias', data),
+  update: (id: number, data: Record<string, unknown>): Promise<ApiResponse> => api.put(`/categorias/${id}`, data),
   delete: (id: number): Promise<ApiResponse> => api.delete(`/categorias/${id}`),
 };
 
@@ -168,6 +169,12 @@ export const authService = {
     cpf?: string;
     data_nascimento?: string;
   }): Promise<ApiResponse> => api.put('/auth/perfil', data),
+
+  requestCpfChangeCode: (cpf: string): Promise<ApiResponse> =>
+    api.post('/auth/perfil/cpf/codigo', { cpf }),
+
+  confirmCpfChange: (cpf: string, codigo: string): Promise<ApiResponse> =>
+    api.post('/auth/perfil/cpf/confirmar', { cpf, codigo }),
   
   // Alterar senha
   changePassword: (senhaAtual: string, novaSenha: string): Promise<ApiResponse> => 
@@ -196,7 +203,7 @@ export const addressService = {
   }): Promise<ApiResponse> => api.post('/enderecos', data),
   
   // Atualizar endereço
-  update: (id: number, data: any): Promise<ApiResponse> => api.put(`/enderecos/${id}`, data),
+  update: (id: number, data: Record<string, unknown>): Promise<ApiResponse> => api.put(`/enderecos/${id}`, data),
   
   // Deletar endereço
   delete: (id: number): Promise<ApiResponse> => api.delete(`/enderecos/${id}`),
@@ -216,8 +223,12 @@ export const orderService = {
       cor?: string;
     }>;
     endereco_entrega_id: number;
-    forma_pagamento: 'cartao' | 'pix' | 'boleto';
+    forma_pagamento: 'cartao' | 'pix' | 'boleto' | 'local';
+    parcelas?: number;
     cupom_codigo?: string;
+    entrega_tipo?: 'entrega' | 'retirada_local';
+    frete_valor?: number;
+    pagamento_na_retirada?: boolean;
   }): Promise<ApiResponse> => api.post('/pedidos', data),
   
   // Listar pedidos do usuário
@@ -226,6 +237,9 @@ export const orderService = {
   
   // Obter pedido específico
   getById: (id: number): Promise<ApiResponse> => api.get(`/pedidos/${id}`),
+
+  // Atualizar QR Code PIX
+  refreshPix: (id: number): Promise<ApiResponse> => api.post(`/pedidos/${id}/pix/refresh`, {}),
   
   // Obter informações de rastreamento
   getTracking: (id: number): Promise<ApiResponse> => api.get(`/pedidos/${id}/rastreamento`),
@@ -241,11 +255,62 @@ export const orderService = {
   // Admin: Adicionar código de rastreio
   addTracking: (id: number, codigo_rastreio: string, url_rastreamento?: string): Promise<ApiResponse> => 
     api.put(`/pedidos/${id}/rastreio`, { codigo_rastreio, url_rastreamento }),
+
+  // SuperFrete: Criar etiqueta
+  createLabel: (id: number, data?: {
+    service?: number | string;
+    options?: Record<string, unknown>;
+    volume?: Record<string, unknown>;
+    volumes?: Record<string, unknown>;
+    products?: Array<Record<string, unknown>>;
+    invoice?: Record<string, unknown>;
+    payload?: Record<string, unknown>;
+  }): Promise<ApiResponse> => api.post(`/pedidos/${id}/etiqueta`, data || {}),
+
+  // SuperFrete: Finalizar etiqueta
+  payLabel: (id: number): Promise<ApiResponse> => api.post(`/pedidos/${id}/etiqueta/pagar`, {}),
+
+  // SuperFrete: Informacoes da etiqueta
+  getLabelInfo: (id: number): Promise<ApiResponse> => api.get(`/pedidos/${id}/etiqueta`),
+
+  // SuperFrete: Link de impressao
+  printLabel: (id: number): Promise<ApiResponse> => api.post(`/pedidos/${id}/etiqueta/print`, {}),
+
+  // SuperFrete: Cancelar etiqueta
+  cancelLabel: (id: number, motivo?: string, payload?: Record<string, unknown>): Promise<ApiResponse> =>
+    api.post(`/pedidos/${id}/etiqueta/cancelar`, { motivo, payload }),
+
+  // Admin: Listar retiradas locais
+  getRetiradasAdmin: (params?: {
+    status?: string;
+    cliente_id?: number;
+    data_inicio?: string;
+    data_fim?: string;
+    pagina?: number;
+    limite?: number;
+  }): Promise<ApiResponse> => api.get('/pedidos/admin/retiradas', { params }),
+
+  // Admin: Confirmar retirada
+  confirmarRetirada: (id: number, data: {
+    codigo: string;
+    nome_retirada: string;
+    observacao?: string;
+  }): Promise<ApiResponse> => api.post(`/pedidos/${id}/confirmar-retirada`, data),
+
+  // Admin: Historico de retirada
+  getRetiradaHistorico: (id: number): Promise<ApiResponse> => api.get(`/pedidos/admin/retiradas/${id}/historico`),
+
+  // Admin: Fila de reembolsos pendentes
+  getReembolsosAdmin: (): Promise<ApiResponse> => api.get('/pedidos/admin/reembolsos'),
+
+  // Admin: Processar reembolso manual no Asaas
+  processarReembolsoAdmin: (id: number, data?: { valor?: number; descricao?: string }): Promise<ApiResponse> =>
+    api.post(`/pedidos/${id}/reembolso`, data || {}),
 };
 
 // ==================== DEVOLUCOES ====================
 export const returnService = {
-  create: (data: any): Promise<ApiResponse> => {
+  create: (data: FormData | Record<string, unknown>): Promise<ApiResponse> => {
     const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
     return api.post('/devolucoes', data, isFormData ? {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -274,15 +339,21 @@ export const shippingService = {
     altura?: number;
     largura?: number;
     comprimento?: number;
-    payload?: any;
+    payload?: Record<string, unknown>;
+    itens?: Array<{ // Itens do carrinho para cálculo automático de volumes
+      produto_id: number;
+      quantidade: number;
+      tipo_produto_id?: number | null;
+    }>;
   }): Promise<ApiResponse> => api.post('/superfrete/calcular', data),
+  packagesInfo: (): Promise<ApiResponse> => api.get('/superfrete/pacotes'),
 };
 
 // ==================== AVALIAÇÕES ====================
 export const reviewService = {
   // Listar avaliações de um produto
   getByProduct: (productId: number, params?: {
-    ordenar?: 'recente' | 'maior_nota' | 'menor_nota';
+    ordem?: 'recente' | 'maior_nota' | 'menor_nota';
     pagina?: number;
     limite?: number;
   }): Promise<ApiResponse> => api.get(`/produtos/${productId}/avaliacoes`, { params }),
@@ -303,7 +374,7 @@ export const reviewService = {
 export const commentService = {
   // Listar comentários de um produto
   getByProduct: (productId: number, params?: {
-    ordenar?: 'recente' | 'mais_util';
+    ordem?: 'recente' | 'mais_uteis';
     pagina?: number;
     limite?: number;
   }): Promise<ApiResponse> => api.get(`/produtos/${productId}/comentarios`, { params }),
@@ -333,7 +404,7 @@ export const couponService = {
     usos_maximos?: number;
     ativo?: boolean;
   }): Promise<ApiResponse> => api.post('/cupons', data),
-  update: (id: number, data: any): Promise<ApiResponse> => api.put(`/cupons/${id}`, data),
+  update: (id: number, data: Record<string, unknown>): Promise<ApiResponse> => api.put(`/cupons/${id}`, data),
   delete: (id: number): Promise<ApiResponse> => api.delete(`/cupons/${id}`),
 };
 
@@ -348,6 +419,9 @@ export const userService = {
   
   // Admin: Alternar permissão de admin
   toggleAdmin: (id: number): Promise<ApiResponse> => api.patch(`/usuarios/${id}/admin`),
+
+  // Admin: Deletar usuário comum
+  delete: (id: number): Promise<ApiResponse> => api.delete(`/usuarios/${id}`),
 };
 
 // ==================== NEWSLETTER ====================
@@ -364,7 +438,7 @@ export const badgeService = {
   getById: (id: number): Promise<ApiResponse> => api.get(`/badges/${id}`),
   
   // Listar badges de um produto
-  getByProduct: (productId: number): Promise<ApiResponse> => api.get(`/produtos/${productId}/badges`),
+  getByProduct: (productId: number): Promise<ApiResponse> => api.get(`/badges/produtos/${productId}/badges`),
   
   // Admin: Criar badge
   create: (data: {
@@ -375,18 +449,18 @@ export const badgeService = {
   }): Promise<ApiResponse> => api.post('/badges', data),
   
   // Admin: Atualizar badge
-  update: (id: number, data: any): Promise<ApiResponse> => api.put(`/badges/${id}`, data),
+  update: (id: number, data: Record<string, unknown>): Promise<ApiResponse> => api.put(`/badges/${id}`, data),
   
   // Admin: Deletar badge
   delete: (id: number): Promise<ApiResponse> => api.delete(`/badges/${id}`),
   
   // Admin: Adicionar badge a produto
   addToProduct: (productId: number, badgeId: number): Promise<ApiResponse> => 
-    api.post(`/produtos/${productId}/badges`, { badge_id: badgeId }),
+    api.post(`/badges/produtos/${productId}/badges`, { badge_id: badgeId }),
   
   // Admin: Remover badge de produto
   removeFromProduct: (productId: number, badgeId: number): Promise<ApiResponse> => 
-    api.delete(`/produtos/${productId}/badges/${badgeId}`),
+    api.delete(`/badges/produtos/${productId}/badges/${badgeId}`),
 };
 
 // ==================== PROMOÇÕES ====================
@@ -418,7 +492,7 @@ export const promocaoService = {
   }): Promise<ApiResponse> => api.post('/promocoes', data),
   
   // Admin: Atualizar promoção
-  update: (id: number, data: any): Promise<ApiResponse> => api.put(`/promocoes/${id}`, data),
+  update: (id: number, data: Record<string, unknown>): Promise<ApiResponse> => api.put(`/promocoes/${id}`, data),
   
   // Admin: Deletar promoção
   delete: (id: number): Promise<ApiResponse> => api.delete(`/promocoes/${id}`),
@@ -483,7 +557,7 @@ export const bannerService = {
   }): Promise<ApiResponse> => api.post('/banners', data),
   
   // Admin: Atualizar banner
-  update: (id: number, data: any): Promise<ApiResponse> => api.put(`/banners/${id}`, data),
+  update: (id: number, data: Record<string, unknown>): Promise<ApiResponse> => api.put(`/banners/${id}`, data),
   
   // Admin: Deletar banner
   delete: (id: number): Promise<ApiResponse> => api.delete(`/banners/${id}`),
@@ -494,6 +568,86 @@ export const bannerService = {
   // Admin: Reordenar banners
   reorder: (banners: Array<{ id: number; ordem: number }>): Promise<ApiResponse> => 
     api.patch('/banners/reordenar', { banners }),
+};
+
+// ==================== NOTIFICACOES ====================
+export const notificationService = {
+  list: (params?: { pagina?: number; limite?: number }): Promise<ApiResponse> =>
+    api.get('/notificacoes', { params }),
+  unread: (): Promise<ApiResponse> => api.get('/notificacoes/nao-lidas'),
+  markRead: (id: number): Promise<ApiResponse> => api.post(`/notificacoes/${id}/ler`),
+  markAllRead: (): Promise<ApiResponse> => api.post('/notificacoes/ler-todas'),
+  remove: (id: number): Promise<ApiResponse> => api.delete(`/notificacoes/${id}`),
+};
+
+// ==================== CAIXAS CATALOGO ====================
+export const caixaService = {
+  getAll: (params?: { tamanho?: 'P' | 'M' | 'G'; ativo?: boolean }): Promise<ApiResponse> =>
+    api.get('/admin/caixas-catalogo', { params }),
+  getById: (id: number): Promise<ApiResponse> => api.get(`/admin/caixas-catalogo/${id}`),
+  checkUsage: (id: number): Promise<ApiResponse> => api.get(`/admin/caixas-catalogo/${id}/uso`),
+  create: (data: {
+    codigo: string;
+    nome: string;
+    tamanho: 'P' | 'M' | 'G';
+    altura: number;
+    largura: number;
+    comprimento: number;
+    peso_caixa: number;
+  }): Promise<ApiResponse> => api.post('/admin/caixas-catalogo', data),
+  update: (id: number, data: { nome?: string; ativo?: boolean }): Promise<ApiResponse> => 
+    api.put(`/admin/caixas-catalogo/${id}`, data),
+  deactivate: (id: number): Promise<ApiResponse> => 
+    api.patch(`/admin/caixas-catalogo/${id}/desativar`),
+};
+
+// ==================== CONFIG FRETE ====================
+export const configFreteService = {
+  getFallback: (): Promise<ApiResponse> => api.get('/admin/config-frete/fallback'),
+  updateFallback: (data: {
+    P: { caixa_id: number; capacidade_media: number; peso_medio_item: number };
+    M: { caixa_id: number; capacidade_media: number; peso_medio_item: number };
+    G: { caixa_id: number; capacidade_media: number; peso_medio_item: number };
+  }): Promise<ApiResponse> => api.put('/admin/config-frete/fallback', data),
+};
+
+// ==================== TIPOS PRODUTO ====================
+export const tipoProdutoService = {
+  getAll: (params?: { ativo?: boolean }): Promise<ApiResponse> =>
+    api.get('/admin/tipos-produto', { params }),
+  getById: (id: number): Promise<ApiResponse> => api.get(`/admin/tipos-produto/${id}`),
+  create: (data: { nome: string; codigo: string }): Promise<ApiResponse> =>
+    api.post('/admin/tipos-produto', data),
+  update: (id: number, data: { nome?: string; ativo?: boolean }): Promise<ApiResponse> =>
+    api.put(`/admin/tipos-produto/${id}`, data),
+  getEmbalagem: (id: number): Promise<ApiResponse> =>
+    api.get(`/admin/tipos-produto/${id}/embalagem`),
+  updateEmbalagem: (id: number, data: {
+    P: { caixa_id: number; capacidade: number; peso_medio_item: number; observacoes?: string };
+    M: { caixa_id: number; capacidade: number; peso_medio_item: number; observacoes?: string };
+    G: { caixa_id: number; capacidade: number; peso_medio_item: number; observacoes?: string };
+  }): Promise<ApiResponse> => api.put(`/admin/tipos-produto/${id}/embalagem`, data),
+  duplicateEmbalagem: (id: number, tipoOrigemId: number): Promise<ApiResponse> =>
+    api.post(`/admin/tipos-produto/${id}/embalagem/duplicar`, { tipo_origem_id: tipoOrigemId }),
+};
+
+// ==================== CONTEUDO INSTITUCIONAL ====================
+export const institutionalContentService = {
+  getAllPublic: (): Promise<ApiResponse> => api.get('/conteudo-institucional'),
+  getBySlug: (slug: string): Promise<ApiResponse> => api.get(`/conteudo-institucional/${slug}`),
+
+  getAllAdmin: (): Promise<ApiResponse> => api.get('/admin/conteudo-institucional'),
+  getBySlugAdmin: (slug: string): Promise<ApiResponse> => api.get(`/admin/conteudo-institucional/${slug}`),
+  upsert: (
+    slug: string,
+    data: {
+      titulo: string;
+      resumo?: string;
+      conteudo_html?: string;
+      ativo?: boolean;
+      ordem?: number;
+    }
+  ): Promise<ApiResponse> => api.put(`/admin/conteudo-institucional/${slug}`, data),
 };
 
 // ==================== HEALTH CHECK ====================

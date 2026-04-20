@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -19,6 +21,56 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+const parseAvailableQuantity = (message?: string) => {
+  const match = String(message || '').match(/Dispon[ií]vel:\s*(\d+)/i);
+  if (!match) {
+    return null;
+  }
+  return Number.parseInt(match[1], 10);
+};
+
+const normalizeSizeKey = (size?: string) => String(size || '').trim().toUpperCase();
+const normalizeColorKey = (color?: string) => String(color || '')
+  .replace(/@\s*\d{1,3}\s*%?$/i, '')
+  .trim()
+  .toUpperCase();
+const normalizeVariantKey = (size?: string, color?: string) => `${normalizeSizeKey(size)}|${normalizeColorKey(color)}`;
+
+const getAvailableStock = (product: Product, tamanho?: string, cor?: string) => {
+  const sizeKey = normalizeSizeKey(tamanho);
+  const colorKey = normalizeColorKey(cor);
+
+  if (product.estoque_variantes && sizeKey && colorKey) {
+    const variantKey = normalizeVariantKey(tamanho, cor);
+    const variantEntry = Object.entries(product.estoque_variantes).find(
+      ([key]) => normalizeVariantKey(...key.split('|')) === variantKey
+    );
+    if (variantEntry) {
+      return Number(variantEntry[1]) || 0;
+    }
+  }
+
+  if (product.estoque_tamanhos && sizeKey) {
+    const sizeEntry = Object.entries(product.estoque_tamanhos).find(
+      ([key]) => normalizeSizeKey(key) === sizeKey
+    );
+    if (sizeEntry) {
+      return Number(sizeEntry[1]) || 0;
+    }
+  }
+
+  if (product.estoque_cores && colorKey) {
+    const colorEntry = Object.entries(product.estoque_cores).find(
+      ([key]) => normalizeColorKey(key) === colorKey
+    );
+    if (colorEntry) {
+      return Number(colorEntry[1]) || 0;
+    }
+  }
+
+  return Number(product.estoque || 0) || 0;
+};
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [syncing, setSyncing] = useState(false);
@@ -38,7 +90,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
           const response = await carrinhoService.get();
           if (response.success && response.data) {
             // Converter formato backend para frontend, preservando o ID
-            const backendItems = response.data.itens || [];
+            const cartData: any = response.data;
+            const backendItems = Array.isArray(cartData?.itens) ? cartData.itens : [];
             const formattedItems = backendItems.map((item: any) => ({
               id: item.id, // Preservar ID do banco para deletar/atualizar
               produto_id: item.produto_id,
@@ -94,7 +147,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
         const response = await carrinhoService.get();
         if (response.success && response.data) {
-          const backendItems = response.data.itens || [];
+          const cartData: any = response.data;
+          const backendItems = Array.isArray(cartData?.itens) ? cartData.itens : [];
           const formattedItems = backendItems.map((item: any) => ({
             id: item.id,
             produto_id: item.produto_id,
@@ -135,7 +189,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         // Atualiza estado local
         const response = await carrinhoService.get();
         if (response.success && response.data) {
-          const backendItems = response.data.itens || [];
+          const cartData: any = response.data;
+          const backendItems = Array.isArray(cartData?.itens) ? cartData.itens : [];
           const formattedItems = backendItems.map((item: any) => ({
             id: item.id,
             produto_id: item.produto_id,
@@ -149,17 +204,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
         showToast('Produto adicionado ao carrinho', 'success');
       } catch (error: any) {
         showToast(error.message || 'Erro ao adicionar ao carrinho', 'error');
-        // Fallback: adiciona localmente
-        addItemLocally(product, quantidade, tamanho, cor);
       }
     } else {
       // Usuário não logado: salva apenas localmente
-      addItemLocally(product, quantidade, tamanho, cor);
-      showToast('Produto adicionado ao carrinho', 'success');
+      const adicionado = addItemLocally(product, quantidade, tamanho, cor);
+      if (adicionado) {
+        showToast('Produto adicionado ao carrinho', 'success');
+      }
     }
   };
 
   const addItemLocally = (product: Product, quantidade: number, tamanho?: string, cor?: string) => {
+    let itemFoiAdicionado = true;
+
     setItems((prevItems) => {
       const existingItem = prevItems.find(
         (item) =>
@@ -167,6 +224,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
           item.tamanho === tamanho &&
           item.cor === cor
       );
+
+      const quantidadeAtual = existingItem?.quantidade || 0;
+      const quantidadeDesejada = quantidadeAtual + quantidade;
+      const estoqueDisponivel = getAvailableStock(product, tamanho, cor);
+
+      if (quantidadeDesejada > estoqueDisponivel) {
+        itemFoiAdicionado = false;
+        return prevItems;
+      }
 
       if (existingItem) {
         return prevItems.map((item) =>
@@ -178,6 +244,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       return [...prevItems, { produto: product, quantidade, tamanho, cor }];
     });
+
+    if (!itemFoiAdicionado) {
+      showToast(`Não há quantidade suficiente em estoque. Disponível: ${getAvailableStock(product, tamanho, cor)}`, 'warning');
+    }
+
+    return itemFoiAdicionado;
   };
 
   const removeItem = async (item: CartItem) => {
@@ -221,11 +293,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
 
     const itemKey = getItemKey(item);
+    const itemToUpdate = items.find((i) => getItemKey(i) === itemKey);
 
     if (user) {
       try {
-        const itemToUpdate = items.find((i) => getItemKey(i) === itemKey);
-        
         if (!itemToUpdate) {
           showToast('Produto não encontrado no carrinho', 'error');
           return;
@@ -245,7 +316,33 @@ export function CartProvider({ children }: { children: ReactNode }) {
           )
         );
       } catch (error: any) {
-        console.error('Erro ao atualizar quantidade:', error);
+        const quantidadeDisponivel = parseAvailableQuantity(error?.message);
+
+        if (itemToUpdate?.id && quantidadeDisponivel !== null) {
+          try {
+            if (quantidadeDisponivel > 0) {
+              await carrinhoService.updateItem(itemToUpdate.id, quantidadeDisponivel);
+              setItems((prevItems) =>
+                prevItems.map((cartItem) =>
+                  getItemKey(cartItem) === itemKey
+                    ? { ...cartItem, quantidade: quantidadeDisponivel }
+                    : cartItem
+                )
+              );
+              showToast(`Quantidade ajustada para o estoque disponível: ${quantidadeDisponivel}`, 'warning');
+              return;
+            }
+
+            await carrinhoService.removeItem(itemToUpdate.id);
+            setItems((prevItems) => prevItems.filter((cartItem) => getItemKey(cartItem) !== itemKey));
+            showToast('O item foi removido do carrinho porque não há mais estoque disponível', 'warning');
+            return;
+          } catch (adjustError: any) {
+            console.error('Erro ao ajustar quantidade após validação de estoque:', adjustError?.message || adjustError);
+          }
+        }
+
+        console.error('Erro ao atualizar quantidade:', error?.message || error);
         showToast(error.message || 'Erro ao atualizar quantidade', 'error');
       }
     } else {
@@ -294,7 +391,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const getTotal = () => {
     return items.reduce((total, item) => {
-      const preco = parseFloat(item.produto?.preco || 0) || 0;
+      const preco = Number(item.produto?.preco || 0) || 0;
       return total + (preco * item.quantidade);
     }, 0);
   };

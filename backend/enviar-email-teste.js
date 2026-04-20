@@ -178,7 +178,7 @@ async function enviarEmailTeste() {
             <div class="footer">
               <p><strong>Point55 - E-commerce de Roupas</strong></p>
               <p>WhatsApp: (11) 99338-5579</p>
-              <p>Email: contato@point55.com.br</p>
+              <p>Email: atendimento.sacpoint@gmail.com</p>
               <p style="margin-top: 15px; font-size: 12px;">
                 Este é um email automático de teste. Não responda esta mensagem.
               </p>

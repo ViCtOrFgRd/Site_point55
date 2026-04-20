@@ -1,7 +1,10 @@
+require('dotenv').config();
 const axios = require('axios');
 
-const BASE_URL = 'http://localhost:5000';
+const BASE_URL = process.env.API_BASE_URL || 'http://localhost:5000';
 const API = axios.create({ baseURL: BASE_URL });
+const TEST_ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@example.com';
+const TEST_ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'password123';
 
 // Cores para console
 const cores = {
@@ -29,8 +32,8 @@ async function teste1_LoginAdmin() {
     console.log(cores.amarelo + '▶ Teste 1: Login admin...' + cores.reset);
     
     const response = await API.post('/api/auth/login', {
-      email: 'victorfiigueiredo@gmail.com',
-      senha: 'victor123'
+      email: TEST_ADMIN_EMAIL,
+      senha: TEST_ADMIN_PASSWORD,
     });
 
     if (response.data && response.data.data && response.data.data.token) {

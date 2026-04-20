@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -9,6 +11,17 @@ import { Pedido } from '@/types';
 import { orderService } from '@/services/api';
 import { FiPackage, FiClock, FiCheck, FiTruck, FiX, FiFilter, FiRefreshCcw } from 'react-icons/fi';
 import styles from './pedidos.module.scss';
+
+const isPedidoRetiradaLocal = (pedido: Pedido) => {
+  const entregaTipo = String(pedido.entrega_tipo || '').toLowerCase().trim();
+  const status = String(pedido.status || '').toLowerCase().trim();
+
+  return (
+    ['retirada_local', 'retirada no local', 'retirada-no-local', 'retirada', 'retirar_no_local'].includes(entregaTipo) ||
+    ['pronto_para_retirada', 'aguardando_pagamento_retirada', 'pendente_pagamento_retirada', 'retirado'].includes(status) ||
+    Boolean(pedido.retirada_codigo)
+  );
+};
 
 export default function PedidosPage() {
   const { user } = useAuth();
@@ -36,7 +49,7 @@ export default function PedidosPage() {
 
       const response = await orderService.getAll(params);
       if (response.success && response.data) {
-        setPedidos(response.data);
+        setPedidos(Array.isArray(response.data) ? response.data : []);
       }
     } catch (error) {
       console.error('Erro ao carregar pedidos:', error);
@@ -70,6 +83,10 @@ export default function PedidosPage() {
   const getStatusText = (status: string) => {
     const statusMap: { [key: string]: string } = {
       pendente: 'Pendente',
+      pendente_pagamento_retirada: 'Aguardando pagamento',
+      aguardando_pagamento_retirada: 'Aguardando pagamento',
+      pronto_para_retirada: 'Pronto para retirada',
+      retirado: 'Retirado',
       pago: 'Pago',
       processando: 'Processando',
       enviado: 'Enviado',
@@ -84,6 +101,10 @@ export default function PedidosPage() {
   const getStatusColor = (status: string) => {
     const colorMap: { [key: string]: string } = {
       pendente: '#FFA726',
+      pendente_pagamento_retirada: '#FFA726',
+      aguardando_pagamento_retirada: '#FFA726',
+      pronto_para_retirada: '#7E57C2',
+      retirado: '#66BB6A',
       pago: '#42A5F5',
       processando: '#AB47BC',
       enviado: '#29B6F6',
@@ -140,6 +161,18 @@ export default function PedidosPage() {
             <FiFilter /> Todos ({pedidos.length})
           </button>
           <button
+            className={`${styles.filterButton} ${filtroStatus === 'pendente' ? styles.active : ''}`}
+            onClick={() => setFiltroStatus('pendente')}
+          >
+            <FiClock /> Pendente
+          </button>
+          <button
+            className={`${styles.filterButton} ${filtroStatus === 'pago' ? styles.active : ''}`}
+            onClick={() => setFiltroStatus('pago')}
+          >
+            <FiPackage /> Pago
+          </button>
+          <button
             className={`${styles.filterButton} ${filtroStatus === 'processando' ? styles.active : ''}`}
             onClick={() => setFiltroStatus('processando')}
           >
@@ -162,6 +195,18 @@ export default function PedidosPage() {
             onClick={() => setFiltroStatus('devolvido')}
           >
             <FiCheck /> Devolvidos
+          </button>
+          <button
+            className={`${styles.filterButton} ${filtroStatus === 'entregue' ? styles.active : ''}`}
+            onClick={() => setFiltroStatus('entregue')}
+          >
+            <FiCheck /> Entregues
+          </button>
+          <button
+            className={`${styles.filterButton} ${filtroStatus === 'cancelado' ? styles.active : ''}`}
+            onClick={() => setFiltroStatus('cancelado')}
+          >
+            <FiX /> Cancelados
           </button>
         </div>
 
@@ -198,9 +243,17 @@ export default function PedidosPage() {
                         ? 'PIX'
                         : pedido.forma_pagamento === 'cartao'
                         ? 'Cartão de Crédito'
+                        : pedido.forma_pagamento === 'local'
+                        ? 'Pagamento na retirada'
                         : 'Boleto'}
                     </span>
                   </div>
+                  {isPedidoRetiradaLocal(pedido) && pedido.retirada_codigo && (
+                    <div className={styles.detailRow}>
+                      <span className={styles.label}>Código retirada:</span>
+                      <span className={styles.value}>{pedido.retirada_codigo}</span>
+                    </div>
+                  )}
                   {pedido.codigo_rastreio && (
                     <div className={styles.detailRow}>
                       <span className={styles.label}>Rastreio:</span>

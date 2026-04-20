@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState } from 'react';
@@ -83,7 +84,7 @@ export default function Footer() {
               <a href="https://wa.me/5511993385579" target="_blank" rel="noopener noreferrer">
                 <MessageCircle size={18} /> WhatsApp
               </a>
-              <a href="mailto:contato@point55.com.br">
+              <a href="mailto:atendimento.sacpoint@gmail.com">
                 <Mail size={18} /> E-mail
               </a>
               <p>Seg-Sex: 9h às 19h</p>
@@ -91,11 +92,11 @@ export default function Footer() {
 
             {/* Ajuda */}
             <div className={styles.linkColumn}>
-              <h4>Precisa de Ajuda?</h4>
-              <Link href="/frete">Política de frete</Link>
-              <Link href="/trocas">Trocas e devoluções</Link>
-              <Link href="/rastreio">Rastrear pedido</Link>
-              <Link href="/tabela-medidas">Tabela de medidas</Link>
+              <h4>Precisa de ajuda?</h4>
+              <Link href="/frete">Política de Frete (prazos, valores e regiões atendidas)</Link>
+              <Link href="/trocas">Trocas e Devoluções (regras, prazos e solicitação)</Link>
+              <Link href="/rastreio">Rastrear Pedido (acompanhe o status da compra)</Link>
+              <Link href="/tabela-medidas">Tabela de Medidas (escolha o tamanho ideal)</Link>
             </div>
           </div>
 

@@ -64,7 +64,8 @@
 }
 
 .btnMakeAdmin,
-.btnRemoveAdmin {
+.btnRemoveAdmin,
+.btnDeleteUser {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -101,6 +102,15 @@
 
   &:hover:not(:disabled) {
     background: #dc2626;
+  }
+}
+
+.btnDeleteUser {
+  background: #7f1d1d;
+  color: white;
+
+  &:hover:not(:disabled) {
+    background: #991b1b;
   }
 }
 

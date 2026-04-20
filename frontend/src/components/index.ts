@@ -11,3 +11,4 @@ export { default as ReviewCard } from './ReviewCard/ReviewCard';
 export { default as HeroSlider } from './HeroSlider/HeroSlider';
 export { default as ColorSelector } from './ColorSelector/ColorSelector';
 export { default as SizeSelector } from './SizeSelector/SizeSelector';
+export { default as NotificationsBell } from './NotificationsBell/NotificationsBell';

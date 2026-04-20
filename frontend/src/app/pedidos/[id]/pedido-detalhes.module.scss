@@ -244,6 +244,57 @@
   }
 }
 
+.paymentBox {
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-base);
+  background: #f8fafc;
+  display: grid;
+  gap: 0.75rem;
+
+  h3 {
+    margin: 0;
+    font-size: var(--text-small);
+    font-weight: 700;
+    color: #111;
+  }
+}
+
+.pixBox {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: center;
+
+  p {
+    margin: 0;
+    font-size: var(--text-xsmall);
+    color: #555;
+  }
+}
+
+.pixQr {
+  width: 180px;
+  height: 180px;
+  object-fit: contain;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  padding: 10px;
+}
+
+.paymentLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 1rem;
+  background: #0f172a;
+  color: #fff;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: var(--text-xsmall);
+}
+
 .trackingCard {
   grid-column: 1;
 }
@@ -614,5 +665,133 @@
   .itemImage {
     width: 100%;
     height: clamp(8rem, 40vw, 12.5rem);
+  }
+}
+// Endereço e Retirada Local
+.addressCard,
+.retiradaCard {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: var(--radius-base);
+  padding: var(--space-3);
+  margin-bottom: var(--space-2);
+
+  h2 {
+    font-size: var(--text-large);
+    font-weight: 700;
+    margin-bottom: var(--space-2);
+    color: #000;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
+
+.retiradaCard {
+  border-color: #007bff;
+  border-width: 2px;
+  background: rgba(0, 123, 255, 0.02);
+}
+
+.address {
+  display: grid;
+  gap: 0.75rem;
+
+  p {
+    margin: 0;
+    font-size: var(--text-small);
+    color: #555;
+
+    strong {
+      color: #222;
+      font-weight: 600;
+    }
+  }
+}
+
+.codigoRetirada {
+  background: linear-gradient(135deg, #f0f7ff 0%, #e3f2fd 100%);
+  border: 2px dashed #007bff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+
+  .labelCodigo {
+    margin: 0 0 0.75rem 0;
+    font-size: var(--text-xsmall);
+    font-weight: 700;
+    color: #007bff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .codigoBox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+
+    .codigo {
+      font-size: clamp(1.8rem, 4vw, 2.2rem);
+      font-weight: 700;
+      color: #0056b3;
+      letter-spacing: 0.15em;
+      font-family: 'Monaco', 'Courier New', monospace;
+      padding: 1rem 1.5rem;
+      background: white;
+      border-radius: 8px;
+      border: 2px solid #007bff;
+      min-width: 200px;
+    }
+
+    .copiarButton {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.25rem;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: var(--text-small);
+
+      &:hover {
+        background: #0056b3;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      gap: 0.75rem;
+
+      .codigo {
+        font-size: 1.5rem;
+        padding: 0.75rem 1rem;
+      }
+
+      .copiarButton {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  }
+
+  small {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: var(--text-xsmall);
+    color: #1976d2;
+    font-weight: 500;
   }
 }

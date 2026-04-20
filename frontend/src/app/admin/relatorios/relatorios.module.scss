@@ -1,4 +1,4 @@
-@import '../admin.module.scss';
+@use '../admin.module.scss' as *;
 
 .adminRelatorios {
   min-height: 100vh;

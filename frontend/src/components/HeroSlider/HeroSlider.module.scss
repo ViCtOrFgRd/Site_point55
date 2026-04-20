@@ -153,6 +153,7 @@
   border: 2px solid var(--banner-button-border, rgba(255, 255, 255, 0.5));
   text-decoration: none;
   display: inline-block;
+  min-height: 44px;
   white-space: nowrap;
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 
@@ -174,8 +175,11 @@
   }
 
   @media (max-width: 480px) {
-    padding: clamp(10px, 2vw, 12px) clamp(18px, 4vw, 28px);
+    padding: clamp(10px, 2vw, 12px) clamp(16px, 4vw, 24px);
     font-size: var(--text-small);
+    width: 100%;
+    max-width: 280px;
+    text-align: center;
   }
 }
 
@@ -237,8 +241,8 @@
   }
 
   @media (max-width: 768px) {
-    width: clamp(36px, 6vw, 44px);
-    height: clamp(36px, 6vw, 44px);
+    width: clamp(44px, 6vw, 46px);
+    height: clamp(44px, 6vw, 46px);
 
     svg {
       font-size: clamp(16px, 3vw, 22px);
@@ -279,6 +283,8 @@
   cursor: pointer;
   transition: all 0.3s ease;
   padding: 0;
+  min-width: 20px;
+  min-height: 20px;
 
   &:hover {
     background: rgba(255, 255, 255, 0.8);

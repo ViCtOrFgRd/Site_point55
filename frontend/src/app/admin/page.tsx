@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { FiBox, FiShoppingBag, FiStar, FiTag, FiUsers, FiBarChart2, FiAward, FiPercent, FiRefreshCcw } from 'react-icons/fi';
+import { FiBox, FiShoppingBag, FiStar, FiTag, FiUsers, FiBarChart2, FiAward, FiPercent, FiRefreshCcw, FiPackage, FiSettings, FiSliders, FiFileText } from 'react-icons/fi';
 import styles from './admin.module.scss';
 
 export default function AdminPage() {
@@ -101,6 +102,34 @@ export default function AdminPage() {
       description: 'Gerenciar usuários do sistema',
       link: '/admin/usuarios',
       color: '#1abc9c',
+    },
+    {
+      title: 'Catálogo de Caixas',
+      icon: <FiPackage size={32} />,
+      description: 'Gerenciar caixas P/M/G de frete',
+      link: '/admin/caixas-catalogo',
+      color: '#8b5cf6',
+    },
+    {
+      title: 'Config Fallback',
+      icon: <FiSettings size={32} />,
+      description: 'Config padrão de embalagem',
+      link: '/admin/config-fallback',
+      color: '#06b6d4',
+    },
+    {
+      title: 'Config por Tipo',
+      icon: <FiSliders size={32} />,
+      description: 'Config embalagem por tipo',
+      link: '/admin/config-tipo',
+      color: '#f59e0b',
+    },
+    {
+      title: 'Conteúdo Institucional',
+      icon: <FiFileText size={32} />,
+      description: 'Editar páginas institucionais',
+      link: '/admin/conteudo-institucional',
+      color: '#0ea5e9',
     },
     {
       title: 'Relatórios',

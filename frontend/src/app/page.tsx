@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -5,7 +6,6 @@ import ProductGrid from '@/components/ProductGrid/ProductGrid';
 import HeroSlider from '@/components/HeroSlider/HeroSlider';
 import { Product } from '@/types';
 import { productService, categoryService } from '@/services/api';
-import { getCategoryImage } from '@/config/categoryIcons';
 import Link from 'next/link';
 import styles from './page.module.scss';
 
@@ -29,7 +29,8 @@ export default function Home() {
     try {
       const response = await categoryService.getAll();
       if (response.success) {
-        const categoriasAtivas = (response.data || []).filter(
+        const categoriasData: any[] = Array.isArray(response.data) ? response.data : [];
+        const categoriasAtivas = categoriasData.filter(
           (categoria: any) => categoria.produtos_count > 0
         );
         setCategorias(categoriasAtivas);
@@ -57,21 +58,22 @@ export default function Home() {
     ]);
 
     if (destaquesResult.status === 'fulfilled' && destaquesResult.value.success) {
-      setFeaturedProducts(destaquesResult.value.data || []);
+      setFeaturedProducts(Array.isArray(destaquesResult.value.data) ? destaquesResult.value.data : []);
     } else if (destaquesResult.status === 'rejected') {
       console.error('Erro ao carregar produtos em destaque:', destaquesResult.reason);
     }
     setLoadingFeatured(false);
 
     if (promocoesResult.status === 'fulfilled' && promocoesResult.value.success) {
-      setPromoProducts(promocoesResult.value.data || []);
+      setPromoProducts(Array.isArray(promocoesResult.value.data) ? promocoesResult.value.data : []);
     } else if (promocoesResult.status === 'rejected') {
       console.error('Erro ao carregar promoções:', promocoesResult.reason);
     }
     setLoadingPromo(false);
 
     if (categoriasResult.status === 'fulfilled' && categoriasResult.value.success) {
-      const categoriasAtivas = (categoriasResult.value.data || []).filter(
+      const categoriasData: any[] = Array.isArray(categoriasResult.value.data) ? categoriasResult.value.data : [];
+      const categoriasAtivas = categoriasData.filter(
         (categoria: any) => categoria.produtos_count > 0
       );
       setCategorias(categoriasAtivas);
@@ -135,81 +137,7 @@ export default function Home() {
                 </button>
               </div>
             ) : categorias.length === 0 ? (
-              // Fallback para categorias padrão com imagens
-              <>
-                <Link href="/produtos?categoria=roupas-femininas" className={styles.categoryCard}>
-                  <div className={styles.categoryImage} style={{ 
-                    backgroundImage: 'url(/images/categories/roupas-femininas.svg)',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center'
-                  }}>
-                  </div>
-                  <h3>Roupas Femininas</h3>
-                </Link>
-                <Link href="/produtos?categoria=roupas-masculinas" className={styles.categoryCard}>
-                  <div className={styles.categoryImage} style={{ 
-                    backgroundImage: 'url(/images/categories/roupas-masculinas.svg)',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center'
-                  }}>
-                  </div>
-                  <h3>Roupas Masculinas</h3>
-                </Link>
-                <Link href="/produtos?categoria=acessorios" className={styles.categoryCard}>
-                  <div className={styles.categoryImage} style={{ 
-                    backgroundImage: 'url(/images/categories/acessorios.svg)',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center'
-                  }}>
-                  </div>
-                  <h3>Acessórios</h3>
-                </Link>
-                <Link href="/produtos?categoria=calcados" className={styles.categoryCard}>
-                  <div className={styles.categoryImage} style={{ 
-                    backgroundImage: 'url(/images/categories/calcados.svg)',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center'
-                  }}>
-                  </div>
-                  <h3>Calçados</h3>
-                </Link>
-                <Link href="/produtos?categoria=calcas" className={styles.categoryCard}>
-                  <div className={styles.categoryImage} style={{ 
-                    backgroundImage: 'url(/images/categories/calcas.svg)',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center'
-                  }}>
-                  </div>
-                  <h3>Calças</h3>
-                </Link>
-                <Link href="/produtos?categoria=camisas" className={styles.categoryCard}>
-                  <div className={styles.categoryImage} style={{ 
-                    backgroundImage: 'url(/images/categories/camisas.svg)',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center'
-                  }}>
-                  </div>
-                  <h3>Camisas</h3>
-                </Link>
-                <Link href="/produtos?categoria=tenis" className={styles.categoryCard}>
-                  <div className={styles.categoryImage} style={{ 
-                    backgroundImage: 'url(/images/categories/tenis.svg)',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center'
-                  }}>
-                  </div>
-                  <h3>Tênis</h3>
-                </Link>
-                <Link href="/produtos?categoria=outros" className={styles.categoryCard}>
-                  <div className={styles.categoryImage} style={{ 
-                    backgroundImage: 'url(/images/categories/outros.svg)',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center'
-                  }}>
-                  </div>
-                  <h3>Outros</h3>
-                </Link>
-              </>
+              <div className={styles.empty}>Nenhuma categoria disponível no momento.</div>
             ) : (
               categorias.slice(0, 8).map((categoria) => (
                 <Link 
@@ -220,9 +148,7 @@ export default function Home() {
                   <div 
                     className={styles.categoryImage} 
                     style={{ 
-                      backgroundImage: categoria.imagem 
-                        ? `url(${categoria.imagem})` 
-                        : `url(${getCategoryImage(categoria.slug, categoria.nome)})`,
+                      backgroundImage: categoria.imagem ? `url(${categoria.imagem})` : 'none',
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
                     }}

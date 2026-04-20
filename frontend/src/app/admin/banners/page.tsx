@@ -1,3 +1,5 @@
+/* eslint-disable @next/next/no-img-element, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useAuth } from '@/contexts/AuthContext';
@@ -66,7 +68,7 @@ export default function BannersPage() {
       setLoading(true);
       const response = await bannerService.getAll(false);
       if (response.success && response.data) {
-        setBanners(response.data);
+        setBanners(Array.isArray(response.data) ? response.data : []);
       }
     } catch (error: any) {
       console.error('Erro ao carregar banners:', error);
@@ -233,7 +235,7 @@ export default function BannersPage() {
       carregarBanners();
     } catch (error: any) {
       console.error('Erro ao alternar status:', error);
-      alert('Erro ao alternar status: ' + error.message);
+      showError('Erro ao alternar status: ' + error.message);
     }
   };
 
@@ -250,7 +252,7 @@ export default function BannersPage() {
       carregarBanners();
     } catch (error: any) {
       console.error('Erro ao reordenar:', error);
-      alert('Erro ao reordenar: ' + error.message);
+      showError('Erro ao reordenar: ' + error.message);
     }
   };
 
@@ -320,7 +322,7 @@ export default function BannersPage() {
           <div className={styles.emptyState}>
             <p>Nenhum banner cadastrado</p>
             <button className={styles.addButton} onClick={() => abrirModal()}>
-              <FiPlus /> Criar Primeiro Banner
+              <Plus /> Criar Primeiro Banner
             </button>
           </div>
         ) : (

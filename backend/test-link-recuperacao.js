@@ -1,12 +1,16 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
+const emailUser = process.env.EMAIL_USER || 'no-reply@example.com';
+const emailPassword = process.env.EMAIL_PASSWORD || '';
+const testRecipient = process.env.TEST_RECIPIENT_EMAIL || 'user@example.com';
+
 // Configurar transporter do Gmail
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER || 'atendimento.sacpoint@gmail.com',
-    pass: process.env.EMAIL_PASSWORD || 'eqpp gdlv aiar qbeg'
+    user: emailUser,
+    pass: emailPassword
   }
 });
 
@@ -21,9 +25,9 @@ async function testarEmailRecuperacao() {
   const mailOptions = {
     from: {
       name: 'Point55',
-      address: 'atendimento.sacpoint@gmail.com'
+      address: emailUser
     },
-    to: 'victorfiigueiredo@gmail.com',
+    to: testRecipient,
     subject: '🔐 Recuperação de Senha - Point55',
     html: `
       <!DOCTYPE html>
@@ -181,7 +185,7 @@ async function testarEmailRecuperacao() {
     const info = await transporter.sendMail(mailOptions);
     
     console.log('✅ Email enviado com sucesso!');
-    console.log('📧 Para: victorfiigueiredo@gmail.com');
+    console.log(`📧 Para: ${testRecipient}`);
     console.log('📬 Message ID:', info.messageId);
     console.log('🔗 Link: http://localhost:3000/nova-senha?token=' + token.substring(0, 20) + '...');
     console.log('\n============================================================');

@@ -1,11 +1,36 @@
 const { pool } = require('../config/database');
 
+let badgeAtivoColumnExistsCache = null;
+
+const hasBadgeAtivoColumn = async () => {
+  if (badgeAtivoColumnExistsCache !== null) {
+    return badgeAtivoColumnExistsCache;
+  }
+
+  const result = await pool.query(
+    `SELECT 1
+     FROM information_schema.columns
+     WHERE table_schema = 'public'
+       AND table_name = 'badges'
+       AND column_name = 'ativo'
+     LIMIT 1`
+  );
+
+  badgeAtivoColumnExistsCache = result.rows.length > 0;
+  return badgeAtivoColumnExistsCache;
+};
+
 // GET /api/badges - Listar todos os badges
 const listarBadges = async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT * FROM badges ORDER BY nome ASC'
-    );
+    const hasAtivo = await hasBadgeAtivoColumn();
+    const query = hasAtivo
+      ? 'SELECT * FROM badges ORDER BY nome ASC'
+      : `SELECT id, nome, tipo, cor, icone, data_criacao, true AS ativo
+         FROM badges
+         ORDER BY nome ASC`;
+
+    const result = await pool.query(query);
 
     res.json({
       success: true,
@@ -26,10 +51,14 @@ const obterBadge = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const result = await pool.query(
-      'SELECT * FROM badges WHERE id = $1',
-      [id]
-    );
+    const hasAtivo = await hasBadgeAtivoColumn();
+    const query = hasAtivo
+      ? 'SELECT * FROM badges WHERE id = $1'
+      : `SELECT id, nome, tipo, cor, icone, data_criacao, true AS ativo
+         FROM badges
+         WHERE id = $1`;
+
+    const result = await pool.query(query, [id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({
@@ -55,6 +84,7 @@ const obterBadge = async (req, res) => {
 const criarBadge = async (req, res) => {
   try {
     const { nome, tipo, cor, icone, ativo } = req.body;
+    const hasAtivo = await hasBadgeAtivoColumn();
 
     // Validação
     if (!nome || !tipo) {
@@ -72,17 +102,28 @@ const criarBadge = async (req, res) => {
       });
     }
 
-    const result = await pool.query(
-      `INSERT INTO badges (nome, tipo, cor, icone, ativo)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING *`,
-      [nome, tipo, cor || '#000000', icone, ativo !== undefined ? ativo : true]
-    );
+    const result = hasAtivo
+      ? await pool.query(
+          `INSERT INTO badges (nome, tipo, cor, icone, ativo)
+           VALUES ($1, $2, $3, $4, $5)
+           RETURNING *`,
+          [nome, tipo, cor || '#000000', icone, ativo !== undefined ? ativo : true]
+        )
+      : await pool.query(
+          `INSERT INTO badges (nome, tipo, cor, icone)
+           VALUES ($1, $2, $3, $4)
+           RETURNING id, nome, tipo, cor, icone, data_criacao`,
+          [nome, tipo, cor || '#000000', icone]
+        );
+
+    const data = hasAtivo
+      ? result.rows[0]
+      : { ...result.rows[0], ativo: true };
 
     res.status(201).json({
       success: true,
       message: 'Badge criado com sucesso',
-      data: result.rows[0],
+      data,
     });
   } catch (error) {
     console.error('Erro ao criar badge:', error);
@@ -98,6 +139,7 @@ const atualizarBadge = async (req, res) => {
   try {
     const { id } = req.params;
     const { nome, tipo, cor, icone, ativo } = req.body;
+    const hasAtivo = await hasBadgeAtivoColumn();
 
     // Verificar se badge existe
     const badgeExiste = await pool.query(
@@ -112,29 +154,50 @@ const atualizarBadge = async (req, res) => {
       });
     }
 
-    const result = await pool.query(
-      `UPDATE badges
-       SET nome = CASE WHEN $1::text IS NOT NULL THEN $1 ELSE nome END,
-           tipo = CASE WHEN $2::text IS NOT NULL THEN $2 ELSE tipo END,
-           cor = CASE WHEN $3::text IS NOT NULL THEN $3 ELSE cor END,
-           icone = CASE WHEN $4::text IS NOT NULL THEN $4 ELSE icone END,
-           ativo = CASE WHEN $5::boolean IS NOT NULL THEN $5 ELSE ativo END
-       WHERE id = $6
-       RETURNING *`,
-      [
-        nome || null,
-        tipo || null,
-        cor || null,
-        icone || null,
-        ativo !== undefined ? ativo : null,
-        id
-      ]
-    );
+    const result = hasAtivo
+      ? await pool.query(
+          `UPDATE badges
+           SET nome = CASE WHEN $1::text IS NOT NULL THEN $1 ELSE nome END,
+               tipo = CASE WHEN $2::text IS NOT NULL THEN $2 ELSE tipo END,
+               cor = CASE WHEN $3::text IS NOT NULL THEN $3 ELSE cor END,
+               icone = CASE WHEN $4::text IS NOT NULL THEN $4 ELSE icone END,
+               ativo = CASE WHEN $5::boolean IS NOT NULL THEN $5 ELSE ativo END
+           WHERE id = $6
+           RETURNING *`,
+          [
+            nome || null,
+            tipo || null,
+            cor || null,
+            icone || null,
+            ativo !== undefined ? ativo : null,
+            id,
+          ]
+        )
+      : await pool.query(
+          `UPDATE badges
+           SET nome = CASE WHEN $1::text IS NOT NULL THEN $1 ELSE nome END,
+               tipo = CASE WHEN $2::text IS NOT NULL THEN $2 ELSE tipo END,
+               cor = CASE WHEN $3::text IS NOT NULL THEN $3 ELSE cor END,
+               icone = CASE WHEN $4::text IS NOT NULL THEN $4 ELSE icone END
+           WHERE id = $5
+           RETURNING id, nome, tipo, cor, icone, data_criacao`,
+          [
+            nome || null,
+            tipo || null,
+            cor || null,
+            icone || null,
+            id,
+          ]
+        );
+
+    const data = hasAtivo
+      ? result.rows[0]
+      : { ...result.rows[0], ativo: true };
 
     res.json({
       success: true,
       message: 'Badge atualizado com sucesso',
-      data: result.rows[0],
+      data,
     });
   } catch (error) {
     console.error('Erro ao atualizar badge:', error);
@@ -288,14 +351,20 @@ const listarBadgesDoProduto = async (req, res) => {
   try {
     const { id: produtoId } = req.params;
 
-    const result = await pool.query(
-      `SELECT b.*
-       FROM badges b
-       INNER JOIN produtos_badges pb ON b.id = pb.badge_id
-       WHERE pb.produto_id = $1
-       ORDER BY b.nome ASC`,
-      [produtoId]
-    );
+    const hasAtivo = await hasBadgeAtivoColumn();
+    const query = hasAtivo
+      ? `SELECT b.*
+         FROM badges b
+         INNER JOIN produtos_badges pb ON b.id = pb.badge_id
+         WHERE pb.produto_id = $1
+         ORDER BY b.nome ASC`
+      : `SELECT b.id, b.nome, b.tipo, b.cor, b.icone, b.data_criacao, true AS ativo
+         FROM badges b
+         INNER JOIN produtos_badges pb ON b.id = pb.badge_id
+         WHERE pb.produto_id = $1
+         ORDER BY b.nome ASC`;
+
+    const result = await pool.query(query, [produtoId]);
 
     res.json({
       success: true,

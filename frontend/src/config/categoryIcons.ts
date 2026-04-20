@@ -1,6 +1,6 @@
 // src/config/categoryIcons.ts
 
-export const CATEGORY_ICONS = {
+export const CATEGORY_ICONS: Record<string, string> = {
   // Ícones por slug (fallback)
   'roupas-femininas': '👗',
   'roupas-masculinas': '👔',
@@ -26,7 +26,7 @@ export const CATEGORY_ICONS = {
 };
 
 // Imagens de categorias
-export const CATEGORY_IMAGES = {
+export const CATEGORY_IMAGES: Record<string, string> = {
   'roupas-femininas': '/images/categories/roupas-femininas.svg',
   'roupas-masculinas': '/images/categories/roupas-masculinas.svg',
   'acessorios': '/images/categories/acessorios.svg',
@@ -40,7 +40,7 @@ export const CATEGORY_IMAGES = {
   'outros': '/images/categories/outros.svg',
 };
 
-export const CATEGORY_COLORS = {
+export const CATEGORY_COLORS: Record<string, string> = {
   'roupas-femininas': '#FFE5E5',
   'roupas-masculinas': '#E5F2FF',
   'acessorios': '#FFF5E5',
@@ -115,7 +115,7 @@ export const getCategoryColor = (slug?: string, name?: string): string => {
  * Mapper de ícones Lucide React para categorias (alternativa)
  * Use isso se quiser usar ícones do Lucide em vez de emojis
  */
-export const CATEGORY_LUCIDE_ICONS = {
+export const CATEGORY_LUCIDE_ICONS: Record<string, string> = {
   'roupas-femininas': 'Dress',
   'roupas-masculinas': 'Shirt',
   'acessorios': 'Briefcase',

@@ -339,7 +339,7 @@ O arquivo `page.tsx` foi modificado mas ficou com mais de 500 linhas, o que difi
 
 2. **Ações nos Pedidos**
    - ❌ Cancelar pedido
-   - ❌ Solicitar troca/devolução
+   - ✅ Solicitar troca/devolução
    - ❌ Baixar nota fiscal
    - ❌ Avaliar pedido após entrega
    - Motivo: Funcionalidades avançadas que requerem lógica de negócio

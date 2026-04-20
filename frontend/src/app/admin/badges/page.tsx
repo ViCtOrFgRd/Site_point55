@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { badgeService, productService } from '@/services/api';
 import Link from 'next/link';
 import { FiArrowLeft, FiPlus, FiEdit, FiTrash2, FiTag, FiStar, FiX } from 'react-icons/fi';
+import { confirmAction } from '@/utils/alerts';
 import styles from './badges.module.scss';
 
 interface Badge {
@@ -84,7 +87,7 @@ export default function AdminBadgesPage() {
     try {
       const response = await badgeService.getAll();
       if (response.success) {
-        setBadges(response.data || []);
+        setBadges(Array.isArray(response.data) ? response.data : []);
       }
     } catch (error) {
       console.error('Erro ao carregar badges:', error);
@@ -98,7 +101,7 @@ export default function AdminBadgesPage() {
     try {
       const response = await productService.getAllAdmin({ limite: 1000 });
       if (response.success) {
-        setProdutos(response.data || []);
+        setProdutos(Array.isArray(response.data) ? response.data : []);
       }
     } catch (error) {
       console.error('Erro ao carregar produtos:', error);
@@ -147,7 +150,12 @@ export default function AdminBadgesPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir este badge?')) {
+    const confirmed = await confirmAction(
+      'Excluir badge',
+      'Tem certeza que deseja excluir este badge?',
+      'Excluir'
+    );
+    if (!confirmed) {
       return;
     }
     

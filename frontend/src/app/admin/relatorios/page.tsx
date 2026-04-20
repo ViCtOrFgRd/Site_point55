@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -44,8 +45,8 @@ export default function AdminRelatoriosPage() {
       ]);
 
       if (pedidosRes.success && produtosRes.success) {
-        const pedidos = pedidosRes.data || [];
-        const produtos = produtosRes.data || [];
+        const pedidos: any[] = Array.isArray(pedidosRes.data) ? pedidosRes.data : [];
+        const produtos: any[] = Array.isArray(produtosRes.data) ? produtosRes.data : [];
 
         const totalVendas = pedidos
           .filter((p: any) => p.status !== 'cancelado')

@@ -1,13 +1,16 @@
 import { test, expect } from '@playwright/test';
 
+const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'victorfiigueiredo@gmail.com';
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'victor123';
+
 test.describe('Análise Completa da Área Administrativa', () => {
   let adminToken: string;
 
   test.beforeEach(async ({ page }) => {
     // Login como admin antes de cada teste
     await page.goto('http://localhost:3000/login');
-    await page.fill('input[type="email"]', 'admin@teste.com');
-    await page.fill('input[type="password"]', 'admin123');
+    await page.fill('input[type="email"]', ADMIN_EMAIL);
+    await page.fill('input[type="password"]', ADMIN_PASSWORD);
     await page.click('button[type="submit"]');
     
     // Aguardar redirecionamento e salvar token
@@ -239,8 +242,8 @@ test.describe('Análise Completa da Área Administrativa', () => {
     // Fazer login e obter token
     const loginRes = await request.post(`${baseURL}/api/usuarios/login`, {
       data: {
-        email: 'admin@teste.com',
-        senha: 'admin123'
+        email: ADMIN_EMAIL,
+        senha: ADMIN_PASSWORD
       }
     });
     

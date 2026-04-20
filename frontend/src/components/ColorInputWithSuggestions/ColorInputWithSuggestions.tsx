@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react/no-unescaped-entities */
 /**
  * Componente para adicionar cores com sugestões e preview
  * Suporta cores simples e variações com gradiente
@@ -8,7 +10,7 @@
 import React, { useState } from 'react';
 import { 
   convertColorToHex, 
-  getAllAvailableColors,
+  getOfficialColorNames,
   getColorLabel,
   getColorVariationStyle
 } from '@/utils/colorMapping';
@@ -29,7 +31,7 @@ export default function ColorInputWithSuggestions({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  const allColors = getAllAvailableColors();
+  const allColors = getOfficialColorNames();
 
   const handleInputChange = (value: string) => {
     setInput(value);
@@ -81,7 +83,7 @@ export default function ColorInputWithSuggestions({
           onChange={(e) => handleInputChange(e.target.value)}
           onKeyPress={handleKeyPress}
           onFocus={() => input.length > 0 && setShowSuggestions(true)}
-          placeholder="Digite uma cor ou combinação (ex: Azul ou Branco/Azul)"
+          placeholder="Digite uma cor ou combinação (ex: azul ou branco/azul ou branco\\azul)"
           className={styles.input}
         />
         <button
@@ -173,7 +175,11 @@ export default function ColorInputWithSuggestions({
 
       {/* Dica */}
       <p className={styles.hint}>
-        💡 Dica: Use "/" para combinar cores, ex: "Branco/Azul" para gradiente
+        💡 Dica: Use "/" ou "\\" para combinar cores, ex: "branco/azul"
+      </p>
+
+      <p className={styles.hint}>
+        📌 Padrão recomendado: {allColors.slice(0, 10).join(', ')}...
       </p>
     </div>
   );

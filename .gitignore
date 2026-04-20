@@ -17,6 +17,9 @@ dist/
 .env.test.local
 .env.production.local
 
+# Sensitive OAuth credentials
+client_secret_*.json
+
 # IDE
 .vscode/
 .idea/

@@ -31,6 +31,7 @@
   align-items: center;
   gap: var(--space-1);
   padding: 0.7rem 1.25rem;
+  min-height: 44px;
   background: #000;
   color: #fff;
   border: none;
@@ -102,7 +103,9 @@
   border: none;
   font-size: 24px;
   cursor: pointer;
-  padding: 4px;
+  padding: 8px;
+  min-width: 44px;
+  min-height: 44px;
   color: #666;
 
   &:hover {
@@ -202,6 +205,7 @@
 .clearFilters {
   width: 100%;
   padding: 0.7rem;
+  min-height: 44px;
   background: #fff;
   border: 2px solid #000;
   border-radius: var(--radius-base);
@@ -239,6 +243,7 @@
 
     .sortSelect {
       padding: 0.6rem 0.9rem;
+      min-height: 44px;
       border: 1px solid #e0e0e0;
       border-radius: var(--radius-base);
       font-size: var(--text-small);
@@ -275,6 +280,14 @@
     p, .sortSelect {
       width: 100%;
       text-align: center;
+    }
+  }
+
+  .filterSection {
+    .priceInputs {
+      input {
+        min-height: 44px;
+      }
     }
   }
 }
@@ -338,6 +351,7 @@
 
   button {
     padding: 12px 32px;
+    min-height: 44px;
     background: #000;
     color: #fff;
     border: none;

@@ -1,14 +1,27 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react/no-unescaped-entities */
 'use client';
 
 import { useState } from 'react';
 import Breadcrumbs from '@/components/Breadcrumbs/Breadcrumbs';
 import { FiSearch, FiPackage, FiTruck, FiCheckCircle, FiMapPin } from 'react-icons/fi';
+import { orderService } from '@/services/api';
 import styles from './rastreio.module.scss';
+
+interface ResultadoRastreio {
+  pedidoId: number;
+  codigo_rastreio?: string;
+  status?: string;
+  data_envio?: string;
+  url_rastreamento?: string;
+  mensagem?: string;
+}
 
 export default function RastreioPage() {
   const [codigoRastreio, setCodigoRastreio] = useState('');
   const [loading, setLoading] = useState(false);
-  const [resultado, setResultado] = useState<any>(null);
+  const [resultado, setResultado] = useState<ResultadoRastreio | null>(null);
   const [erro, setErro] = useState('');
 
   const handleRastrear = async (e: React.FormEvent) => {
@@ -24,44 +37,31 @@ export default function RastreioPage() {
     setResultado(null);
 
     try {
-      // Simulação de busca - substituir por API real
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Dados fictícios para demonstração
+      const pedidoId = Number(codigoRastreio.trim());
+      if (!Number.isInteger(pedidoId) || pedidoId <= 0) {
+        setErro('Informe o ID numérico do pedido para consultar o rastreio.');
+        return;
+      }
+
+      const response = await orderService.getTracking(pedidoId);
+
+      if (!response.success || !response.data) {
+        setErro(response.message || 'Não foi possível buscar o rastreamento agora.');
+        return;
+      }
+
+      const rastreioData: any = response.data;
+
       setResultado({
-        codigo: codigoRastreio.toUpperCase(),
-        status: 'Em Trânsito',
-        destino: 'São Paulo - SP',
-        previsao: '07/02/2026',
-        eventos: [
-          {
-            data: '05/02/2026 14:30',
-            local: 'São Paulo - SP',
-            situacao: 'Objeto saiu para entrega',
-            icon: 'truck'
-          },
-          {
-            data: '05/02/2026 08:15',
-            local: 'Centro de Distribuição - São Paulo',
-            situacao: 'Objeto em trânsito',
-            icon: 'package'
-          },
-          {
-            data: '04/02/2026 16:45',
-            local: 'Unidade de Tratamento - Rio de Janeiro',
-            situacao: 'Objeto encaminhado',
-            icon: 'map'
-          },
-          {
-            data: '04/02/2026 10:00',
-            local: 'Agência dos Correios - Rio de Janeiro',
-            situacao: 'Objeto postado',
-            icon: 'check'
-          }
-        ]
+        pedidoId,
+        codigo_rastreio: rastreioData.codigo_rastreio,
+        status: rastreioData.status,
+        data_envio: rastreioData.data_envio,
+        url_rastreamento: rastreioData.url_rastreamento,
+        mensagem: rastreioData.mensagem,
       });
-    } catch (error) {
-      setErro('Erro ao buscar informações. Tente novamente.');
+    } catch (error: any) {
+      setErro(error?.response?.data?.error || 'Erro ao buscar informações. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -90,7 +90,7 @@ export default function RastreioPage() {
         <div className={styles.hero}>
           <FiPackage className={styles.heroIcon} />
           <h1>Rastreamento de Pedidos</h1>
-          <p>Acompanhe seu pedido em tempo real</p>
+          <p>Consulte o andamento do envio e acompanhe atualizações do seu pedido</p>
         </div>
 
         <div className={styles.content}>
@@ -100,7 +100,7 @@ export default function RastreioPage() {
                 <FiSearch className={styles.searchIcon} />
                 <input
                   type="text"
-                  placeholder="Digite o código de rastreamento"
+                  placeholder="Digite o ID do pedido"
                   value={codigoRastreio}
                   onChange={(e) => setCodigoRastreio(e.target.value)}
                   className={styles.input}
@@ -126,36 +126,38 @@ export default function RastreioPage() {
             <section className={styles.resultSection}>
               <div className={styles.resultHeader}>
                 <div className={styles.resultInfo}>
-                  <h2>Código: {resultado.codigo}</h2>
-                  <p className={styles.status}>{resultado.status}</p>
+                  <h2>Pedido #{resultado.pedidoId}</h2>
+                  <p className={styles.status}>{resultado.status || 'Sem status'}</p>
                 </div>
                 <div className={styles.resultDetails}>
                   <div className={styles.detail}>
-                    <strong>Destino:</strong>
-                    <span>{resultado.destino}</span>
+                    <strong>Código de Rastreio:</strong>
+                    <span>{resultado.codigo_rastreio || 'Ainda não disponível'}</span>
                   </div>
-                  <div className={styles.detail}>
-                    <strong>Previsão de Entrega:</strong>
-                    <span>{resultado.previsao}</span>
-                  </div>
+                  {resultado.data_envio && (
+                    <div className={styles.detail}>
+                      <strong>Data de Envio:</strong>
+                      <span>{new Date(resultado.data_envio).toLocaleString('pt-BR')}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className={styles.timeline}>
-                <h3>Histórico de Movimentação</h3>
-                {resultado.eventos.map((evento: any, index: number) => (
-                  <div key={index} className={styles.timelineItem}>
-                    <div className={styles.timelineIcon}>
-                      {getIcon(evento.icon)}
-                    </div>
-                    <div className={styles.timelineContent}>
-                      <div className={styles.timelineDate}>{evento.data}</div>
-                      <div className={styles.timelineSituacao}>{evento.situacao}</div>
-                      <div className={styles.timelineLocal}>{evento.local}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {resultado.mensagem && (
+                <div className={styles.timeline}>
+                  <h3>Status do Rastreamento</h3>
+                  <p>{resultado.mensagem}</p>
+                </div>
+              )}
+
+              {resultado.url_rastreamento && (
+                <div className={styles.timeline}>
+                  <h3>Consulta Externa</h3>
+                  <a href={resultado.url_rastreamento} target="_blank" rel="noreferrer">
+                    Acompanhar no portal de rastreamento
+                  </a>
+                </div>
+              )}
             </section>
           )}
 
@@ -181,8 +183,8 @@ export default function RastreioPage() {
                   <h3>Digite o Código</h3>
                   <p>
                     Cole ou digite o código no campo de busca acima e clique em 
-                    <strong> "Rastrear Pedido"</strong>. As informações serão atualizadas 
-                    em tempo real.
+                    <strong> "Rastrear Pedido"</strong>. Você verá uma consulta rápida para 
+                    acompanhar a movimentação do pedido.
                   </p>
                 </div>
               </div>
@@ -256,8 +258,8 @@ export default function RastreioPage() {
                 <h3>O rastreamento não atualiza há dias</h3>
                 <p>
                   Algumas regiões podem ter atualizações menos frequentes. Se o pedido estiver 
-                  sem atualização por mais de 5 dias úteis, entre em contato conosco para 
-                  verificarmos junto à transportadora.
+                  sem atualização por mais de 5 dias úteis, fale com nosso atendimento para 
+                  validarmos o status com a transportadora.
                 </p>
               </div>
 
@@ -284,7 +286,7 @@ export default function RastreioPage() {
           <section className={styles.section}>
             <h2>Rastreamento em Outros Sites</h2>
             <p>
-              Você também pode rastrear seu pedido diretamente nos sites oficiais:
+              Para consulta oficial e detalhada, utilize também os sites das transportadoras:
             </p>
             
             <div className={styles.linksList}>
@@ -321,11 +323,11 @@ export default function RastreioPage() {
           <section className={styles.section}>
             <h2>Precisa de Ajuda?</h2>
             <p>
-              Nossa equipe está pronta para ajudar com qualquer dúvida sobre rastreamento:
+              Nossa equipe está pronta para ajudar com código de rastreio, status e prazo de entrega:
             </p>
             <div className={styles.contact}>
               <p><strong>WhatsApp:</strong> (11) 99338-5579</p>
-              <p><strong>E-mail:</strong> contato@point55.com.br</p>
+              <p><strong>E-mail:</strong> atendimento.sacpoint@gmail.com</p>
               <p><strong>Horário:</strong> Segunda a sexta, 9h às 18h</p>
             </div>
           </section>

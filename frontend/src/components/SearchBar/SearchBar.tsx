@@ -1,3 +1,5 @@
+/* eslint-disable @next/next/no-img-element */
+/* eslint-disable react/no-unescaped-entities */
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -59,7 +61,8 @@ export default function SearchBar({
           direcao: direction,
         });
         if (response.success && response.data) {
-          setResults(response.data.slice(0, limit));
+          const resultsData: any[] = Array.isArray(response.data) ? response.data : [];
+          setResults(resultsData.slice(0, limit));
           setIsOpen(true);
         }
       } catch (error) {

@@ -5,6 +5,7 @@ import styles from './CountdownTimer.module.scss';
 
 interface CountdownTimerProps {
   endDate: Date | string;
+  onExpire?: () => void;
 }
 
 interface TimeLeft {
@@ -13,30 +14,60 @@ interface TimeLeft {
   seconds: number;
 }
 
-export default function CountdownTimer({ endDate }: CountdownTimerProps) {
-  const [timeLeft, setTimeLeft] = useState<TimeLeft>({ hours: 0, minutes: 0, seconds: 0 });
+const calcularTempoRestante = (endDate: Date | string) => {
+  const agora = new Date().getTime();
+  const dataAlvo = typeof endDate === 'string' ? new Date(endDate) : endDate;
+  const distancia = dataAlvo.getTime() - agora;
+
+  if (Number.isNaN(dataAlvo.getTime()) || distancia <= 0) {
+    return null;
+  }
+
+  const hours = Math.floor((distancia % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((distancia % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((distancia % (1000 * 60)) / 1000);
+
+  return { hours, minutes, seconds };
+};
+
+export default function CountdownTimer({ endDate, onExpire }: CountdownTimerProps) {
+  const [timeLeft, setTimeLeft] = useState<TimeLeft | null>(() => calcularTempoRestante(endDate));
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date().getTime();
-      const targetDate = typeof endDate === 'string' ? new Date(endDate) : endDate;
-      const distance = targetDate.getTime() - now;
+    let expiredNotified = false;
 
-      if (distance < 0) {
-        clearInterval(timer);
-        setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
-        return;
+    const atualizar = () => {
+      const restante = calcularTempoRestante(endDate);
+
+      if (!restante) {
+        if (!expiredNotified) {
+          expiredNotified = true;
+          onExpire?.();
+        }
+        setTimeLeft(null);
+        return false;
       }
 
-      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+      setTimeLeft(restante);
+      return true;
+    };
 
-      setTimeLeft({ hours, minutes, seconds });
+    if (!atualizar()) {
+      return () => undefined;
+    }
+
+    const timer = setInterval(() => {
+      if (!atualizar()) {
+        clearInterval(timer);
+      }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [endDate]);
+  }, [endDate, onExpire]);
+
+  if (!timeLeft) {
+    return null;
+  }
 
   return (
     <div className={styles.countdown}>

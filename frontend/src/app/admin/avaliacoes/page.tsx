@@ -1,15 +1,20 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 import { useRouter } from 'next/navigation';
 import { reviewService, productService } from '@/services/api';
 import Link from 'next/link';
 import { FiArrowLeft, FiStar, FiTrash2 } from 'react-icons/fi';
+import { confirmAction } from '@/utils/alerts';
 import styles from './avaliacoes.module.scss';
 
 export default function AdminAvaliacoesPage() {
   const { user, loading: authLoading } = useAuth();
+  const toast = useToast();
   const router = useRouter();
   const [avaliacoes, setAvaliacoes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +38,7 @@ export default function AdminAvaliacoesPage() {
       // Carregar produtos para depois buscar avaliações
       const produtosRes = await productService.getAllAdmin({ limite: 100 });
       if (produtosRes.success) {
-        const prods = produtosRes.data || [];
+        const prods: any[] = Array.isArray(produtosRes.data) ? produtosRes.data : [];
         setProdutos(prods);
 
         // Carregar avaliações de cada produto
@@ -43,7 +48,8 @@ export default function AdminAvaliacoesPage() {
           try {
             const avalRes = await reviewService.getByProduct(prod.id, { limite: 50 });
             if (avalRes.success && avalRes.data) {
-              const avalWithProduto = avalRes.data.map((av: any) => ({
+              const listaAvaliacoes: any[] = Array.isArray(avalRes.data) ? avalRes.data : [];
+              const avalWithProduto = listaAvaliacoes.map((av: any) => ({
                 ...av,
                 produto_nome: prod.nome,
                 produto_id: prod.id,
@@ -64,18 +70,23 @@ export default function AdminAvaliacoesPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir esta avaliação?')) {
+    const confirmed = await confirmAction(
+      'Excluir avaliação',
+      'Tem certeza que deseja excluir esta avaliação?',
+      'Excluir'
+    );
+    if (!confirmed) {
       return;
     }
 
     try {
       const response = await reviewService.delete(id);
       if (response.success) {
-        alert('Avaliação excluída com sucesso!');
+        toast.success('Avaliação excluída com sucesso!');
         carregarDados();
       }
     } catch (error: any) {
-      alert(error.message || 'Erro ao excluir avaliação');
+      toast.error(error.message || 'Erro ao excluir avaliação');
     }
   };
 
