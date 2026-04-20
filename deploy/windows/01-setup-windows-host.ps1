@@ -7,14 +7,53 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-Write-Host "[1/4] Habilitando features para WSL2..."
-Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -NoRestart | Out-Null
-Enable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform -NoRestart | Out-Null
+function Ensure-Chocolatey {
+  if (Get-Command choco -ErrorAction SilentlyContinue) {
+    return
+  }
 
-Write-Host "[2/4] Configurando firewall local (80/443)..."
+  Write-Host "Chocolatey nao encontrado. Instalando..."
+  Set-ExecutionPolicy Bypass -Scope Process -Force
+  [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+  Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+}
+
+function Ensure-ChocoPackage {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Name,
+
+    [string]$Params = ""
+  )
+
+  $isInstalled = choco list --local-only --exact $Name | Select-String -Pattern "^$Name "
+  if ($isInstalled) {
+    Write-Host "Pacote ja instalado: $Name"
+    return
+  }
+
+  Write-Host "Instalando pacote: $Name"
+  if ([string]::IsNullOrWhiteSpace($Params)) {
+    choco install $Name -y --no-progress
+  } else {
+    choco install $Name -y --no-progress --params "$Params"
+  }
+}
+
+Write-Host "[1/5] Instalando dependencias do host Windows..."
+Ensure-Chocolatey
+Ensure-ChocoPackage -Name git
+Ensure-ChocoPackage -Name nodejs-lts
+Ensure-ChocoPackage -Name postgresql16
+Ensure-ChocoPackage -Name nssm
+Ensure-ChocoPackage -Name caddy
+
+Write-Host "[2/5] Configurando firewall local..."
 $rules = @(
   @{ Name = 'HTTP-80-In'; Port = 80 },
-  @{ Name = 'HTTPS-443-In'; Port = 443 }
+  @{ Name = 'HTTPS-443-In'; Port = 443 },
+  @{ Name = 'Backend-5000-Local'; Port = 5000 },
+  @{ Name = 'Frontend-3000-Local'; Port = 3000 }
 )
 
 foreach ($rule in $rules) {
@@ -23,7 +62,7 @@ foreach ($rule in $rules) {
   }
 }
 
-Write-Host "[3/4] Detectando IP publico da instancia..."
+Write-Host "[3/5] Detectando IP publico da instancia..."
 $publicIp = ""
 try {
   $token = Invoke-RestMethod -Method PUT -Uri 'http://169.254.169.254/latest/api/token' -Headers @{ 'X-aws-ec2-metadata-token-ttl-seconds' = '21600' } -TimeoutSec 3
@@ -36,7 +75,13 @@ try {
   }
 }
 
-Write-Host "[4/4] Checklist AWS/DNS"
+Write-Host "[4/5] Validando binarios principais..."
+Get-Command node | Out-Null
+Get-Command npm | Out-Null
+Get-Command nssm | Out-Null
+Get-Command caddy | Out-Null
+
+Write-Host "[5/5] Checklist AWS/DNS"
 Write-Host "- Security Group: liberar TCP 22, 80, 443"
 Write-Host "- Elastic IP recomendado para manter IP fixo"
 if ($publicIp) {
@@ -49,4 +94,4 @@ if ($publicIp) {
   Write-Warning "Nao foi possivel detectar IP publico automaticamente."
 }
 
-Write-Host "Concluido. Se este for o primeiro setup, reinicie o servidor antes do proximo passo."
+Write-Host "Concluido. Host Windows pronto para deploy nativo."

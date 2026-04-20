@@ -1,6 +1,6 @@
-# Producao 100% - Windows Server 2025 (com WSL2)
+# Producao 100% - Windows Server 2025 (nativo)
 
-Para manter a stack atual (Docker Linux + Nginx + Certbot), este fluxo roda a aplicacao dentro do WSL Ubuntu 22.04 hospedado no Windows Server 2025.
+Este fluxo roda tudo nativamente no Windows Server: Node.js (backend/frontend), PostgreSQL local e proxy HTTPS com Caddy.
 
 ## Premissas
 
@@ -16,22 +16,20 @@ Exemplo recomendado:
 
 ## Ordem de execucao (PowerShell como Administrador)
 
-### 1) Preparar host Windows e firewall
+### 1) Preparar host Windows e dependencias
 
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force
 .\deploy\windows\01-setup-windows-host.ps1 -Domain "seu-dominio.com.br"
 ```
 
-Se solicitado, reinicie o servidor.
+Esse passo instala: `nodejs-lts`, `postgresql16`, `nssm` e `caddy`.
 
-### 2) Instalar WSL + Ubuntu 22.04
+### 2) Preparar PostgreSQL da aplicacao
 
 ```powershell
-.\deploy\windows\02-install-wsl-ubuntu.ps1 -Distro "Ubuntu-22.04"
+.\deploy\windows\02-setup-postgres.ps1 -DbPassword "SENHA_FORTE_AQUI" -DbName "point55" -DbUser "point55_app"
 ```
-
-Se solicitar reboot, reinicie e rode novamente para validar.
 
 ### 3) Configurar backend/.env de producao
 
@@ -49,28 +47,38 @@ Garanta no arquivo `backend/.env`:
 - `API_BASE_URL=https://seu-dominio.com.br`
 - `JWT_SECRET` com no minimo 16 caracteres
 
-### 4) Rodar deploy completo no WSL
+### 4) Inicializar schema e migracoes
 
 ```powershell
-.\deploy\windows\03-run-deploy-in-wsl.ps1 `
-  -Domain "seu-dominio.com.br" `
-  -LetsencryptEmail "seu-email@dominio.com" `
-  -DbPassword "SENHA_FORTE_AQUI" `
+.\deploy\windows\03-init-db.ps1 `
+  -ProjectPath "C:\Site\site-de-vendas" `
+  -DbHost "localhost" `
+  -DbPort "5432" `
   -DbName "point55" `
   -DbUser "point55_app" `
-  -ProjectPathWindows "C:\Site\site-de-vendas" `
-  -Distro "Ubuntu-22.04"
+  -DbPassword "SENHA_FORTE_AQUI"
 ```
 
-### 5) (Opcional) Renovacao SSL via Agendador do Windows
-
-A renovacao ja fica no cron Linux dentro do WSL, mas se quiser redundancia no host Windows:
+### 5) Publicar backend/frontend como servicos
 
 ```powershell
-.\deploy\windows\04-create-renew-task.ps1 `
-  -ProjectPathWindows "C:\Site\site-de-vendas" `
-  -Distro "Ubuntu-22.04" `
-  -RunAt "03:00"
+.\deploy\windows\04-deploy-services.ps1 -ProjectPath "C:\Site\site-de-vendas"
+```
+
+### 6) Configurar HTTPS e proxy reverso com Caddy
+
+```powershell
+.\deploy\windows\05-configure-https-caddy.ps1 `
+  -Domain "seu-dominio.com.br" `
+  -AcmeEmail "seu-email@dominio.com"
+```
+
+### 7) (Opcional) Reiniciar servicos apos alteracoes
+
+```powershell
+Restart-Service Point55Backend
+Restart-Service Point55Frontend
+Restart-Service Point55Caddy
 ```
 
 ## Validacoes finais
@@ -80,6 +88,7 @@ curl.exe -I http://seu-dominio.com.br
 curl.exe -I https://seu-dominio.com.br
 curl.exe -I https://seu-dominio.com.br/api/health
 curl.exe -I https://seu-dominio.com.br/api/health/database
+Get-Service Point55Backend,Point55Frontend,Point55Caddy
 ```
 
 ## Checklist AWS obrigatorio
@@ -90,6 +99,6 @@ curl.exe -I https://seu-dominio.com.br/api/health/database
 
 ## Observacoes importantes
 
-- Este desenho usa Windows Server apenas como host e executa a stack Linux no WSL2
-- Isso evita reescrever toda a stack para Windows nativo
-- Em ambiente de producao critica, Linux nativo tende a ser mais estavel e simples para Docker Linux
+- SSL e renovacao ficam automaticos no Caddy
+- Nao depende de WSL, Docker Linux, Nginx ou Certbot
+- Se mudar dominio, rode novamente o script de configuracao do Caddy
