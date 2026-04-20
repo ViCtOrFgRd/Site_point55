@@ -1,4 +1,8 @@
-const { calcularFreteSuperfrete } = require('../services/superfreteService');
+const {
+  calcularFreteSuperfrete,
+  obterInformacoesPacotesSuperfrete,
+} = require('../services/superfreteService');
+const { calcularVolumesFrete, formatarParaServicoFrete } = require('../services/embalagemService');
 
 const parseNumber = (value) => {
   if (value === null || value === undefined) {
@@ -26,6 +30,7 @@ const calcularFrete = async (req, res) => {
       services,
       options,
       payload,
+      itens, // Array de itens do carrinho para cálculo automático de volumes
     } = req.body || {};
 
     if (!cep_destino) {
@@ -51,6 +56,26 @@ const calcularFrete = async (req, res) => {
       });
     }
 
+    // Calcular volumes automaticamente se itens forem fornecidos
+    let volumesParaFrete = null;
+    
+    if (itens && Array.isArray(itens) && itens.length > 0) {
+      try {
+        const volumes = await calcularVolumesFrete(itens);
+        volumesParaFrete = formatarParaServicoFrete(volumes);
+        
+        console.log('📦 Volumes calculados:', {
+          quantidade_volumes: volumesParaFrete.length,
+          volumes: volumesParaFrete
+        });
+      } catch (error) {
+        console.error('❌ Erro ao calcular volumes automaticamente:');
+        console.error('   Mensagem:', error.message);
+        console.error('   Stack:', error.stack);
+        // Continuar com dimensões manuais se houver erro
+      }
+    }
+
     const result = await calcularFreteSuperfrete({
       cepDestino: cep_destino,
       valorDeclarado: valor_declarado ?? subtotalValue,
@@ -62,6 +87,7 @@ const calcularFrete = async (req, res) => {
       maoPropria: options?.own_hand,
       avisoRecebimento: options?.receipt,
       rawPayload: payload,
+      volumes: volumesParaFrete, // Passar volumes calculados
     });
 
     if (!result.best) {
@@ -86,14 +112,42 @@ const calcularFrete = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Erro ao calcular frete:', error?.response?.data || error.message || error);
+    console.error('❌ ERRO NA FUNÇÃO calcularFrete:');
+    console.error('   Mensagem:', error.message);
+    console.error('   Stack:', error.stack);
+    console.error('   Response Data:', error?.response?.data);
+    
     return res.status(500).json({
       success: false,
       error: 'Erro ao calcular frete no SuperFrete',
+      debug: {
+        message: error.message,
+        type: error.constructor.name
+      }
+    });
+  }
+};
+
+// GET /api/superfrete/pacotes - Informacoes dos pacotes
+const obterPacotes = async (req, res) => {
+  try {
+    const result = await obterInformacoesPacotesSuperfrete();
+    return res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    console.error('Erro ao obter informacoes de pacotes:', error?.response?.data || error.message || error);
+    const details = error?.response?.data || null;
+    return res.status(500).json({
+      success: false,
+      error: 'Erro ao obter informacoes de pacotes no SuperFrete',
+      details: process.env.NODE_ENV === 'development' ? details : undefined,
     });
   }
 };
 
 module.exports = {
   calcularFrete,
+  obterPacotes,
 };
