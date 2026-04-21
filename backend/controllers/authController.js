@@ -319,6 +319,9 @@ const atualizarPerfil = async (req, res) => {
     const userId = req.usuario.id;
     const { nome, telefone, data_nascimento } = req.body;
     const telefoneSanitizado = typeof telefone === 'string' ? telefone.trim() : telefone;
+    const dataNascimentoSanitizada = typeof data_nascimento === 'string'
+      ? data_nascimento.trim() || null
+      : data_nascimento;
 
     if (telefoneSanitizado !== undefined) {
       const telefoneNormalizado = String(telefoneSanitizado).replace(/\D/g, '');
@@ -330,7 +333,7 @@ const atualizarPerfil = async (req, res) => {
       }
     }
 
-    if (data_nascimento && Number.isNaN(Date.parse(data_nascimento))) {
+    if (dataNascimentoSanitizada && Number.isNaN(Date.parse(dataNascimentoSanitizada))) {
       return res.status(400).json({
         success: false,
         error: 'Data de nascimento inválida',
@@ -344,7 +347,7 @@ const atualizarPerfil = async (req, res) => {
            data_nascimento = COALESCE($3, data_nascimento)
        WHERE id = $4 AND ativo = true
        RETURNING id, nome, email, telefone, cpf, data_nascimento, data_cadastro, ativo, is_admin`,
-      [nome, telefoneSanitizado, data_nascimento, userId]
+      [nome, telefoneSanitizado, dataNascimentoSanitizada, userId]
     );
 
     if (result.rows.length === 0) {

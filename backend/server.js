@@ -165,6 +165,8 @@ const webhooksRoutes = require('./routes/webhooks');
 const caixasRoutes = require('./routes/caixas');
 const configFreteRoutes = require('./routes/configFrete');
 const tiposProdutoRoutes = require('./routes/tiposProduto');
+const conteudoInstitucionalRoutes = require('./routes/conteudoInstitucional');
+const conteudoInstitucionalAdminRoutes = require('./routes/conteudoInstitucionalAdmin');
 
 // Usar rotas
 app.use('/api/auth', authRoutes);
@@ -180,6 +182,7 @@ app.use('/api/badges', badgesRoutes);
 app.use('/api/promocoes', promocoesRoutes);
 app.use('/api/carrinho', carrinhoRoutes);
 app.use('/api/banners', bannersRoutes);
+app.use('/api/conteudo-institucional', conteudoInstitucionalRoutes);
 app.use('/api/favoritos', favoritosRoutes);
 app.use('/api/superfrete', superfreteRoutes);
 app.use('/api/devolucoes', devolucoesRoutes);
@@ -188,6 +191,7 @@ app.use('/api/webhooks', webhooksRoutes);
 app.use('/api/admin/caixas-catalogo', caixasRoutes);
 app.use('/api/admin/config-frete', configFreteRoutes);
 app.use('/api/admin/tipos-produto', tiposProdutoRoutes);
+app.use('/api/admin/conteudo-institucional', conteudoInstitucionalAdminRoutes);
 
 // Middleware de erro 404
 app.use((req, res, next) => {

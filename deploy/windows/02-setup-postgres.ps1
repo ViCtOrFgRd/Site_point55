@@ -5,7 +5,7 @@ param(
   [string]$DbPassword,
 
   [string]$DbName = 'point55',
-  [string]$DbUser = 'point55_app',
+  [string]$DbUser = 'postgres',
   [string]$PostgresAdminUser = 'postgres'
 )
 

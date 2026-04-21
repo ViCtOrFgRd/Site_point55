@@ -9,7 +9,7 @@ param(
 
   [string]$BackendUpstream = '127.0.0.1:5000',
   [string]$FrontendUpstream = '127.0.0.1:3000',
-  [string]$CaddyServiceName = 'Point55Caddy'
+  [string]$CaddyServiceName = 'Point55'
 )
 
 Set-StrictMode -Version Latest

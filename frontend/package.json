@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "description": "Point55 - Site de Vendas de Produtos",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "dev:turbo": "next dev --turbopack",
     "build": "next build",
+    "build:webpack": "next build --webpack",
     "start": "next start",
     "lint": "eslint ."
   },

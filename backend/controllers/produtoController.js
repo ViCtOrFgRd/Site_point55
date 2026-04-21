@@ -10,6 +10,57 @@ const {
   parseVariantStockMap,
 } = require('../services/inventoryService');
 
+const isMissingProdutoCategoriasTableError = (error) => (
+  error?.code === '42P01' && String(error?.message || '').includes('produto_categorias')
+);
+
+let hasProdutoCategoriasTableCache;
+
+const hasProdutoCategoriasTable = async () => {
+  if (typeof hasProdutoCategoriasTableCache === 'boolean') {
+    return hasProdutoCategoriasTableCache;
+  }
+
+  const result = await pool.query(
+    `SELECT EXISTS (
+       SELECT 1
+       FROM information_schema.tables
+       WHERE table_schema = 'public'
+         AND table_name = 'produto_categorias'
+     ) AS exists`
+  );
+
+  hasProdutoCategoriasTableCache = Boolean(result.rows[0]?.exists);
+  return hasProdutoCategoriasTableCache;
+};
+
+const getCategoriaQueryConfig = async () => {
+  const useJoinTable = await hasProdutoCategoriasTable();
+
+  if (useJoinTable) {
+    return {
+      select: `ARRAY_AGG(DISTINCT c.id) FILTER (WHERE c.id IS NOT NULL) as categoria_ids,
+             ARRAY_AGG(DISTINCT c.nome) FILTER (WHERE c.nome IS NOT NULL) as categoria_nomes,
+             ARRAY_AGG(DISTINCT c.slug) FILTER (WHERE c.slug IS NOT NULL) as categoria_slugs`,
+      joins: `LEFT JOIN produto_categorias pc ON p.id = pc.produto_id
+      LEFT JOIN categorias c ON pc.categoria_id = c.id`,
+      numericFilter: (param) => `EXISTS (SELECT 1 FROM produto_categorias WHERE produto_id = p.id AND categoria_id = $${param})`,
+      slugFilter: (param) => `EXISTS (SELECT 1 FROM produto_categorias pc2 JOIN categorias c2 ON pc2.categoria_id = c2.id WHERE pc2.produto_id = p.id AND c2.slug = $${param})`,
+      requiresGroupBy: true,
+    };
+  }
+
+  return {
+    select: `ARRAY_REMOVE(ARRAY[p.categoria_id], NULL) as categoria_ids,
+             ARRAY_REMOVE(ARRAY[c.nome], NULL) as categoria_nomes,
+             ARRAY_REMOVE(ARRAY[c.slug], NULL) as categoria_slugs`,
+    joins: `LEFT JOIN categorias c ON p.categoria_id = c.id`,
+    numericFilter: (param) => `p.categoria_id = $${param}`,
+    slugFilter: (param) => `c.slug = $${param}`,
+    requiresGroupBy: false,
+  };
+};
+
 // GET /api/produtos/admin - Listar produtos (admin, sem filtros de visibilidade)
 const listarProdutosAdmin = async (req, res) => {
   try {
@@ -24,16 +75,14 @@ const listarProdutosAdmin = async (req, res) => {
       limite = 1000,
       pagina = 1,
     } = req.query;
+    const categoriaQuery = await getCategoriaQueryConfig();
 
     const offset = (pagina - 1) * limite;
     let query = `
       SELECT DISTINCT p.*,
-             ARRAY_AGG(DISTINCT c.id) FILTER (WHERE c.id IS NOT NULL) as categoria_ids,
-             ARRAY_AGG(DISTINCT c.nome) FILTER (WHERE c.nome IS NOT NULL) as categoria_nomes,
-             ARRAY_AGG(DISTINCT c.slug) FILTER (WHERE c.slug IS NOT NULL) as categoria_slugs
+             ${categoriaQuery.select}
       FROM produtos p
-      LEFT JOIN produto_categorias pc ON p.id = pc.produto_id
-      LEFT JOIN categorias c ON pc.categoria_id = c.id
+      ${categoriaQuery.joins}
       WHERE 1=1
     `;
     const params = [];
@@ -42,10 +91,10 @@ const listarProdutosAdmin = async (req, res) => {
     if (categoria) {
       const isNumeric = !isNaN(categoria);
       if (isNumeric) {
-        query += ` AND EXISTS (SELECT 1 FROM produto_categorias WHERE produto_id = p.id AND categoria_id = $${paramCount})`;
+        query += ` AND ${categoriaQuery.numericFilter(paramCount)}`;
         params.push(categoria);
       } else {
-        query += ` AND EXISTS (SELECT 1 FROM produto_categorias pc2 JOIN categorias c2 ON pc2.categoria_id = c2.id WHERE pc2.produto_id = p.id AND c2.slug = $${paramCount})`;
+        query += ` AND ${categoriaQuery.slugFilter(paramCount)}`;
         params.push(categoria);
       }
       paramCount++;
@@ -95,7 +144,9 @@ const listarProdutosAdmin = async (req, res) => {
     const ordenacao = ordensPermitidas[ordem] || 'p.data_criacao';
     const direcaoOrdem = direcao.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
-    query += ` GROUP BY p.id`;
+    if (categoriaQuery.requiresGroupBy) {
+      query += ` GROUP BY p.id`;
+    }
     query += ` ORDER BY ${ordenacao} ${direcaoOrdem}`;
     query += ` LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
     params.push(limite, offset);
@@ -103,8 +154,7 @@ const listarProdutosAdmin = async (req, res) => {
     const result = await pool.query(query, params);
 
     let countQuery = `SELECT COUNT(DISTINCT p.id) FROM produtos p
-                      LEFT JOIN produto_categorias pc ON p.id = pc.produto_id
-                      LEFT JOIN categorias c ON pc.categoria_id = c.id
+              ${categoriaQuery.joins}
                       WHERE 1=1`;
     const countParams = [];
     let countParamNum = 1;
@@ -112,10 +162,10 @@ const listarProdutosAdmin = async (req, res) => {
     if (categoria) {
       const isNumeric = !isNaN(categoria);
       if (isNumeric) {
-        countQuery += ` AND EXISTS (SELECT 1 FROM produto_categorias WHERE produto_id = p.id AND categoria_id = $${countParamNum})`;
+        countQuery += ` AND ${categoriaQuery.numericFilter(countParamNum)}`;
         countParams.push(categoria);
       } else {
-        countQuery += ` AND EXISTS (SELECT 1 FROM produto_categorias pc2 JOIN categorias c2 ON pc2.categoria_id = c2.id WHERE pc2.produto_id = p.id AND c2.slug = $${countParamNum})`;
+        countQuery += ` AND ${categoriaQuery.slugFilter(countParamNum)}`;
         countParams.push(categoria);
       }
       countParamNum++;
@@ -190,16 +240,14 @@ const listarProdutos = async (req, res) => {
       limite = 20,
       pagina = 1,
     } = req.query;
+    const categoriaQuery = await getCategoriaQueryConfig();
 
     const offset = (pagina - 1) * limite;
     let query = `
       SELECT DISTINCT p.*,
-             ARRAY_AGG(DISTINCT c.id) FILTER (WHERE c.id IS NOT NULL) as categoria_ids,
-             ARRAY_AGG(DISTINCT c.nome) FILTER (WHERE c.nome IS NOT NULL) as categoria_nomes,
-             ARRAY_AGG(DISTINCT c.slug) FILTER (WHERE c.slug IS NOT NULL) as categoria_slugs
+             ${categoriaQuery.select}
       FROM produtos p
-      LEFT JOIN produto_categorias pc ON p.id = pc.produto_id
-      LEFT JOIN categorias c ON pc.categoria_id = c.id
+      ${categoriaQuery.joins}
       WHERE p.ativo = true AND p.estoque > 0 AND p.preco > 0
     `;
     const params = [];
@@ -209,10 +257,10 @@ const listarProdutos = async (req, res) => {
     if (categoria) {
       const isNumeric = !isNaN(categoria);
       if (isNumeric) {
-        query += ` AND EXISTS (SELECT 1 FROM produto_categorias WHERE produto_id = p.id AND categoria_id = $${paramCount})`;
+        query += ` AND ${categoriaQuery.numericFilter(paramCount)}`;
         params.push(categoria);
       } else {
-        query += ` AND EXISTS (SELECT 1 FROM produto_categorias pc2 JOIN categorias c2 ON pc2.categoria_id = c2.id WHERE pc2.produto_id = p.id AND c2.slug = $${paramCount})`;
+        query += ` AND ${categoriaQuery.slugFilter(paramCount)}`;
         params.push(categoria);
       }
       paramCount++;
@@ -267,7 +315,9 @@ const listarProdutos = async (req, res) => {
     const ordenacao = ordensPermitidas[ordem] || 'p.data_criacao';
     const direcaoOrdem = direcao.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
-    query += ` GROUP BY p.id`;
+    if (categoriaQuery.requiresGroupBy) {
+      query += ` GROUP BY p.id`;
+    }
     query += ` ORDER BY ${ordenacao} ${direcaoOrdem}`;
     query += ` LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
     params.push(limite, offset);
@@ -276,8 +326,7 @@ const listarProdutos = async (req, res) => {
 
     // Contar total
     let countQuery = `SELECT COUNT(DISTINCT p.id) FROM produtos p 
-                      LEFT JOIN produto_categorias pc ON p.id = pc.produto_id
-                      LEFT JOIN categorias c ON pc.categoria_id = c.id
+              ${categoriaQuery.joins}
                       WHERE p.ativo = true AND p.estoque > 0 AND p.preco > 0`;
     const countParams = [];
     let countParamNum = 1;
@@ -285,10 +334,10 @@ const listarProdutos = async (req, res) => {
     if (categoria) {
       const isNumeric = !isNaN(categoria);
       if (isNumeric) {
-        countQuery += ` AND EXISTS (SELECT 1 FROM produto_categorias WHERE produto_id = p.id AND categoria_id = $${countParamNum})`;
+        countQuery += ` AND ${categoriaQuery.numericFilter(countParamNum)}`;
         countParams.push(categoria);
       } else {
-        countQuery += ` AND EXISTS (SELECT 1 FROM produto_categorias pc2 JOIN categorias c2 ON pc2.categoria_id = c2.id WHERE pc2.produto_id = p.id AND c2.slug = $${countParamNum})`;
+        countQuery += ` AND ${categoriaQuery.slugFilter(countParamNum)}`;
         countParams.push(categoria);
       }
       countParamNum++;
@@ -355,6 +404,7 @@ const listarProdutos = async (req, res) => {
 const obterProduto = async (req, res) => {
   try {
     const { id } = req.params;
+    const categoriaQuery = await getCategoriaQueryConfig();
 
     if (!/^\d+$/.test(String(id))) {
       return res.status(400).json({
@@ -365,14 +415,11 @@ const obterProduto = async (req, res) => {
 
     const result = await pool.query(
       `SELECT p.*,
-              ARRAY_AGG(DISTINCT c.id) FILTER (WHERE c.id IS NOT NULL) as categoria_ids,
-              ARRAY_AGG(DISTINCT c.nome) FILTER (WHERE c.nome IS NOT NULL) as categoria_nomes,
-              ARRAY_AGG(DISTINCT c.slug) FILTER (WHERE c.slug IS NOT NULL) as categoria_slugs
+              ${categoriaQuery.select}
        FROM produtos p
-       LEFT JOIN produto_categorias pc ON p.id = pc.produto_id
-       LEFT JOIN categorias c ON pc.categoria_id = c.id
+       ${categoriaQuery.joins}
        WHERE p.id = $1
-       GROUP BY p.id`,
+       ${categoriaQuery.requiresGroupBy ? 'GROUP BY p.id' : ''}`,
       [id]
     );
 
@@ -430,16 +477,14 @@ const obterProduto = async (req, res) => {
 const listarPromocoes = async (req, res) => {
   try {
     const { categoria, limite = 20, pagina = 1 } = req.query;
+    const categoriaQuery = await getCategoriaQueryConfig();
     const offset = (pagina - 1) * limite;
 
     // Buscar produtos com desconto direto OU que possuem promoção vigente
     let query = `SELECT DISTINCT p.*,
-         ARRAY_AGG(DISTINCT c.id) FILTER (WHERE c.id IS NOT NULL) as categoria_ids,
-         ARRAY_AGG(DISTINCT c.nome) FILTER (WHERE c.nome IS NOT NULL) as categoria_nomes,
-         ARRAY_AGG(DISTINCT c.slug) FILTER (WHERE c.slug IS NOT NULL) as categoria_slugs
+         ${categoriaQuery.select}
        FROM produtos p
-       LEFT JOIN produto_categorias pc ON p.id = pc.produto_id
-       LEFT JOIN categorias c ON pc.categoria_id = c.id
+       ${categoriaQuery.joins}
        WHERE p.ativo = true AND p.estoque > 0 AND p.preco > 0 AND (
          p.desconto_percentual > 0 
          OR EXISTS (
@@ -462,24 +507,26 @@ const listarPromocoes = async (req, res) => {
     if (categoria) {
       const isNumeric = !isNaN(categoria);
       if (isNumeric) {
-        query += ` AND EXISTS (SELECT 1 FROM produto_categorias WHERE produto_id = p.id AND categoria_id = $${paramCount})`;
+        query += ` AND ${categoriaQuery.numericFilter(paramCount)}`;
         params.push(categoria);
       } else {
-        query += ` AND EXISTS (SELECT 1 FROM produto_categorias pc2 JOIN categorias c2 ON pc2.categoria_id = c2.id WHERE pc2.produto_id = p.id AND c2.slug = $${paramCount})`;
+        query += ` AND ${categoriaQuery.slugFilter(paramCount)}`;
         params.push(categoria);
       }
       paramCount++;
     }
 
-    query += ` GROUP BY p.id ORDER BY p.desconto_percentual DESC, p.data_criacao DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
+    if (categoriaQuery.requiresGroupBy) {
+      query += ` GROUP BY p.id`;
+    }
+    query += ` ORDER BY p.desconto_percentual DESC, p.data_criacao DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
     params.push(limite, offset);
 
     const result = await pool.query(query, params);
 
     // Contar total com os mesmos filtros
-    let countQuery = `SELECT COUNT(DISTINCT p.id) FROM produtos p
-       LEFT JOIN produto_categorias pc ON p.id = pc.produto_id
-       LEFT JOIN categorias c ON pc.categoria_id = c.id
+     let countQuery = `SELECT COUNT(DISTINCT p.id) FROM produtos p
+       ${categoriaQuery.joins}
        WHERE p.ativo = true AND p.estoque > 0 AND p.preco > 0 AND (
          p.desconto_percentual > 0 
          OR EXISTS (
@@ -501,10 +548,10 @@ const listarPromocoes = async (req, res) => {
     if (categoria) {
       const isNumeric = !isNaN(categoria);
       if (isNumeric) {
-        countQuery += ` AND EXISTS (SELECT 1 FROM produto_categorias WHERE produto_id = p.id AND categoria_id = $${countParamNum})`;
+        countQuery += ` AND ${categoriaQuery.numericFilter(countParamNum)}`;
         countParams.push(categoria);
       } else {
-        countQuery += ` AND EXISTS (SELECT 1 FROM produto_categorias pc2 JOIN categorias c2 ON pc2.categoria_id = c2.id WHERE pc2.produto_id = p.id AND c2.slug = $${countParamNum})`;
+        countQuery += ` AND ${categoriaQuery.slugFilter(countParamNum)}`;
         countParams.push(categoria);
       }
       countParamNum++;
@@ -536,17 +583,15 @@ const listarPromocoes = async (req, res) => {
 const listarDestaques = async (req, res) => {
   try {
     const { limite = 8 } = req.query;
+    const categoriaQuery = await getCategoriaQueryConfig();
 
     const result = await pool.query(
       `SELECT p.*, 
-              ARRAY_AGG(DISTINCT c.id) FILTER (WHERE c.id IS NOT NULL) as categoria_ids,
-              ARRAY_AGG(DISTINCT c.nome) FILTER (WHERE c.nome IS NOT NULL) as categoria_nomes,
-              ARRAY_AGG(DISTINCT c.slug) FILTER (WHERE c.slug IS NOT NULL) as categoria_slugs
+              ${categoriaQuery.select}
        FROM produtos p
-       LEFT JOIN produto_categorias pc ON p.id = pc.produto_id
-       LEFT JOIN categorias c ON pc.categoria_id = c.id
+       ${categoriaQuery.joins}
        WHERE p.ativo = true AND p.estoque > 0 AND p.preco > 0
-       GROUP BY p.id
+       ${categoriaQuery.requiresGroupBy ? 'GROUP BY p.id' : ''}
        ORDER BY p.vendas_total DESC, p.data_criacao DESC
        LIMIT $1`,
       [limite]

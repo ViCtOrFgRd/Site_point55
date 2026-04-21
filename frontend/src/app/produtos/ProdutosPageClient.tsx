@@ -32,8 +32,14 @@ export default function ProdutosPageClient() {
   const [totalProdutos, setTotalProdutos] = useState(0);
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const observerTarget = useRef<HTMLDivElement>(null);
+  const [sentinelEl, setSentinelEl] = useState<HTMLDivElement | null>(null);
+  const observerCallbackRef = useRef<() => void>(() => {});
   const isUpdatingFromUrlRef = useRef(false);
+  const loadingRef = useRef(true);
+  const loadingMoreRef = useRef(false);
+  const hasMoreRef = useRef(true);
+  const paginaAtualRef = useRef(1);
+  const requestIdRef = useRef(0);
 
   const [filtros, setFiltros] = useState(getFiltrosFromSearchParams);
 
@@ -94,14 +100,32 @@ export default function ProdutosPageClient() {
 
     const proximaUrl = novaQuery ? `${pathname}?${novaQuery}` : pathname;
     router.replace(proximaUrl, { scroll: false });
-  }, [filtros, buildQueryStringFromFiltros, searchParams, pathname, router]);
+  }, [filtros, buildQueryStringFromFiltros, getFiltrosFromSearchParams, pathname, router]);
+
+  useEffect(() => {
+    loadingRef.current = loading;
+  }, [loading]);
+
+  useEffect(() => {
+    loadingMoreRef.current = loadingMore;
+  }, [loadingMore]);
+
+  useEffect(() => {
+    hasMoreRef.current = hasMore;
+  }, [hasMore]);
+
+  useEffect(() => {
+    paginaAtualRef.current = paginaAtual;
+  }, [paginaAtual]);
 
   // Carregar produtos iniciais quando filtros mudam
   useEffect(() => {
     setPaginaAtual(1);
+    paginaAtualRef.current = 1;
     setProducts([]);
     setHasMore(true);
-    carregarProdutos(1, true);
+    hasMoreRef.current = true;
+    void carregarProdutos(1, true);
   }, [filtros]);
 
   const carregarCategorias = async () => {
@@ -120,33 +144,34 @@ export default function ProdutosPageClient() {
     }
   };
 
-  const carregarProdutos = async (pagina: number = paginaAtual, reset: boolean = false) => {
+  const carregarProdutos = async (pagina: number = paginaAtualRef.current, reset: boolean = false) => {
+    const requestId = ++requestIdRef.current;
+
+    if (!reset && loadingMoreRef.current) {
+      return;
+    }
+
     if (reset) {
       setLoading(true);
+      loadingRef.current = true;
     } else {
       setLoadingMore(true);
+      loadingMoreRef.current = true;
     }
 
     try {
       // Preparar parametros conforme API do backend
       const params: any = {
-        pagina: pagina,
-        limite: 20, // Aumentado para 20 produtos por vez
+        pagina,
+        limite: 20,
       };
 
       // Adicionar filtros apenas se tiverem valor
       if (filtros.categoria) {
-        // O backend suporta tanto ID numerico quanto slug
-        // Tentar converter para numero
         const categoriaNumerica = parseInt(filtros.categoria, 10);
-
-        if (!isNaN(categoriaNumerica) && categoriaNumerica > 0) {
-          // Se for um numero positivo valido, enviar como numero
-          params.categoria = categoriaNumerica;
-        } else {
-          // Se for texto (slug), enviar como texto
-          params.categoria = filtros.categoria;
-        }
+        params.categoria = !isNaN(categoriaNumerica) && categoriaNumerica > 0
+          ? categoriaNumerica
+          : filtros.categoria;
       }
 
       if (filtros.busca) {
@@ -180,9 +205,14 @@ export default function ProdutosPageClient() {
 
       const response = await productService.getAll(params);
 
+      // Ignora resposta atrasada de uma requisição antiga
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
       if (response.success) {
         const novosProdutos: any[] = Array.isArray(response.data) ? response.data : [];
-        const total = (response as any).pagination?.total || response.total || 0;
+        const total = Number((response as any).pagination?.total ?? response.total ?? 0);
 
         let totalAtual = 0;
         if (reset) {
@@ -198,55 +228,67 @@ export default function ProdutosPageClient() {
 
         setTotalProdutos(total);
 
-        // Verificar se ha mais produtos para carregar
-        // Considera que ha mais se: total de produtos carregados < total disponivel E recebeu produtos nesta pagina
-        const temMais = totalAtual < total && novosProdutos.length > 0;
+        // Interrompe carregamentos contínuos quando backend devolve página vazia
+        // ou quando já alcançamos o total informado.
+        const temMais = novosProdutos.length > 0 && totalAtual < total;
         setHasMore(temMais);
+        hasMoreRef.current = temMais;
       }
     } catch (error: any) {
-      console.error('Erro ao carregar produtos:', error);
-      if (reset) {
-        setProducts([]);
-        setTotalProdutos(0);
+      if (requestId === requestIdRef.current) {
+        console.error('Erro ao carregar produtos:', error);
+        if (reset) {
+          setProducts([]);
+          setTotalProdutos(0);
+          setHasMore(false);
+          hasMoreRef.current = false;
+        }
       }
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+        setLoadingMore(false);
+        loadingRef.current = false;
+        loadingMoreRef.current = false;
+      }
     }
   };
 
   // Carregar mais produtos quando chegar ao fim
   const carregarMaisProdutos = useCallback(() => {
-    if (!loadingMore && hasMore) {
-      const proximaPagina = paginaAtual + 1;
-      setPaginaAtual(proximaPagina);
-      carregarProdutos(proximaPagina, false);
+    if (loadingRef.current || loadingMoreRef.current || !hasMoreRef.current) {
+      return;
     }
-  }, [loadingMore, hasMore, paginaAtual]);
 
-  // Intersection Observer para detectar quando usuario chega ao fim
+    const proximaPagina = paginaAtualRef.current + 1;
+    setPaginaAtual(proximaPagina);
+    paginaAtualRef.current = proximaPagina;
+    void carregarProdutos(proximaPagina, false);
+  }, [carregarProdutos]);
+
+  // Mantém a ref sempre atualizada com a versão mais recente do callback
+  // sem recriar o observer a cada mudança de estado
   useEffect(() => {
+    observerCallbackRef.current = carregarMaisProdutos;
+  }, [carregarMaisProdutos]);
+
+  // Intersection Observer — recriado APENAS quando o elemento sentinela
+  // entra ou sai do DOM (troca de filtro reseta products → sentinel some → volta)
+  useEffect(() => {
+    if (!sentinelEl) return;
+
     const observer = new IntersectionObserver(
       (entries) => {
-        const entry = entries[0];
-        if (entry.isIntersecting && hasMore && !loadingMore) {
-          carregarMaisProdutos();
+        if (entries[0].isIntersecting) {
+          observerCallbackRef.current();
         }
       },
       { threshold: 0.1 }
     );
 
-    const currentTarget = observerTarget.current;
-    if (currentTarget) {
-      observer.observe(currentTarget);
-    }
-
-    return () => {
-      if (currentTarget) {
-        observer.unobserve(currentTarget);
-      }
-    };
-  }, [hasMore, loadingMore, carregarMaisProdutos]);
+    observer.observe(sentinelEl);
+    return () => observer.disconnect();
+  }, [sentinelEl]);
 
   const handleFiltroChange = (campo: string, valor: any) => {
     setFiltros((prev) => ({ ...prev, [campo]: valor }));
@@ -390,7 +432,7 @@ export default function ProdutosPageClient() {
                 <ProductGrid products={products} loading={false} />
 
                 {/* Elemento observador para scroll infinito */}
-                <div ref={observerTarget} style={{ height: '20px', margin: '20px 0' }}>
+                <div ref={setSentinelEl} style={{ height: '20px', margin: '20px 0' }}>
                   {loadingMore && (
                     <div className={styles.loadingMore}>
                       <p>Carregando mais produtos...</p>

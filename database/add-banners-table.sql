@@ -30,9 +30,9 @@ CREATE TRIGGER trigger_update_banners
 
 -- Inserir banners padrão
 INSERT INTO banners (titulo, subtitulo, texto_botao, link_botao, imagem, cor_fundo, ordem, ativo) VALUES
-('MEGA BAZAR', 'Até 70% OFF em peças selecionadas', 'Ver Ofertas', '/promocoes', '/images/banner1.jpg', '#0C1C3A', 1, TRUE),
-('NOVA COLEÇÃO', 'Primavera/Verão 2026', 'Conferir', '/produtos', '/images/banner2.jpg', '#0C1C3A', 2, TRUE),
-('FRETE GRÁTIS', 'Em compras acima de R$ 200', 'Aproveitar', '/produtos', '/images/banner3.jpg', '#1a2a4a', 3, TRUE);
+('MEGA BAZAR', 'Até 70% OFF em peças selecionadas', 'Ver Ofertas', '/promocoes', '/images/banner1.svg', '#0C1C3A', 1, TRUE),
+('NOVA COLEÇÃO', 'Primavera/Verão 2026', 'Conferir', '/produtos', '/images/banner2.svg', '#0C1C3A', 2, TRUE),
+('FRETE GRÁTIS', 'Em compras acima de R$ 200', 'Aproveitar', '/produtos', '/images/banner3.svg', '#1a2a4a', 3, TRUE);
 
 -- Mensagem de sucesso
 SELECT 'Tabela de banners criada com sucesso!' as status;

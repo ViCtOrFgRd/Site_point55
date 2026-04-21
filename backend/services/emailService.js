@@ -170,7 +170,7 @@ const enviarEmailConfirmacaoPedido = async (destinatario, pedido) => {
               <p><strong>Status:</strong> ${pedido.status}</p>
             </div>
             <p>Você receberá atualizações sobre o status do seu pedido por email e SMS.</p>
-            <p>Acompanhe seu pedido em: <a href="${process.env.FRONTEND_URL}/rastreio">Rastreamento</a></p>
+            <p>Acompanhe seu pedido em: <a href="${process.env.FRONTEND_URL || 'https://point55.com.br'}/rastreio">Rastreamento</a></p>
           </div>
           <div class="footer">
             <p>Point55 - Seu Estilo, Nossa Paixão</p>
