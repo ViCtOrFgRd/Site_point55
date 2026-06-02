@@ -1,0 +1,194 @@
+[dotenv@17.2.3] injecting env (78) from .env -- tip: 🔄 add secrets lifecycle management: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+✅ Servidor de email pronto para enviar mensagens
+✅ Conexão com PostgreSQL estabelecida com sucesso!
+📊 Banco de dados: point55
+⏱️ Scheduler de retirada configurado: 0 9 * * *
+⏱️ Scheduler de backup do banco configurado: 0 3 * * *
+
+🎉 ========================================
+   Servidor Point55 Backend iniciado!
+   🌐 URL: http://localhost:5000
+   🔒 Proxy confiavel: sim
+   📦 Ambiente: production
+   ⏰ Horário: 21/04/2026, 04:31:23
+========================================
+
+
+SIGINT recebido. Encerrando servidor...
+[dotenv@17.2.3] injecting env (78) from .env -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔄 add secrets lifecycle management: https://dotenvx.com/ops
+✅ Conexão com PostgreSQL estabelecida com sucesso!
+📊 Banco de dados: point55
+⏱️ Scheduler de retirada configurado: 0 9 * * *
+⏱️ Scheduler de backup do banco configurado: 0 3 * * *
+
+🎉 ========================================
+   Servidor Point55 Backend iniciado!
+   🌐 URL: http://localhost:5000
+   🔒 Proxy confiavel: sim
+   📦 Ambiente: production
+   ⏰ Horário: 21/04/2026, 04:41:28
+========================================
+
+✅ Servidor de email pronto para enviar mensagens
+[dotenv@17.2.3] injecting env (78) from .env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
+✅ Conexão com PostgreSQL estabelecida com sucesso!
+📊 Banco de dados: point55
+⏱️ Scheduler de retirada configurado: 0 9 * * *
+⏱️ Scheduler de backup do banco configurado: 0 3 * * *
+
+🎉 ========================================
+   Servidor Point55 Backend iniciado!
+   🌐 URL: http://localhost:5000
+   🔒 Proxy confiavel: sim
+   📦 Ambiente: production
+   ⏰ Horário: 21/04/2026, 04:52:45
+========================================
+
+✅ Servidor de email pronto para enviar mensagens
+
+SIGINT recebido. Encerrando servidor...
+[dotenv@17.2.3] injecting env (78) from .env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔄 add secrets lifecycle management: https://dotenvx.com/ops
+✅ Conexão com PostgreSQL estabelecida com sucesso!
+📊 Banco de dados: point55
+⏱️ Scheduler de retirada configurado: 0 9 * * *
+⏱️ Scheduler de backup do banco configurado: 0 3 * * *
+
+🎉 ========================================
+   Servidor Point55 Backend iniciado!
+   🌐 URL: http://localhost:5000
+   🔒 Proxy confiavel: sim
+   📦 Ambiente: production
+   ⏰ Horário: 21/04/2026, 05:14:01
+========================================
+
+✅ Servidor de email pronto para enviar mensagens
+
+SIGINT recebido. Encerrando servidor...
+[dotenv@17.2.3] injecting env (78) from .env -- tip: 🔄 add secrets lifecycle management: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 📡 add observability to secrets: https://dotenvx.com/ops
+✅ Conexão com PostgreSQL estabelecida com sucesso!
+📊 Banco de dados: point55
+⏱️ Scheduler de retirada configurado: 0 9 * * *
+⏱️ Scheduler de backup do banco configurado: 0 3 * * *
+
+🎉 ========================================
+   Servidor Point55 Backend iniciado!
+   🌐 URL: http://localhost:5000
+   🔒 Proxy confiavel: sim
+   📦 Ambiente: production
+   ⏰ Horário: 21/04/2026, 16:06:21
+========================================
+
+✅ Servidor de email pronto para enviar mensagens
+
+SIGINT recebido. Encerrando servidor...
+[dotenv@17.2.3] injecting env (78) from .env -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+✅ Conexão com PostgreSQL estabelecida com sucesso!
+📊 Banco de dados: point55
+⏱️ Scheduler de retirada configurado: 0 9 * * *
+⏱️ Scheduler de backup do banco configurado: 0 3 * * *
+
+🎉 ========================================
+   Servidor Point55 Backend iniciado!
+   🌐 URL: http://localhost:5000
+   🔒 Proxy confiavel: sim
+   📦 Ambiente: production
+   ⏰ Horário: 22/04/2026, 03:01:18
+========================================
+
+✅ Servidor de email pronto para enviar mensagens
+
+SIGINT recebido. Encerrando servidor...
+[dotenv@17.2.3] injecting env (78) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🗂️ backup and recover secrets: https://dotenvx.com/ops
+✅ Servidor de email pronto para enviar mensagens
+✅ Conexão com PostgreSQL estabelecida com sucesso!
+📊 Banco de dados: point55
+⏱️ Scheduler de retirada configurado: 0 9 * * *
+⏱️ Scheduler de backup do banco configurado: 0 3 * * *
+
+🎉 ========================================
+   Servidor Point55 Backend iniciado!
+   🌐 URL: http://localhost:5000
+   🔒 Proxy confiavel: sim
+   📦 Ambiente: production
+   ⏰ Horário: 23/04/2026, 01:01:46
+========================================
+
+
+SIGINT recebido. Encerrando servidor...
+[dotenv@17.2.3] injecting env (78) from .env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+✅ Conexão com PostgreSQL estabelecida com sucesso!
+📊 Banco de dados: point55
+⏱️ Scheduler de retirada configurado: 0 9 * * *
+⏱️ Scheduler de backup do banco configurado: 0 3 * * *
+
+🎉 ========================================
+   Servidor Point55 Backend iniciado!
+   🌐 URL: http://localhost:5000
+   🔒 Proxy confiavel: sim
+   📦 Ambiente: production
+   ⏰ Horário: 23/04/2026, 01:17:03
+========================================
+
+✅ Servidor de email pronto para enviar mensagens
+
+SIGINT recebido. Encerrando servidor...
+[dotenv@17.2.3] injecting env (78) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+✅ Conexão com PostgreSQL estabelecida com sucesso!
+📊 Banco de dados: point55
+⏱️ Scheduler de retirada configurado: 0 9 * * *
+⏱️ Scheduler de backup do banco configurado: 0 3 * * *
+
+🎉 ========================================
+   Servidor Point55 Backend iniciado!
+   🌐 URL: http://localhost:5000
+   🔒 Proxy confiavel: sim
+   📦 Ambiente: production
+   ⏰ Horário: 23/04/2026, 01:25:15
+========================================
+
+✅ Servidor de email pronto para enviar mensagens
+
+SIGINT recebido. Encerrando servidor...
+[dotenv@17.2.3] injecting env (78) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+✅ Conexão com PostgreSQL estabelecida com sucesso!
+📊 Banco de dados: point55
+⏱️ Scheduler de retirada configurado: 0 9 * * *
+⏱️ Scheduler de backup do banco configurado: 0 3 * * *
+
+🎉 ========================================
+   Servidor Point55 Backend iniciado!
+   🌐 URL: http://localhost:5000
+   🔒 Proxy confiavel: sim
+   📦 Ambiente: production
+   ⏰ Horário: 23/04/2026, 01:33:11
+========================================
+
+✅ Servidor de email pronto para enviar mensagens
+
+SIGINT recebido. Encerrando servidor...
+[dotenv@17.2.3] injecting env (78) from .env -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+✅ Conexão com PostgreSQL estabelecida com sucesso!
+📊 Banco de dados: point55
+⏱️ Scheduler de retirada configurado: 0 9 * * *
+⏱️ Scheduler de backup do banco configurado: 0 3 * * *
+
+🎉 ========================================
+   Servidor Point55 Backend iniciado!
+   🌐 URL: http://localhost:5000
+   🔒 Proxy confiavel: sim
+   📦 Ambiente: production
+   ⏰ Horário: 02/06/2026, 00:14:12
+========================================
+
+✅ Servidor de email pronto para enviar mensagens
